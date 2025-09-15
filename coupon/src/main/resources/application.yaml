@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: coupon
+  datasource:
+    username: root
+    password: root
+    driver-class-name:  com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://172.26.62.132:53306/gulimall_sms
+mybatis-plus:
+  global-config:
+    db-config:
+      id-type: auto
+server:
+  port: 52100
