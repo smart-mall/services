@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: gateway
+  config:
+    import:
+      - optional:classpath:application-common.yaml
+  cloud:
+    gateway:
+      server:
+        webmvc:
+          routes:
+            - id: text
+              uri: https://www.baidu.com
+              predicates:
+                - Query=url,baidu
+
+server:
+  port: 53000

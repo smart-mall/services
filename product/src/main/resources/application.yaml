@@ -1,14 +1,10 @@
 spring:
   application:
     name: product
+  config:
+    import:
+      - optional:classpath:application-common.yaml
   datasource:
-    username: root
-    password: root
-    driver-class-name:  com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://172.26.62.132:53306/gulimall_pms
-mybatis-plus:
-  global-config:
-    db-config:
-      id-type: auto
+    name: gulimall_pms
 server:
   port: 52400

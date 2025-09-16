@@ -1,0 +1,11 @@
+# 参数配置
+
+# mysql
+MYSQL-URL: localhost
+MYSQL-PORT: 53306
+MYSQL-USERNAME: root
+MYSQL-PASSWORD: root
+
+# nacos
+NACOS-URL: localhost
+NACOS-PORT: 58848

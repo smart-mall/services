@@ -1,14 +1,10 @@
 spring:
   application:
-    name: coupon
+    name: member
+  config:
+    import:
+      - optional:classpath:application-common.yaml
   datasource:
-    username: root
-    password: root
-    driver-class-name:  com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://172.26.62.132:53306/gulimall_ums
-mybatis-plus:
-  global-config:
-    db-config:
-      id-type: auto
+    name: gulimall_ums
 server:
   port: 52200

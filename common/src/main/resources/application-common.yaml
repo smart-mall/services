@@ -1,0 +1,23 @@
+spring:
+  config:
+    import:
+      - optional:classpath:args.yaml
+      - optional:nacos:${spring.application.name}.${spring.cloud.nacos.config.file-extension}?group=${spring.cloud.nacos.config.group}
+  datasource:
+    username: ${MYSQL-USERNAME}
+    password: ${MYSQL-PASSWORD}
+    driver-class-name:  com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${MYSQL-URL}:${MYSQL-PORT}/${spring.datasource.name}
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS-URL}:${NACOS-PORT}
+      config:
+        server-addr: ${NACOS-URL}:${NACOS-PORT}
+        file-extension: yaml
+        group: gulimall
+        namespace: gulimall
+mybatis-plus:
+  global-config:
+    db-config:
+      id-type: auto
