@@ -9,10 +9,18 @@ spring:
       server:
         webmvc:
           routes:
-            - id: text
-              uri: https://www.baidu.com
+            - id: product-route
+              uri: lb://product
               predicates:
-                - Query=url,baidu
+                - Path=/api/product/**
+              filters:
+                - RewritePath=/api/(?<segment>.*),/$\{segment}
+            - id: admin-route
+              uri: lb://renren-fast
+              predicates:
+                - Path=/api/**
+              filters:
+                - RewritePath=/api/(?<segment>.*),/renren-fast/$\{segment}
 
 server:
   port: 53000

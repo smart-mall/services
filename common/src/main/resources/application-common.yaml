@@ -21,3 +21,5 @@ mybatis-plus:
   global-config:
     db-config:
       id-type: auto
+      logic-delete-value: 0
+      logic-not-delete-value: 1
