@@ -4,8 +4,9 @@ import common.utils.PageUtils;
 import common.utils.R;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import product.entity.AttrEntity;
 import product.service.AttrService;
+import product.vo.AttrRespVO;
+import product.vo.AttrVO;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -27,6 +28,17 @@ public class AttrController {
     /**
      * 列表
      */
+    @RequestMapping("/{attrType}/list/{category}")
+    public R baseAttrList(@RequestParam Map<String, Object> params, @PathVariable Long category, @PathVariable String attrType){
+
+        PageUtils page = attrService.queryBaseAttrPage(params, category, attrType);
+
+        return R.ok().put("page", page);
+    }
+
+    /**
+     * 列表
+     */
     @RequestMapping("/list")
     public R list(@RequestParam Map<String, Object> params){
         PageUtils page = attrService.queryPage(params);
@@ -40,7 +52,7 @@ public class AttrController {
      */
     @RequestMapping("/info/{attrId}")
     public R info(@PathVariable("attrId") Long attrId){
-		AttrEntity attr = attrService.getById(attrId);
+		AttrRespVO attr = attrService.getAttrInfo(attrId);
 
         return R.ok().put("attr", attr);
     }
@@ -49,8 +61,8 @@ public class AttrController {
      * 保存
      */
     @RequestMapping("/save")
-    public R save(@RequestBody AttrEntity attr){
-		attrService.save(attr);
+    public R save(@RequestBody AttrVO attr){
+		attrService.saveAttr(attr);
 
         return R.ok();
     }
@@ -59,8 +71,8 @@ public class AttrController {
      * 修改
      */
     @RequestMapping("/update")
-    public R update(@RequestBody AttrEntity attr){
-		attrService.updateById(attr);
+    public R update(@RequestBody AttrVO attr){
+		attrService.updateAttr(attr);
 
         return R.ok();
     }

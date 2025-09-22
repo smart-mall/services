@@ -16,6 +16,7 @@
         <module name="gateway" />
         <module name="order" />
         <module name="renren-generator" />
+        <module name="third-party" />
       </profile>
     </annotationProcessing>
   </component>
@@ -29,6 +30,7 @@
       <module name="product" options="-parameters" />
       <module name="renren-fast" options="-parameters" />
       <module name="renren-generator" options="-parameters" />
+      <module name="third-party" options="-parameters" />
       <module name="ware" options="-parameters" />
     </option>
   </component>

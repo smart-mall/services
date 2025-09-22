@@ -2,7 +2,10 @@ package product.controller;
 
 import common.utils.PageUtils;
 import common.utils.R;
+import common.valid.AddGroup;
+import common.valid.UpdateGroup;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import product.entity.BrandEntity;
 import product.service.BrandService;
@@ -49,7 +52,8 @@ public class BrandController {
      * 保存
      */
     @RequestMapping("/save")
-    public R save(@RequestBody BrandEntity brand){
+    public R save(@Validated(AddGroup.class) @RequestBody BrandEntity brand){
+
 		brandService.save(brand);
 
         return R.ok();
@@ -59,8 +63,8 @@ public class BrandController {
      * 修改
      */
     @RequestMapping("/update")
-    public R update(@RequestBody BrandEntity brand){
-		brandService.updateById(brand);
+    public R update(@Validated(UpdateGroup.class) @RequestBody BrandEntity brand){
+		brandService.updateDetail(brand);
 
         return R.ok();
     }

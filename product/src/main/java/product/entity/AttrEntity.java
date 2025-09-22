@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
+import java.io.Serial;
 import java.io.Serializable;
 
 /**
@@ -16,6 +17,7 @@ import java.io.Serializable;
 @Data
 @TableName("pms_attr")
 public class AttrEntity implements Serializable {
+	@Serial
 	private static final long serialVersionUID = 1L;
 
 	/**
@@ -43,6 +45,10 @@ public class AttrEntity implements Serializable {
 	 * 属性类型[0-销售属性，1-基本属性
 	 */
 	private Integer attrType;
+	/**
+	 * 属性值类型[0-唯一，1-单选]
+	 */
+	private Integer valueType;
 	/**
 	 * 启用状态[0 - 禁用，1 - 启用]
 	 */

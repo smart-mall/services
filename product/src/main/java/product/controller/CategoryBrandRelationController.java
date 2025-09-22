@@ -8,6 +8,7 @@ import product.entity.CategoryBrandRelationEntity;
 import product.service.CategoryBrandRelationService;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 
@@ -23,6 +24,16 @@ import java.util.Map;
 public class CategoryBrandRelationController {
     @Autowired
     private CategoryBrandRelationService categoryBrandRelationService;
+
+    /**
+     * 获取分类关联列表
+     */
+    @GetMapping("/catelog/list")
+    public R catelogList(@RequestParam Long brandId){
+        List<CategoryBrandRelationEntity> list = categoryBrandRelationService.listCategoryBrandRelation(brandId);
+
+        return R.ok().put("list", list);
+    }
 
     /**
      * 列表
@@ -50,7 +61,7 @@ public class CategoryBrandRelationController {
      */
     @RequestMapping("/save")
     public R save(@RequestBody CategoryBrandRelationEntity categoryBrandRelation){
-		categoryBrandRelationService.save(categoryBrandRelation);
+		categoryBrandRelationService.saveDetail(categoryBrandRelation);
 
         return R.ok();
     }

@@ -9,3 +9,8 @@ MYSQL-PASSWORD: root
 # nacos
 NACOS-URL: localhost
 NACOS-PORT: 58848
+
+minio:
+  endpoint: http://localhost:59000
+  access-key: minioadmin  # 访问密钥（默认 minioadmin）
+  secret-key: minioadmin  # 密钥（
