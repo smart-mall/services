@@ -1637,7 +1637,7 @@ DROP TABLE IF EXISTS `pms_sku_images`;
 CREATE TABLE `pms_sku_images`  (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
   `sku_id` bigint(20) NULL DEFAULT NULL COMMENT 'sku_id',
-  `img_url` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '图片地址',
+  `img_url` varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '图片地址',
   `img_sort` int(11) NULL DEFAULT NULL COMMENT '排序',
   `default_img` int(11) NULL DEFAULT NULL COMMENT '默认图[0 - 不是默认图，1 - 是默认图]',
   PRIMARY KEY (`id`) USING BTREE
@@ -1725,7 +1725,7 @@ CREATE TABLE `pms_sku_info`  (
   `sku_desc` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'sku介绍描述',
   `catalog_id` bigint(20) NULL DEFAULT NULL COMMENT '所属分类id',
   `brand_id` bigint(20) NULL DEFAULT NULL COMMENT '品牌id',
-  `sku_default_img` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '默认图片',
+  `sku_default_img` varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '默认图片',
   `sku_title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '标题',
   `sku_subtitle` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '副标题',
   `price` decimal(18, 4) NULL DEFAULT NULL COMMENT '价格',

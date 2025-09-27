@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import product.dao.BrandDao;
 import product.dao.CategoryBrandRelationDao;
 import product.dao.CategoryDao;
+import product.entity.BrandEntity;
 import product.entity.CategoryBrandRelationEntity;
 import product.service.CategoryBrandRelationService;
 
@@ -70,6 +71,13 @@ public class CategoryBrandRelationServiceImpl extends ServiceImpl<CategoryBrandR
         new LambdaUpdateWrapper<CategoryBrandRelationEntity>()
                 .eq(CategoryBrandRelationEntity::getCatelogId, catId)
                 .set(CategoryBrandRelationEntity::getCatelogName, name);
+    }
+
+    @Override
+    public List<BrandEntity> getBrandByCatId(Long catId) {
+        List<CategoryBrandRelationEntity> list = this.list(new LambdaQueryWrapper<>(CategoryBrandRelationEntity.class).eq(CategoryBrandRelationEntity::getCatelogId, catId));
+        List<Long> ids = list.stream().map(CategoryBrandRelationEntity::getBrandId).toList();
+        return brandDao.selectByIds(ids);
     }
 
 }

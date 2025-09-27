@@ -10,6 +10,7 @@ import product.service.AttrGroupService;
 import product.service.AttrService;
 import product.service.CategoryService;
 import product.vo.AttrGroupRelationVO;
+import product.vo.AttrGroupWithAttrsVO;
 
 import java.util.Arrays;
 import java.util.List;
@@ -36,6 +37,16 @@ public class AttrGroupController {
         this.categoryService = categoryService;
         this.attrService = attrService;
         this.relationService = relationService;
+    }
+
+    /**
+     * 根据分类id获取属性分组以及具体属性
+     */
+    @GetMapping("/{catelogId}/withattr")
+    public R getAttrGroupWithAttrs(@PathVariable Long catelogId) {
+        List<AttrGroupWithAttrsVO> list = attrGroupService.getAttrGroupWithAttrs(catelogId);
+
+        return R.ok().put("data", list);
     }
 
     /**

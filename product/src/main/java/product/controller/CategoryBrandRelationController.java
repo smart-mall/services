@@ -4,8 +4,10 @@ import common.utils.PageUtils;
 import common.utils.R;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import product.entity.BrandEntity;
 import product.entity.CategoryBrandRelationEntity;
 import product.service.CategoryBrandRelationService;
+import product.vo.BrandVO;
 
 import java.util.Arrays;
 import java.util.List;
@@ -34,6 +36,26 @@ public class CategoryBrandRelationController {
 
         return R.ok().put("list", list);
     }
+
+    /**
+     * 获取分类品牌关联表
+     */
+    @GetMapping("/brands/list")
+    public R relationBrandList(@RequestParam Long catId){
+        List<BrandEntity> list = categoryBrandRelationService.getBrandByCatId(catId);
+
+        List<BrandVO> data = list.stream().map(item -> {
+            BrandVO brandVO = new BrandVO();
+            brandVO.setBrandId(item.getBrandId());
+            brandVO.setName(item.getName());
+
+            return brandVO;
+        }).toList();
+
+        return R.ok().put("data", data);
+    }
+
+
 
     /**
      * 列表
