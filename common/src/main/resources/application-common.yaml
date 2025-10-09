@@ -17,6 +17,9 @@ spring:
         file-extension: yaml
         group: gulimall
         namespace: gulimall
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
 mybatis-plus:
   global-config:
     db-config:

@@ -1,5 +1,6 @@
 package product.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -144,7 +145,7 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
                 SkuInfoEntity skuInfoEntity = new SkuInfoEntity();
                 BeanUtils.copyProperties(sku, skuInfoEntity);
                 skuInfoEntity.setBrandId(spuInfoEntity.getBrandId());
-                skuInfoEntity.setCatalogId(spuInfoEntity.getCatalogId());
+                skuInfoEntity.setCatelogId(spuInfoEntity.getCatelogId());
                 skuInfoEntity.setSaleCount(0L);
                 skuInfoEntity.setSkuDefaultImg(defaultImage);
                 skuInfoEntity.setSpuId(spuInfoEntity.getId());
@@ -191,6 +192,41 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
         }
 
 
+    }
+
+    @Override
+    public PageUtils queryPageByCondition(Map<String, Object> params) {
+        LambdaQueryWrapper<SpuInfoEntity> queryWrapper = new LambdaQueryWrapper<>();
+
+        String key = (String) params.get("key");
+        if (key != null && !key.isEmpty()) {
+            queryWrapper.and(item -> {
+                item.eq(SpuInfoEntity::getId, key).or().like(SpuInfoEntity::getSpuName, key);
+            });
+        }
+
+        String status = (String) params.get("status");
+        if (status != null && !status.isEmpty()) {
+            queryWrapper.eq(SpuInfoEntity::getPublishStatus, status);
+        }
+
+        String brandId = (String) params.get("brandId");
+        if (brandId != null && !brandId.isEmpty() && !"0".equals(brandId)) {
+            queryWrapper.eq(SpuInfoEntity::getBrandId, brandId);
+        }
+
+        String catelogId = (String) params.get("catelogId");
+        if (catelogId != null && !catelogId.isEmpty()  && !"0".equals(catelogId)) {
+            queryWrapper.eq(SpuInfoEntity::getCatelogId, catelogId);
+        }
+
+
+        IPage<SpuInfoEntity> page = this.page(
+                new Query<SpuInfoEntity>().getPage(params),
+                queryWrapper
+        );
+
+        return new PageUtils(page);
     }
 
 

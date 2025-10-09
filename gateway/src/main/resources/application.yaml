@@ -21,6 +21,12 @@ spring:
                 - Path=/api/member/**
               filters:
                 - RewritePath=/api/(?<segment>.*),/$\{segment}
+            - id: ware-route
+              uri: lb://ware
+              predicates:
+                - Path=/api/ware/**
+              filters:
+                - RewritePath=/api/(?<segment>.*),/$\{segment}
             - id: third-party-route
               uri: lb://third-party
               predicates:
