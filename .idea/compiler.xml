@@ -8,6 +8,7 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="product" />
+        <module name="search" />
         <module name="coupon" />
         <module name="common" />
         <module name="member" />
@@ -30,6 +31,7 @@
       <module name="product" options="-parameters" />
       <module name="renren-fast" options="-parameters" />
       <module name="renren-generator" options="-parameters" />
+      <module name="search" options="-parameters" />
       <module name="third-party" options="-parameters" />
       <module name="ware" options="-parameters" />
     </option>

@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: search
+  config:
+    import:
+      - optional:classpath:application-common.yaml
+  elasticsearch:
+    uris: http://localhost:59200
+    connection-timeout: 10s
+    socket-timeout: 30s
+
+server:
+  port: 52900

@@ -11,6 +11,7 @@ import product.dao.SkuInfoDao;
 import product.entity.SkuInfoEntity;
 import product.service.SkuInfoService;
 
+import java.util.List;
 import java.util.Map;
 
 
@@ -33,9 +34,7 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
 
         String key = (String) params.get("key");
         if (key != null && !key.isEmpty()) {
-            queryWrapper.and(wrapper -> {
-                wrapper.eq(SkuInfoEntity::getSkuId, key).or().like(SkuInfoEntity::getSkuName, key);
-            });
+            queryWrapper.and(wrapper -> wrapper.eq(SkuInfoEntity::getSkuId, key).or().like(SkuInfoEntity::getSkuName, key));
         }
 
         String catelogId = (String) params.get("catelogId");
@@ -63,4 +62,7 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
         return new PageUtils(page);
     }
 
+    public List<SkuInfoEntity> getSkusBySpuId(Long spuId) {
+        return this.list(new LambdaQueryWrapper<SkuInfoEntity>().eq(SkuInfoEntity::getSpuId, spuId));
+    }
 }

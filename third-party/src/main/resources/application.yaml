@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: third-party
+  config:
+    import:
+      - optional:classpath:application-common.yaml
+  datasource:
+    name: third-party
+server:
+  port: 52600

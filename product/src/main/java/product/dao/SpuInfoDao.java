@@ -13,5 +13,6 @@ import product.entity.SpuInfoEntity;
  */
 @Mapper
 public interface SpuInfoDao extends BaseMapper<SpuInfoEntity> {
-	
+
+    void updateSpuStatus(Long spuId, Integer code);
 }

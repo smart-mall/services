@@ -13,6 +13,7 @@ import ware.dao.WareSkuDao;
 import ware.entity.WareSkuEntity;
 import ware.feign.ProductFeignService;
 import ware.service.WareSkuService;
+import ware.vo.SkuHasStockVo;
 
 import java.util.List;
 import java.util.Map;
@@ -84,6 +85,17 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
             baseMapper.update(wareSkuEntity, updateWrapper);
         }
 
+    }
+
+    @Override
+    public List<SkuHasStockVo> getSkusHasStock(List<Long> skuIds) {
+        return skuIds.stream().map(skuId -> {
+            SkuHasStockVo skuHasStockVo = new SkuHasStockVo();
+            Long count = baseMapper.getSkuStock(skuId);
+            skuHasStockVo.setSkuId(skuId);
+            skuHasStockVo.setHasStock(count != null && count > 0);
+            return skuHasStockVo;
+        }).toList();
     }
 
 }

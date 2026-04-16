@@ -4,24 +4,30 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import common.to.SkuReductionTo;
 import common.to.SpuBoundTo;
+import common.to.es.SkuEsModel;
 import common.utils.PageUtils;
 import common.utils.Query;
 import common.utils.R;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import product.constant.ProductStatusEnum;
 import product.dao.*;
 import product.entity.*;
 import product.feign.CouponFeignService;
-import product.service.SpuInfoService;
+import product.feign.SearchFeignService;
+import product.feign.WareFeignService;
+import product.service.*;
+import product.vo.SkuHasStockVo;
 import product.vo.SpuVO;
 
 import java.math.BigDecimal;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 
 @Service("spuInfoService")
@@ -31,22 +37,38 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
     private final SpuInfoDao spuInfoDao;
     private final SpuImagesDao spuImagesDao;
     private final ProductAttrValueDao productAttrValueDao;
+    private final ProductAttrValueService productAttrValueService;
     private final AttrDao attrDao;
     private final SkuInfoDao skuInfoDao;
     private final SkuImagesDao skuImagesDao;
     private final SkuSaleAttrValueDao skuSaleAttrValueDao;
     private final CouponFeignService couponFeignService;
+    private final SkuInfoServiceImpl skuInfoService;
+    private final BrandService brandService;
+    private final CategoryService categoryService;
+    private final AttrService attrService;
+    private final WareFeignService wareFeignService;
+    private final SearchFeignService searchFeignService;
+    private final ObjectMapper objectMapper;
 
-    public SpuInfoServiceImpl(SpuInfoDao spuInfoDao, SpuInfoDescDao spuInfoDescDao, SpuImagesDao spuImagesDao, ProductAttrValueDao productAttrValueDao, AttrDao attrDao, SkuInfoDao skuInfoDao, SkuImagesDao skuImagesDao, SkuSaleAttrValueDao skuSaleAttrValueDao, CouponFeignService couponFeignService) {
+    public SpuInfoServiceImpl(SpuInfoDao spuInfoDao, SpuInfoDescDao spuInfoDescDao, SpuImagesDao spuImagesDao, ProductAttrValueDao productAttrValueDao, ProductAttrValueService productAttrValueService, AttrDao attrDao, SkuInfoDao skuInfoDao, SkuImagesDao skuImagesDao, SkuSaleAttrValueDao skuSaleAttrValueDao, CouponFeignService couponFeignService, SkuInfoServiceImpl skuInfoService, BrandService brandService, CategoryService categoryService, AttrService attrService, WareFeignService wareFeignService, SearchFeignService searchFeignService, ObjectMapper objectMapper) {
         this.spuInfoDao = spuInfoDao;
         this.spuInfoDescDao = spuInfoDescDao;
         this.spuImagesDao = spuImagesDao;
         this.productAttrValueDao = productAttrValueDao;
+        this.productAttrValueService = productAttrValueService;
         this.attrDao = attrDao;
         this.skuInfoDao = skuInfoDao;
         this.skuImagesDao = skuImagesDao;
         this.skuSaleAttrValueDao = skuSaleAttrValueDao;
         this.couponFeignService = couponFeignService;
+        this.skuInfoService = skuInfoService;
+        this.brandService = brandService;
+        this.categoryService = categoryService;
+        this.attrService = attrService;
+        this.wareFeignService = wareFeignService;
+        this.searchFeignService = searchFeignService;
+        this.objectMapper = objectMapper;
     }
 
 
@@ -200,9 +222,7 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
 
         String key = (String) params.get("key");
         if (key != null && !key.isEmpty()) {
-            queryWrapper.and(item -> {
-                item.eq(SpuInfoEntity::getId, key).or().like(SpuInfoEntity::getSpuName, key);
-            });
+            queryWrapper.and(item -> item.eq(SpuInfoEntity::getId, key).or().like(SpuInfoEntity::getSpuName, key));
         }
 
         String status = (String) params.get("status");
@@ -227,6 +247,76 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
         );
 
         return new PageUtils(page);
+    }
+
+    @Override
+    public void up(Long spuId) {
+        List<SkuInfoEntity> skus = skuInfoService.getSkusBySpuId(spuId);
+
+        List<ProductAttrValueEntity> baseAttrs = productAttrValueService.baseAttrListForSpu(spuId);
+        List<Long> attrIds = baseAttrs.stream().map(ProductAttrValueEntity::getAttrId).toList();
+
+        List<Long> searchAttrIds = attrService.selectSearchAttrs(attrIds);
+
+        Set<Long> idSet = new HashSet<>(searchAttrIds);
+        List<SkuEsModel.Attrs> attrsList = baseAttrs.stream()
+                .filter(item -> idSet.contains(item.getAttrId()))
+                .map(item -> {
+                    SkuEsModel.Attrs attrs01 = new SkuEsModel.Attrs();
+                    BeanUtils.copyProperties(item, attrs01);
+                    return attrs01;
+                })
+                .toList();
+
+        List<Long> skuIdList = skus.stream().map(SkuInfoEntity::getSkuId).toList();
+        Map<Long, Boolean> stockMap = null;
+        try {
+            R res = wareFeignService.getSkusHasStock(skuIdList);
+            Object o = res.get("data");
+            List<SkuHasStockVo> skuHasStockVos = new ArrayList<>();
+            if (o instanceof List) {
+                skuHasStockVos = objectMapper.convertValue(o,
+                        new TypeReference<>() {
+                        });
+            }
+            stockMap = skuHasStockVos.stream().collect(Collectors.toMap(SkuHasStockVo::getSkuId, SkuHasStockVo::getHasStock));
+        } catch (Exception e) {
+            log.error("库存服务异常", e);
+        }
+
+
+        Map<Long, Boolean> finalStockMap = stockMap;
+        List<SkuEsModel> list = skus.stream().map(item -> {
+            SkuEsModel model = new SkuEsModel();
+            BeanUtils.copyProperties(item, model);
+
+            model.setSkuPrice(item.getPrice());
+            model.setSkuImg(item.getSkuDefaultImg());
+
+            if (finalStockMap == null) {
+                model.setHasStock(true);
+            } else {
+                model.setHasStock(finalStockMap.get(item.getSkuId()));
+            }
+
+            model.setHotScore(0L);
+
+            BrandEntity brand = brandService.getById(item.getBrandId());
+            model.setBrandName(brand.getName());
+            model.setBrandImg(brand.getLogo());
+
+            CategoryEntity byId = categoryService.getById(item.getCatelogId());
+            model.setCatalogName(byId.getName());
+
+            model.setAttrs(attrsList);
+
+            return model;
+        }).toList();
+
+        R r = searchFeignService.productStatusUp(list);
+        if (r.getCode() == 0) {
+            this.baseMapper.updateSpuStatus(spuId, ProductStatusEnum.UP.getCode());
+        }
     }
 
 

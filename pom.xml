@@ -11,6 +11,7 @@
 
     <modules>
         <module>coupon</module>
+        <module>search</module>
         <module>member</module>
         <module>order</module>
         <module>product</module>
@@ -18,5 +19,7 @@
         <module>gateway</module>
         <module>renren-fast</module>
         <module>renren-generator</module>
+        <module>common</module>
+        <module>third-party</module>
     </modules>
 </project>
