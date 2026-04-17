@@ -8,6 +8,23 @@ spring:
     password: ${MYSQL-PASSWORD}
     driver-class-name:  com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://${MYSQL-URL}:${MYSQL-PORT}/${spring.datasource.name}
+  data:
+    redis:
+      host: ${redis.host}
+      port: ${redis.port}
+      password: ${redis.password}
+      dataBase: 0
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: 5000ms
+  cache:
+    type: redis
+    redis:
+      time-to-live: 3600000
+      key-prefix: "cache:"
   cloud:
     nacos:
       discovery:
@@ -20,6 +37,9 @@ spring:
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: GMT+8
+  thymeleaf:
+    cache: false
+
 mybatis-plus:
   mapper-locations: classpath:mapper/**/*.xml
   global-config:
@@ -27,6 +47,4 @@ mybatis-plus:
       id-type: auto
       logic-delete-value: 0
       logic-not-delete-value: 1
-thymeleaf:
-  cache: false
 
