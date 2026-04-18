@@ -42,7 +42,12 @@ spring:
             - id: host-route
               uri: lb://product
               predicates:
-                - Host=**gulimall.com
+                - Host=gulimall.com
+                - Path=/**
+            - id: search-route
+              uri: lb://search
+              predicates:
+                - Host=search.gulimall.com
                 - Path=/**
 
 server:

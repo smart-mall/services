@@ -8,3 +8,4 @@ spring:
     name: gulimall_pms
 server:
   port: 52400
+
