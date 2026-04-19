@@ -1,6 +1,6 @@
 package auth.controller;
 
-import auth.constant.AuthServerConstant;
+import common.constant.AuthServerConstant;
 import auth.feign.MemberFeignService;
 import auth.feign.ThirdPartFeignService;
 import auth.vo.UserLoginVo;
@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static auth.constant.AuthServerConstant.LOGIN_USER;
+import static common.constant.AuthServerConstant.LOGIN_USER;
 
 
 @Controller

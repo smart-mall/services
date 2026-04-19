@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: cart
+  config:
+    import:
+      - optional:classpath:application-common.yaml
+server:
+  port: 53200
+

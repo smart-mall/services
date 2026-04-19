@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.util.HashMap;
 import java.util.Map;
 
-import static auth.constant.AuthServerConstant.LOGIN_USER;
+import static common.constant.AuthServerConstant.LOGIN_USER;
 
 
 /**

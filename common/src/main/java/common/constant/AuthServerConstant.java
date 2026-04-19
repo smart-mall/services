@@ -1,4 +1,4 @@
-package auth.constant;
+package common.constant;
 
 
 public class AuthServerConstant {

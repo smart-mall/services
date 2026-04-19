@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 
-import static auth.constant.AuthServerConstant.LOGIN_USER;
+import static common.constant.AuthServerConstant.LOGIN_USER;
 
 
 /**
