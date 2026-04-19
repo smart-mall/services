@@ -1,3 +1,4 @@
 common.config.GlobalExceptionHandler
 common.config.MybatisConfig
 common.config.CacheConfig
+common.config.MyThreadConfig

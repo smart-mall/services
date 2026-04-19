@@ -49,6 +49,11 @@ spring:
               predicates:
                 - Host=search.gulimall.com
                 - Path=/**
+            - id: item-route
+              uri: lb://product
+              predicates:
+                - Host=item.gulimall.com
+                - Path=/**
 
 server:
   port: 53000

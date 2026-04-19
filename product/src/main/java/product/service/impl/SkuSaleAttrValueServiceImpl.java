@@ -9,7 +9,9 @@ import org.springframework.stereotype.Service;
 import product.dao.SkuSaleAttrValueDao;
 import product.entity.SkuSaleAttrValueEntity;
 import product.service.SkuSaleAttrValueService;
+import product.vo.SkuItemSaleAttrVo;
 
+import java.util.List;
 import java.util.Map;
 
 
@@ -24,6 +26,22 @@ public class SkuSaleAttrValueServiceImpl extends ServiceImpl<SkuSaleAttrValueDao
         );
 
         return new PageUtils(page);
+    }
+
+    @Override
+    public List<SkuItemSaleAttrVo> getSaleAttrBySpuId(Long spuId) {
+
+        SkuSaleAttrValueDao baseMapper = this.getBaseMapper();
+
+        return baseMapper.getSaleAttrBySpuId(spuId);
+    }
+
+    @Override
+    public List<String> getSkuSaleAttrValuesAsStringList(Long skuId) {
+
+        SkuSaleAttrValueDao baseMapper = this.baseMapper;
+
+        return baseMapper.getSkuSaleAttrValuesAsStringList(skuId);
     }
 
 }

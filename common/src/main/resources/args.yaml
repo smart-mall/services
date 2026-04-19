@@ -18,4 +18,9 @@ redis:
 minio:
   endpoint: http://localhost:59000
   access-key: minioadmin  # 访问密钥（默认 minioadmin）
-  secret-key: minioadmin  # 密钥（
+  secret-key: minioadmin  # 密钥
+
+thread:
+  coreSize: 10
+  maxSize: 10
+  keepAliveTime: 10

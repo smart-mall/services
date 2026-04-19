@@ -10,6 +10,7 @@ import product.dao.SkuImagesDao;
 import product.entity.SkuImagesEntity;
 import product.service.SkuImagesService;
 
+import java.util.List;
 import java.util.Map;
 
 
@@ -26,4 +27,8 @@ public class SkuImagesServiceImpl extends ServiceImpl<SkuImagesDao, SkuImagesEnt
         return new PageUtils(page);
     }
 
+    @Override
+    public List<SkuImagesEntity> getImagesBySkuId(Long skuId) {
+        return List.of();
+    }
 }
