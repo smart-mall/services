@@ -1,6 +1,6 @@
 package search.service;
 
-import common.to.es.SkuEsModel;
+import es.SkuEsModel;
 
 import java.util.List;
 

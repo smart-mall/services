@@ -39,6 +39,10 @@ spring:
     time-zone: GMT+8
   thymeleaf:
     cache: false
+  session:
+    redis:
+      namespace: session
+      flush-mode: on_save
 mybatis-plus:
   mapper-locations: classpath:mapper/**/*.xml
   global-config:
@@ -46,3 +50,7 @@ mybatis-plus:
       id-type: auto
       logic-delete-value: 0
       logic-not-delete-value: 1
+server:
+  servlet:
+    session:
+      timeout: 10d

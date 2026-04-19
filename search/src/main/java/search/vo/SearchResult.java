@@ -1,6 +1,6 @@
 package search.vo;
 
-import common.to.es.SkuEsModel;
+import es.SkuEsModel;
 import lombok.Data;
 
 import java.util.ArrayList;

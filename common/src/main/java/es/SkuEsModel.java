@@ -1,4 +1,4 @@
-package common.to.es;
+package es;
 
 import lombok.Data;
 

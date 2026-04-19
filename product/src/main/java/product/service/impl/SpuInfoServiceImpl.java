@@ -8,7 +8,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import common.to.SkuReductionTo;
 import common.to.SpuBoundTo;
-import common.to.es.SkuEsModel;
+import es.SkuEsModel;
 import common.utils.PageUtils;
 import common.utils.Query;
 import common.utils.R;

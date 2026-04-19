@@ -1,7 +1,7 @@
 package search.controller;
 
 import common.exception.BaseCodeEnum;
-import common.to.es.SkuEsModel;
+import es.SkuEsModel;
 import common.utils.R;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;

@@ -21,5 +21,6 @@
         <module>renren-generator</module>
         <module>common</module>
         <module>third-party</module>
+        <module>auth</module>
     </modules>
 </project>

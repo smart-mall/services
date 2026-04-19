@@ -43,17 +43,34 @@ spring:
               uri: lb://product
               predicates:
                 - Host=gulimall.com
-                - Path=/**
             - id: search-route
               uri: lb://search
               predicates:
                 - Host=search.gulimall.com
-                - Path=/**
             - id: item-route
               uri: lb://product
               predicates:
                 - Host=item.gulimall.com
-                - Path=/**
+            - id: auth_route
+              uri: lb://auth
+              predicates:
+                - Host=auth.gulimall.com
+            - id: cart_route
+              uri: lb://cart
+              predicates:
+                - Host=cart.gulimall.com
+            - id: order_route
+              uri: lb://order
+              predicates:
+                - Host=order.gulimall.com
+            - id: member_route
+              uri: lb://member
+              predicates:
+                - Host=member.gulimall.com
+            - id: seckill_route
+              uri: lb://seckill
+              predicates:
+                - Host=seckill.gulimall.com
 
 server:
   port: 53000

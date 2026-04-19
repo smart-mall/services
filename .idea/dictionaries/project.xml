@@ -8,6 +8,7 @@
       <w>gulimall</w>
       <w>haserror</w>
       <w>listforspu</w>
+      <w>loginacct</w>
       <w>minioadmin</w>
       <w>nacos</w>
       <w>noattr</w>
@@ -15,7 +16,9 @@
       <w>skufullreduction</w>
       <w>skuinfo</w>
       <w>spubounds</w>
+      <w>sunlightcs</w>
       <w>unreceive</w>
+      <w>weixin</w>
       <w>withattr</w>
     </words>
   </dictionary>

@@ -1,6 +1,6 @@
 package product.feign;
 
-import common.to.es.SkuEsModel;
+import es.SkuEsModel;
 import common.utils.R;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;

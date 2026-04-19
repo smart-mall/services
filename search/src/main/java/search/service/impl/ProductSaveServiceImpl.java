@@ -1,6 +1,6 @@
 package search.service.impl;
 
-import common.to.es.SkuEsModel;
+import es.SkuEsModel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.elasticsearch.client.elc.ElasticsearchTemplate;

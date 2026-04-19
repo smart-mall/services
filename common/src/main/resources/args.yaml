@@ -24,3 +24,9 @@ thread:
   coreSize: 10
   maxSize: 10
   keepAliveTime: 10
+
+wx:
+  open:
+    app_id: 1
+    app_secret: 1
+    redirect_url: http://localhost:8080/wx/open/callback

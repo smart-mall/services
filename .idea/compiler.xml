@@ -11,6 +11,7 @@
         <module name="search" />
         <module name="coupon" />
         <module name="common" />
+        <module name="auth" />
         <module name="member" />
         <module name="renren-fast" />
         <module name="ware" />
@@ -23,6 +24,7 @@
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="auth" options="-parameters" />
       <module name="common" options="-parameters" />
       <module name="coupon" options="-parameters" />
       <module name="gateway" options="-parameters" />
