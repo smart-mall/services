@@ -12,9 +12,9 @@ import org.springframework.web.servlet.ModelAndView;
 
 import java.util.UUID;
 
-import static cart.constant.CartConstant.TEMP_USER_COOKIE_NAME;
-import static cart.constant.CartConstant.TEMP_USER_COOKIE_TIMEOUT;
 import static common.constant.AuthServerConstant.LOGIN_USER;
+import static common.constant.CartConstant.TEMP_USER_COOKIE_NAME;
+import static common.constant.CartConstant.TEMP_USER_COOKIE_TIMEOUT;
 
 
 /**

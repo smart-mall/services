@@ -5,12 +5,12 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import common.constant.ProductConstant;
 import common.utils.PageUtils;
 import common.utils.Query;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import product.constant.AttrEnum;
 import product.dao.AttrAttrgroupRelationDao;
 import product.dao.AttrDao;
 import product.dao.AttrGroupDao;
@@ -63,7 +63,7 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
         BeanUtils.copyProperties(attr, attrEntity);
         this.save(attrEntity);
 
-        if (attr.getAttrType() == AttrEnum.TYPE_BASE.getCode()) {
+        if (attr.getAttrType() == ProductConstant.AttrEnum.TYPE_BASE.getCode()) {
             AttrAttrgroupRelationEntity relation = new AttrAttrgroupRelationEntity();
             relation.setAttrId(attrEntity.getAttrId());
             relation.setAttrGroupId(attr.getAttrGroupId());
@@ -77,8 +77,8 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
         LambdaQueryWrapper<AttrEntity> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(AttrEntity::getAttrType,
                 "base".equalsIgnoreCase(attrType) ?
-                        AttrEnum.TYPE_BASE.getCode() :
-                        AttrEnum.TYPE_SALE.getCode()
+                        ProductConstant.AttrEnum.TYPE_BASE.getCode() :
+                        ProductConstant.AttrEnum.TYPE_SALE.getCode()
         );
 
         String key = (String) params.get("key");
@@ -165,7 +165,7 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
         BeanUtils.copyProperties(attr, attrEntity);
         this.updateById(attrEntity);
 
-        if (attr.getAttrType() != AttrEnum.TYPE_BASE.getCode()) {
+        if (attr.getAttrType() != ProductConstant.AttrEnum.TYPE_BASE.getCode()) {
             return;
         }
 
@@ -225,7 +225,7 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
 
         LambdaQueryWrapper<AttrEntity> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(AttrEntity::getCatelogId, catelogId)
-                .eq(AttrEntity::getAttrType, AttrEnum.TYPE_BASE.getCode())
+                .eq(AttrEntity::getAttrType, ProductConstant.AttrEnum.TYPE_BASE.getCode())
                 .notIn(!attrIds.isEmpty(), AttrEntity::getAttrId, attrIds);
 
         String key = (String) params.get("key");

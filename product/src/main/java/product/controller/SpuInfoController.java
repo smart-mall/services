@@ -2,6 +2,7 @@ package product.controller;
 
 import common.utils.PageUtils;
 import common.utils.R;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import product.entity.SpuInfoEntity;
@@ -21,9 +22,19 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("product/spuinfo")
+@Slf4j
 public class SpuInfoController {
     @Autowired
     private SpuInfoService spuInfoService;
+
+    @GetMapping(value = "/skuId/{skuId}")
+    public R getSpuInfoBySkuId(@PathVariable("skuId") Long skuId) {
+        log.info("根据skuId查询spu信息");
+
+        SpuInfoEntity spuInfoEntity = spuInfoService.getSpuInfoBySkuId(skuId);
+
+        return R.ok().setData(spuInfoEntity);
+    }
 
     /**
      * 商品上架

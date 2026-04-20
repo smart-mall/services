@@ -43,6 +43,18 @@ spring:
     redis:
       namespace: session
       flush-mode: on_save
+  rabbitmq:
+    host: ${rabbitmq.host}
+    port: ${rabbitmq.port}
+    virtual-host: ${rabbitmq.virtual-host}
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+    listener:
+      simple:
+        acknowledge-mode: manual
+
 mybatis-plus:
   mapper-locations: classpath:mapper/**/*.xml
   global-config:
@@ -54,3 +66,5 @@ server:
   servlet:
     session:
       timeout: 10d
+
+

@@ -19,14 +19,13 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.stream.Collectors;
 
-import static cart.constant.CartConstant.CART_PREFIX;
+import static common.constant.CartConstant.CART_PREFIX;
 
 
 /**
@@ -255,7 +254,7 @@ public class CartServiceImpl implements CartService {
     @Override
     public List<CartItemVo> getUserCartItems() {
 
-        List<CartItemVo> cartItemVoList = new ArrayList<>();
+        List<CartItemVo> cartItemVoList;
         //获取当前用户登录的信息
         UserInfoTo userInfoTo = CartInterceptor.toThreadLocal.get();
         //如果用户未登录直接返回null
@@ -271,12 +270,11 @@ public class CartServiceImpl implements CartService {
             }
             //筛选出选中的
             cartItemVoList = cartItems.stream()
-                    .filter(items -> items.getCheck())
-                    .map(item -> {
+                    .filter(CartItemVo::getCheck)
+                    .peek(item -> {
                         //更新为最新的价格（查询数据库）
                         BigDecimal price = productFeignService.getPrice(item.getSkuId());
                         item.setPrice(price);
-                        return item;
                     })
                     .collect(Collectors.toList());
         }

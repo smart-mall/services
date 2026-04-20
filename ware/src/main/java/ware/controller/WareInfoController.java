@@ -1,20 +1,16 @@
 package ware.controller;
 
-import java.util.Arrays;
-import java.util.Map;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
-import ware.entity.WareInfoEntity;
-import ware.service.WareInfoService;
 import common.utils.PageUtils;
 import common.utils.R;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+import ware.entity.WareInfoEntity;
+import ware.service.WareInfoService;
+import ware.vo.FareVo;
 
+import java.util.Arrays;
+import java.util.Map;
 
 
 /**
@@ -25,10 +21,22 @@ import common.utils.R;
  * @date 2025-09-15 11:20:17
  */
 @RestController
+@Slf4j
 @RequestMapping("ware/wareinfo")
 public class WareInfoController {
     @Autowired
     private WareInfoService wareInfoService;
+
+    @GetMapping(value = "/fare")
+    public R getFare(@RequestParam("addrId") Long addrId) {
+        log.info("获取运费：{}", addrId);
+
+
+        FareVo fare = wareInfoService.getFare(addrId);
+
+        return R.ok().setData(fare);
+    }
+
 
     /**
      * 列表

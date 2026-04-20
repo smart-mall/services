@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import common.constant.ProductConstant;
 import common.to.SkuReductionTo;
 import common.to.SpuBoundTo;
 import es.SkuEsModel;
@@ -15,7 +16,6 @@ import common.utils.R;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import product.constant.ProductStatusEnum;
 import product.dao.*;
 import product.entity.*;
 import product.feign.CouponFeignService;
@@ -315,8 +315,27 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
 
         R r = searchFeignService.productStatusUp(list);
         if (r.getCode() == 0) {
-            this.baseMapper.updateSpuStatus(spuId, ProductStatusEnum.UP.getCode());
+            this.baseMapper.updateSpuStatus(spuId, ProductConstant.ProductStatusEnum.UP.getCode());
         }
+    }
+
+    @Override
+    public SpuInfoEntity getSpuInfoBySkuId(Long skuId) {
+
+        //先查询sku表里的数据
+        SkuInfoEntity skuInfoEntity = skuInfoService.getById(skuId);
+
+        //获得spuId
+        Long spuId = skuInfoEntity.getSpuId();
+
+        //再通过spuId查询spuInfo信息表里的数据
+        SpuInfoEntity spuInfoEntity = this.baseMapper.selectById(spuId);
+
+        //查询品牌表的数据获取品牌名
+        BrandEntity brandEntity = brandService.getById(spuInfoEntity.getBrandId());
+        spuInfoEntity.setBrandName(brandEntity.getName());
+
+        return spuInfoEntity;
     }
 
 
