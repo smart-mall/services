@@ -34,6 +34,10 @@ spring:
         file-extension: yaml
         group: gulimall
         namespace: gulimall
+    sentinel:
+      transport:
+        dashboard: ${sentinel.dashboard}
+        port: ${sentinel.port}
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: GMT+8
@@ -54,6 +58,12 @@ spring:
     listener:
       simple:
         acknowledge-mode: manual
+  task:
+    execution:
+      pool:
+        core-size: 5
+        max-size: 50
+
 
 mybatis-plus:
   mapper-locations: classpath:mapper/**/*.xml
@@ -66,5 +76,28 @@ server:
   servlet:
     session:
       timeout: 10d
+
+management:
+  tracing:
+    enabled: true
+    sampling:
+      probability: 1.0  # 采样率
+    propagation:
+      type: B3  # 必须用 B3 才能给 Zipkin
+  zipkin:
+    tracing:
+      endpoint: http://localhost:59411/api/v2/spans  # 正确地址
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+
+
+feign:
+  sentinel:
+    enabled: true
+
+
 
 

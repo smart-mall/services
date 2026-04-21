@@ -50,3 +50,7 @@ rabbitmq:
   host: localhost
   port: 55672
   virtual-host: /
+
+sentinel:
+  dashboard: localhost:58858
+  port: 58719

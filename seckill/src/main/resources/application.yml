@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: seckill
+  config:
+    import:
+      - optional:classpath:application-common.yaml
+server:
+  port: 53300

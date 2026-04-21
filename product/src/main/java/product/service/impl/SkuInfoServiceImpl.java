@@ -1,11 +1,13 @@
 package product.service.impl;
 
+import com.alibaba.fastjson.TypeReference;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.utils.PageUtils;
 import common.utils.Query;
+import common.utils.R;
 import org.springframework.stereotype.Service;
 import product.dao.SkuInfoDao;
 import product.entity.SkuImagesEntity;
@@ -13,6 +15,7 @@ import product.entity.SkuInfoEntity;
 import product.entity.SpuInfoDescEntity;
 import product.feign.SeckillFeignService;
 import product.service.*;
+import product.vo.SeckillSkuVo;
 import product.vo.SkuItemSaleAttrVo;
 import product.vo.SkuItemVo;
 import product.vo.SpuItemAttrGroupVo;
@@ -129,19 +132,19 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
 
         //3、远程调用查询当前sku是否参与秒杀优惠活动
         CompletableFuture<Void> seckillFuture = CompletableFuture.runAsync(() -> {
-//            R skuSeckilInfo = seckillFeignService.getSkuSeckilInfo(skuId);
-//            if (skuSeckilInfo.getCode() == 0) {
-//                //查询成功
-//                SeckillSkuVo seckilInfoData = skuSeckilInfo.getData("data", new TypeReference<SeckillSkuVo>() {});
-//                skuItemVo.setSeckillSkuVo(seckilInfoData);
-//
-//                if (seckilInfoData != null) {
-//                    long currentTime = System.currentTimeMillis();
-//                    if (currentTime > seckilInfoData.getEndTime()) {
-//                        skuItemVo.setSeckillSkuVo(null);
-//                    }
-//                }
-//            }
+            R skuSeckillInfo = seckillFeignService.getSkuSeckilInfo(skuId);
+            if (skuSeckillInfo.getCode() == 0) {
+                //查询成功
+                SeckillSkuVo seckillInfoData = skuSeckillInfo.getData("data", new TypeReference<>() {});
+                skuItemVo.setSeckillSkuVo(seckillInfoData);
+
+                if (seckillInfoData != null) {
+                    long currentTime = System.currentTimeMillis();
+                    if (currentTime > seckillInfoData.getEndTime()) {
+                        skuItemVo.setSeckillSkuVo(null);
+                    }
+                }
+            }
         }, executor);
 
 

@@ -9,6 +9,7 @@
         <outputRelativeToContentRoot value="true" />
         <module name="product" />
         <module name="coupon" />
+        <module name="seckill" />
         <module name="auth" />
         <module name="ware" />
         <module name="cart" />
@@ -36,6 +37,7 @@
       <module name="renren-fast" options="-parameters" />
       <module name="renren-generator" options="-parameters" />
       <module name="search" options="-parameters" />
+      <module name="seckill" options="-parameters" />
       <module name="third-party" options="-parameters" />
       <module name="ware" options="-parameters" />
     </option>

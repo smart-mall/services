@@ -6,3 +6,4 @@ common.config.ApplicationConfig
 common.config.GulimallSessionConfig
 common.config.RabbitConfig
 common.config.FeignConfig
+common.config.SentinelConfig

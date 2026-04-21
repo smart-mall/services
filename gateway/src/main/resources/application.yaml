@@ -9,6 +9,18 @@ spring:
       server:
         webmvc:
           routes:
+            - id: order-route
+              uri: lb://order
+              predicates:
+                - Path=/api/order/**
+              filters:
+                - RewritePath=/api/(?<segment>.*),/$\{segment}
+            - id: coupon-route
+              uri: lb://coupon
+              predicates:
+                - Path=/api/coupon/**
+              filters:
+                - RewritePath=/api/(?<segment>.*),/$\{segment}
             - id: product-route
               uri: lb://product
               predicates:
