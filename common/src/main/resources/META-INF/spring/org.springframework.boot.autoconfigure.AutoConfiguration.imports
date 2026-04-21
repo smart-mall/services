@@ -4,5 +4,5 @@ common.config.CacheConfig
 common.config.MyThreadConfig
 common.config.ApplicationConfig
 common.config.GulimallSessionConfig
-common.config.MyRabbitConfig
+common.config.RabbitConfig
 common.config.FeignConfig

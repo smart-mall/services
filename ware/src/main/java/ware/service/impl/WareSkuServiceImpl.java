@@ -36,7 +36,6 @@ import ware.vo.WareSkuLockVo;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 
 @Service("wareSkuService")
@@ -134,19 +133,9 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
         }).toList();
     }
 
-    /**
-     * 为某个订单锁定库存
-     * @param vo
-     * @return
-     */
     @Transactional(rollbackFor = Exception.class)
     @Override
     public boolean orderLockStock(WareSkuLockVo vo) {
-
-        /**
-         * 保存库存工作单详情信息
-         * 追溯
-         */
         WareOrderTaskEntity wareOrderTaskEntity = new WareOrderTaskEntity();
         wareOrderTaskEntity.setOrderSn(vo.getOrderSn());
         wareOrderTaskEntity.setCreateTime(new Date());
@@ -167,7 +156,7 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
             stock.setWareId(wareIdList);
 
             return stock;
-        }).collect(Collectors.toList());
+        }).toList();
 
         //2、锁定库存
         for (SkuWareHasStock hasStock : collect) {
@@ -197,7 +186,6 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
                             .build();
                     wareOrderTaskDetailService.save(taskDetailEntity);
 
-                    //TODO 告诉MQ库存锁定成功
                     StockLockedTo lockedTo = new StockLockedTo();
                     lockedTo.setId(wareOrderTaskEntity.getId());
                     StockDetailTo detailTo = new StockDetailTo();
@@ -210,7 +198,7 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
                 }
             }
 
-            if (skuStocked == false) {
+            if (!skuStocked) {
                 //当前商品所有仓库都没有锁住
                 throw new NoStockException(skuId);
             }

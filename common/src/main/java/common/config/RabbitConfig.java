@@ -1,6 +1,7 @@
 package common.config;
 
 import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,7 +9,8 @@ import org.springframework.context.annotation.Configuration;
 
 
 @Configuration
-public class MyRabbitConfig {
+@Slf4j
+public class RabbitConfig {
 
     @Autowired
     private RabbitTemplate rabbitTemplate;
@@ -20,12 +22,12 @@ public class MyRabbitConfig {
 
         // 设置确认回调
         rabbitTemplate.setConfirmCallback((correlationData, ack, cause) -> {
-            System.out.println("confirm...correlationData[" + correlationData + "]==>ack:[" + ack + "]==>cause:[" + cause + "]");
+            log.debug("confirm...correlationData[{}]==>ack:[{}]==>cause:[{}]", correlationData, ack, cause);
         });
 
         // 设置返回回调
         rabbitTemplate.setReturnsCallback(returnCallback -> {
-            System.out.println("ReturnsCallback...returnedMessage:[" + returnCallback.getMessage() + "]==>replyCode:[" + returnCallback.getReplyCode() + "]==>replyText:[" + returnCallback.getReplyText() + "]==>exchange:[" + returnCallback.getExchange() + "]==>routingKey:[" + returnCallback.getRoutingKey() + "]");
+            log.debug("ReturnsCallback...returnedMessage:[{}]==>replyCode:[{}]==>replyText:[{}]==>exchange:[{}]==>routingKey:[{}]", returnCallback.getMessage(), returnCallback.getReplyCode(), returnCallback.getReplyText(), returnCallback.getExchange(), returnCallback.getRoutingKey());
         });
     }
 }
