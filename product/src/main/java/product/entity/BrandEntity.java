@@ -21,8 +21,7 @@ import java.io.Serializable;
 @Data
 @TableName("pms_brand")
 public class BrandEntity implements Serializable {
-	@Serial
-	private static final long serialVersionUID = 1L;
+	@Serial private static final long serialVersionUID = 1L;
 
 	/**
 	 * 品牌id

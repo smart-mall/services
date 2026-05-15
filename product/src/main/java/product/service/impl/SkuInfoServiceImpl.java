@@ -64,9 +64,9 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
             queryWrapper.and(wrapper -> wrapper.eq(SkuInfoEntity::getSkuId, key).or().like(SkuInfoEntity::getSkuName, key));
         }
 
-        String catelogId = (String) params.get("catelogId");
-        if (catelogId != null && !catelogId.isEmpty() && !"0".equals(catelogId)) {
-            queryWrapper.eq(SkuInfoEntity::getCatelogId, catelogId);
+        String catalogId = (String) params.get("catalogId");
+        if (catalogId != null && !catalogId.isEmpty() && !"0".equals(catalogId)) {
+            queryWrapper.eq(SkuInfoEntity::getCatalogId, catalogId);
         }
 
         String brandId = (String) params.get("brandId");
@@ -118,7 +118,7 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
 
         CompletableFuture<Void> baseAttrFuture = infoFuture.thenAcceptAsync((res) -> {
             //5、获取spu的规格参数信息
-            List<SpuItemAttrGroupVo> attrGroupVos = attrGroupService.getAttrGroupWithAttrsBySpuId(res.getSpuId(), res.getCatelogId());
+            List<SpuItemAttrGroupVo> attrGroupVos = attrGroupService.getAttrGroupWithAttrsBySpuId(res.getSpuId(), res.getCatalogId());
             skuItemVo.setGroupAttrs(attrGroupVos);
         }, executor);
 

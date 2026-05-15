@@ -11,8 +11,7 @@ import java.util.Map;
  * @date 2016年10月27日 下午9:59:27
  */
 public class R extends HashMap<String, Object> {
-	private static final long serialVersionUID = 1L;
-	
+private static final long serialVersionUID = 1L;	
 	public R() {
 		put("code", 0);
 	}

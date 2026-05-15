@@ -33,7 +33,7 @@ CREATE TABLE `pms_attr`  (
   `value_select` char(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '可选值列表[用逗号分隔]',
   `attr_type` tinyint(4) NULL DEFAULT NULL COMMENT '属性类型[0-销售属性，1-基本属性',
   `enable` bigint(20) NULL DEFAULT NULL COMMENT '启用状态[0 - 禁用，1 - 启用]',
-  `catelog_id` bigint(20) NULL DEFAULT NULL COMMENT '所属分类',
+  `catalog_id` bigint(20) NULL DEFAULT NULL COMMENT '所属分类',
   `show_desc` tinyint(4) NULL DEFAULT NULL COMMENT '快速展示【是否展示在介绍上；0-否 1-是】，在sku中仍然可以调整',
   PRIMARY KEY (`attr_id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 13 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '商品属性' ROW_FORMAT = Dynamic;
@@ -88,7 +88,7 @@ CREATE TABLE `pms_attr_group`  (
   `sort` int(11) NULL DEFAULT NULL COMMENT '排序',
   `descript` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '描述',
   `icon` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '组图标',
-  `catelog_id` bigint(20) NULL DEFAULT NULL COMMENT '所属分类id',
+  `catalog_id` bigint(20) NULL DEFAULT NULL COMMENT '所属分类id',
   PRIMARY KEY (`attr_group_id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 5 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '属性分组' ROW_FORMAT = Dynamic;
 
@@ -1581,9 +1581,9 @@ DROP TABLE IF EXISTS `pms_category_brand_relation`;
 CREATE TABLE `pms_category_brand_relation`  (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `brand_id` bigint(20) NULL DEFAULT NULL COMMENT '品牌id',
-  `catelog_id` bigint(20) NULL DEFAULT NULL COMMENT '分类id',
+  `catalog_id` bigint(20) NULL DEFAULT NULL COMMENT '分类id',
   `brand_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
-  `catelog_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `catalog_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '品牌分类关联' ROW_FORMAT = Dynamic;
 

@@ -46,10 +46,10 @@ public class AttrGroupController {
     /**
      * 根据分类id获取属性分组以及具体属性
      */
-    @GetMapping("/{catelogId}/withattr")
-    public R getAttrGroupWithAttrs(@PathVariable Long catelogId) {
-        log.info("根据分类id获取属性分组以及具体属性：{}", catelogId);
-        List<AttrGroupWithAttrsVO> list = attrGroupService.getAttrGroupWithAttrs(catelogId);
+    @GetMapping("/{catalogId}/withattr")
+    public R getAttrGroupWithAttrs(@PathVariable Long catalogId) {
+        log.info("根据分类id获取属性分组以及具体属性：{}", catalogId);
+        List<AttrGroupWithAttrsVO> list = attrGroupService.getAttrGroupWithAttrs(catalogId);
 
         return R.ok().put("data", list);
     }
@@ -119,8 +119,8 @@ public class AttrGroupController {
 		AttrGroupEntity attrGroup = attrGroupService.getById(attrGroupId);
 
 
-        List<Long> catelogIds = categoryService.findCatelogIds(attrGroup.getCatelogId());
-        attrGroup.setCatelogIds(catelogIds);
+        List<Long> catalogIds = categoryService.findcatalogIds(attrGroup.getCatalogId());
+        attrGroup.setCatalogIds(catalogIds);
 
         return R.ok().put("attrGroup", attrGroup);
     }

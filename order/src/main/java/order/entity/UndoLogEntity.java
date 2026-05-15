@@ -3,7 +3,7 @@ package order.entity;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
-import java.io.Serializable;
+import java.io.Serial;import java.io.Serializable;
 import java.util.Date;
 import lombok.Data;
 
@@ -17,7 +17,7 @@ import lombok.Data;
 @Data
 @TableName("undo_log")
 public class UndoLogEntity implements Serializable {
-	private static final long serialVersionUID = 1L;
+	@Serial private static final long serialVersionUID = 1L;
 
 	/**
 	 * 

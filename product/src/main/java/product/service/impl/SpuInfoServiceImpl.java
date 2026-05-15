@@ -167,7 +167,7 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
                 SkuInfoEntity skuInfoEntity = new SkuInfoEntity();
                 BeanUtils.copyProperties(sku, skuInfoEntity);
                 skuInfoEntity.setBrandId(spuInfoEntity.getBrandId());
-                skuInfoEntity.setCatelogId(spuInfoEntity.getCatalogId());
+                skuInfoEntity.setCatalogId(spuInfoEntity.getCatalogId());
                 skuInfoEntity.setSaleCount(0L);
                 skuInfoEntity.setSkuDefaultImg(defaultImage);
                 skuInfoEntity.setSpuId(spuInfoEntity.getId());
@@ -235,9 +235,9 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
             queryWrapper.eq(SpuInfoEntity::getBrandId, brandId);
         }
 
-        String catelogId = (String) params.get("catelogId");
-        if (catelogId != null && !catelogId.isEmpty()  && !"0".equals(catelogId)) {
-            queryWrapper.eq(SpuInfoEntity::getCatalogId, catelogId);
+        String catalogId = (String) params.get("catalogId");
+        if (catalogId != null && !catalogId.isEmpty()  && !"0".equals(catalogId)) {
+            queryWrapper.eq(SpuInfoEntity::getCatalogId, catalogId);
         }
 
 
@@ -305,7 +305,7 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
             model.setBrandName(brand.getName());
             model.setBrandImg(brand.getLogo());
 
-            CategoryEntity byId = categoryService.getById(item.getCatelogId());
+            CategoryEntity byId = categoryService.getById(item.getCatalogId());
             model.setCatalogName(byId.getName());
 
             model.setAttrs(attrsList);

@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
-import java.io.Serializable;
+import java.io.Serial;import java.io.Serializable;
 
 /**
  * spu图片
@@ -16,7 +16,7 @@ import java.io.Serializable;
 @Data
 @TableName("pms_spu_images")
 public class SpuImagesEntity implements Serializable {
-	private static final long serialVersionUID = 1L;
+	@Serial private static final long serialVersionUID = 1L;
 
 	/**
 	 * id

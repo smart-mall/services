@@ -47,13 +47,13 @@ public class CategoryBrandRelationServiceImpl extends ServiceImpl<CategoryBrandR
     @Override
     public void saveDetail(CategoryBrandRelationEntity categoryBrandRelation) {
         Long brandId = categoryBrandRelation.getBrandId();
-        Long catelogId = categoryBrandRelation.getCatelogId();
+        Long catalogId = categoryBrandRelation.getCatalogId();
 
         String brandName = brandDao.selectById(brandId).getName();
-        String catelogName = categoryDao.selectById(catelogId).getName();
+        String catalogName = categoryDao.selectById(catalogId).getName();
 
         categoryBrandRelation.setBrandName(brandName);
-        categoryBrandRelation.setCatelogName(catelogName);
+        categoryBrandRelation.setCatalogName(catalogName);
 
         this.save(categoryBrandRelation);
     }
@@ -69,14 +69,14 @@ public class CategoryBrandRelationServiceImpl extends ServiceImpl<CategoryBrandR
     @Override
     public void updateCategory(Long catId, String name) {
         LambdaUpdateWrapper<CategoryBrandRelationEntity> set = new LambdaUpdateWrapper<CategoryBrandRelationEntity>()
-                .eq(CategoryBrandRelationEntity::getCatelogId, catId)
-                .set(CategoryBrandRelationEntity::getCatelogName, name);
+                .eq(CategoryBrandRelationEntity::getCatalogId, catId)
+                .set(CategoryBrandRelationEntity::getCatalogName, name);
         this.update(set);
     }
 
     @Override
     public List<BrandEntity> getBrandByCatId(Long catId) {
-        List<CategoryBrandRelationEntity> list = this.list(new LambdaQueryWrapper<>(CategoryBrandRelationEntity.class).eq(CategoryBrandRelationEntity::getCatelogId, catId));
+        List<CategoryBrandRelationEntity> list = this.list(new LambdaQueryWrapper<>(CategoryBrandRelationEntity.class).eq(CategoryBrandRelationEntity::getCatalogId, catId));
         List<Long> ids = list.stream().map(CategoryBrandRelationEntity::getBrandId).toList();
         return brandDao.selectByIds(ids);
     }

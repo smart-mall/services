@@ -3,6 +3,8 @@ package product.vo;
 import lombok.Data;
 import product.entity.AttrEntity;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.List;
 
 /**
@@ -11,9 +13,9 @@ import java.util.List;
  */
 
 @Data
-public class AttrGroupWithAttrVO {
+public class AttrGroupWithAttrVO implements Serializable {
 
-    private static final long serialVersionUID = 1L;
+    @Serial private static final long serialVersionUID = 1L;
 
     /**
      * 分组id
@@ -38,7 +40,7 @@ public class AttrGroupWithAttrVO {
     /**
      * 所属分类id
      */
-    private Long catelogId;
+    private Long catalogId;
 
     /**
      * 关联的所有属性

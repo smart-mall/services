@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import product.entity.CategoryEntity;
 import product.service.CategoryService;
-import product.vo.Catelog2Vo;
+import product.vo.Catalog2Vo;
 
 import java.util.List;
 import java.util.Map;
@@ -33,7 +33,7 @@ public class IndexController {
 
     @GetMapping(value = "/index/catalog.json")
     @ResponseBody
-    public Map<String, List<Catelog2Vo>> getCatalogJson() {
+    public Map<String, List<Catalog2Vo>> getCatalogJson() {
         return categoryService.getCatalogJson();
 
     }

@@ -4,6 +4,7 @@ import com.j256.simplemagic.ContentInfoUtil;
 import io.minio.*;
 import io.minio.http.Method;
 import io.minio.messages.DeleteObject;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -23,6 +24,7 @@ import java.util.concurrent.TimeUnit;
  * @date 2025-09-07 18:10
  */
 @Component
+@Slf4j
 public class MinIOUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(MinIOUtil.class);
@@ -1410,6 +1412,8 @@ public class MinIOUtil {
      * @param http https地址
      */
     public void deleteFile(String http) {
+        String bucket;
+        String objectName;
         try {
             // 1. 解析 URL，提取路径部分
             URI uri = new URI(http);
@@ -1420,8 +1424,20 @@ public class MinIOUtil {
 
             // 3. 分离 bucket 和 objectName
             int firstSlash = bucketAndObject.indexOf('/');
-            String bucket = bucketAndObject.substring(0, firstSlash);
-            String objectName = bucketAndObject.substring(firstSlash + 1);
+            bucket = bucketAndObject.substring(0, firstSlash);
+            objectName = bucketAndObject.substring(firstSlash + 1);
+        } catch (Exception e) {
+            bucket = "gulimall";
+            objectName = "";
+        }
+
+        try {
+
+
+            if (!isFileExists(bucket, objectName)) {
+                logger.info("文件不存在: {}/{}", bucket, objectName);
+                return;
+            }
 
             deleteFile(bucket, objectName);
         } catch (Exception e) {

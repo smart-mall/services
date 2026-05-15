@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
-import java.io.Serializable;
+import java.io.Serial;import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
 
@@ -19,7 +19,7 @@ import java.util.List;
 @Data
 @TableName("sms_seckill_session")
 public class SeckillSessionEntity implements Serializable {
-	private static final long serialVersionUID = 1L;
+	@Serial private static final long serialVersionUID = 1L;
 
 	/**
 	 * id

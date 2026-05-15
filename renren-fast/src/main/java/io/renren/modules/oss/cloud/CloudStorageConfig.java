@@ -18,7 +18,7 @@ import org.hibernate.validator.constraints.URL;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
-import java.io.Serializable;
+ import java.io.Serializable;
 
 /**
  * 云存储配置信息
@@ -27,7 +27,7 @@ import java.io.Serializable;
  */
 @Data
 public class CloudStorageConfig implements Serializable {
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L; 
 
     //类型 1：七牛  2：阿里云  3：腾讯云
     @Range(min=1, max=3, message = "类型错误")

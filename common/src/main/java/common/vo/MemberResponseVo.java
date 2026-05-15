@@ -3,7 +3,7 @@ package common.vo;
 import lombok.Data;
 import lombok.ToString;
 
-import java.io.Serializable;
+import java.io.Serial;import java.io.Serializable;
 import java.util.Date;
 
 

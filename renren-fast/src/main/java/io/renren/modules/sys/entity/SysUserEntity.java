@@ -17,7 +17,7 @@ import lombok.Data;
 
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
-import java.io.Serializable;
+ import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
 

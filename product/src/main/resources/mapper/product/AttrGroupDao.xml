@@ -10,7 +10,7 @@
         <result property="sort" column="sort"/>
         <result property="descript" column="descript"/>
         <result property="icon" column="icon"/>
-        <result property="catelogId" column="catelog_id"/>
+        <result property="catalogId" column="catalog_id"/>
     </resultMap>
 
     <resultMap id="spuAttrGroup" type="product.vo.SpuItemAttrGroupVo">
@@ -37,7 +37,7 @@
                 LEFT JOIN pms_attr_group pag ON paar.attr_group_id = pag.attr_group_id
         WHERE
             product.spu_id = #{spuId}
-          AND pag.catelog_id = #{catalogId}
+          AND pag.catalog_id = #{catalogId}
 
     </select>
 

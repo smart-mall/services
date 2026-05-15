@@ -12,6 +12,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
 import org.apache.http.HttpStatus;
 
+import java.io.Serial;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -21,7 +22,7 @@ import java.util.Map;
  * @author Mark sunlightcs@gmail.com
  */
 public class R extends HashMap<String, Object> {
-	private static final long serialVersionUID = 1L;
+	@Serial private static final long serialVersionUID = 1L;
 
 	public R setData(Object data) {
 		put("data",data);

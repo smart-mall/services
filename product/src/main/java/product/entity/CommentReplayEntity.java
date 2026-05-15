@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
-import java.io.Serializable;
+import java.io.Serial;import java.io.Serializable;
 
 /**
  * 商品评价回复关系
@@ -16,7 +16,7 @@ import java.io.Serializable;
 @Data
 @TableName("pms_comment_replay")
 public class CommentReplayEntity implements Serializable {
-	private static final long serialVersionUID = 1L;
+	@Serial private static final long serialVersionUID = 1L;
 
 	/**
 	 * id

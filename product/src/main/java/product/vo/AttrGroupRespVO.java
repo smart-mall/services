@@ -7,5 +7,5 @@ import product.entity.AttrGroupEntity;
 @EqualsAndHashCode(callSuper = true)
 @Data
 public class AttrGroupRespVO extends AttrGroupEntity {
-    private String catelogName;
+    private String catalogName;
 }

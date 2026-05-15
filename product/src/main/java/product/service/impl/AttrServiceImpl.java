@@ -94,7 +94,7 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
                     .like(AttrEntity::getAttrName, key);
         }
         if (categoryId != null && categoryId != 0) {
-            wrapper.eq(AttrEntity::getCatelogId, categoryId);
+            wrapper.eq(AttrEntity::getCatalogId, categoryId);
         }
 
         IPage<AttrEntity> page = this.page(
@@ -112,26 +112,20 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
             // 先获取组id
             Optional<AttrAttrgroupRelationEntity> first = relationEntities.stream().filter(relation -> relation.getAttrId().equals(attr.getAttrId())).findFirst();
             // 找到 组
-            if (first.isEmpty()) {
-                return attrRespVO;
+            if (first.isPresent()) {
+                AttrAttrgroupRelationEntity relation = first.get();
+                Optional<AttrGroupEntity> first1 = attrGroupEntities.stream().filter(attrGroup -> attrGroup.getAttrGroupId().equals(relation.getAttrGroupId())).findFirst();
+                if (first1.isPresent()) {
+                    AttrGroupEntity attrGroup = first1.get();
+                    attrRespVO.setGroupName(attrGroup.getAttrGroupName());
+                    attrRespVO.setAttrGroupId(attrGroup.getAttrGroupId());
+                }
+
             }
-            AttrAttrgroupRelationEntity relation = first.get();
-            Optional<AttrGroupEntity> first1 = attrGroupEntities.stream().filter(attrGroup -> attrGroup.getAttrGroupId().equals(relation.getAttrGroupId())).findFirst();
-            if (first1.isEmpty()) {
-                return attrRespVO;
-            }
-            AttrGroupEntity attrGroup = first1.get();
-            attrRespVO.setGroupName(attrGroup.getAttrGroupName());
-            attrRespVO.setAttrGroupId(attrGroup.getAttrGroupId());
 
 
-            Optional<CategoryEntity> first2 = categoryEntities.stream().filter(it -> it.getCatId().equals(attr.getCatelogId())).findFirst();
-            if (first2.isEmpty()) {
-                return attrRespVO;
-            }
-            CategoryEntity categoryEntity = first2.get();
-            attrRespVO.setCatelogName(categoryEntity.getName());
-
+            Optional<CategoryEntity> first2 = categoryEntities.stream().filter(it -> it.getCatId().equals(attr.getCatalogId())).findFirst();
+            first2.ifPresent(categoryEntity -> attrRespVO.setCatalogName(categoryEntity.getName()));
 
             return attrRespVO;
         }).toList();
@@ -155,12 +149,12 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
             attrRespVO.setAttrGroupId(relationEntity.getAttrGroupId());
             AttrGroupEntity attrGroupEntity = attrGroupDao.selectById(relationEntity.getAttrGroupId());
             attrRespVO.setGroupName(attrGroupEntity.getAttrGroupName());
-            attrRespVO.setCatelogId(attrGroupEntity.getCatelogId());
+            attrRespVO.setCatalogId(attrGroupEntity.getCatalogId());
         }
 
-        Long catelogId = attrEntity.getCatelogId();
-        attrRespVO.setCatelogPath(categoryService.findCatelogIds(catelogId));
-        attrRespVO.setCatelogName(categoryDao.selectById(catelogId).getName());
+        Long catalogId = attrEntity.getCatalogId();
+        attrRespVO.setCatalogPath(categoryService.findcatalogIds(catalogId));
+        attrRespVO.setCatalogName(categoryDao.selectById(catalogId).getName());
         return attrRespVO;
     }
 
@@ -225,11 +219,11 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
         AttrGroupEntity attrGroupEntity = attrGroupDao.selectById(attrGroupId);
         log.debug("获取分组信息：{}", attrGroupEntity);
 
-        Long catelogId = attrGroupEntity.getCatelogId();
+        Long catalogId = attrGroupEntity.getCatalogId();
 
         List<AttrGroupEntity> attrGroupEntities = attrGroupDao.selectList(
                 new LambdaQueryWrapper<>(AttrGroupEntity.class)
-                        .eq(AttrGroupEntity::getCatelogId, catelogId)
+                        .eq(AttrGroupEntity::getCatalogId, catalogId)
         );
         log.debug("获取分类下的所有属性组：{}", attrGroupEntities);
 
@@ -244,7 +238,7 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
         List<Long> attrIds = relationEntities.stream().map(AttrAttrgroupRelationEntity::getAttrId).toList();
 
         LambdaQueryWrapper<AttrEntity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(AttrEntity::getCatelogId, catelogId)
+        wrapper.eq(AttrEntity::getCatalogId, catalogId)
                 .eq(AttrEntity::getAttrType, ProductConstant.AttrEnum.TYPE_BASE.getCode())
                 .notIn(!attrIds.isEmpty(), AttrEntity::getAttrId, attrIds);
 

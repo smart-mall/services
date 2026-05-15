@@ -4,7 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.io.Serializable;
+import java.io.Serial;
+import java.io.Serial;import java.io.Serializable;
 import java.util.List;
 
 /**
@@ -12,17 +13,18 @@ import java.util.List;
  * 2020/10/24 22:27
  * 商城首页，实现鼠标放在一级分类上，自动显示出对应的二级三级分类，所需要的数据模型
  *
- * 最终需要一个 Map<id, List<Catelog2VO>>，map里面的键是catelog1Id，也就是一级分类的id
+ * 最终需要一个 Map<id, List<Catalog2Vo>>，map里面的键是catalog1Id，也就是一级分类的id
  */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class Catelog2Vo implements Serializable {
+public class Catalog2Vo implements Serializable {
+    @Serial
     private static final long serialVersionUID = 1L;
 
     private String catalog1Id;
 
-    private List<Catelog3Vo> catalog3List;
+    private List<Catalog3Vo> catalog3List;
 
     private String id;
 
@@ -31,8 +33,8 @@ public class Catelog2Vo implements Serializable {
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
-    public static class Catelog3Vo implements Serializable {
-        private static final long serialVersionUID = 1L;
+    public static class Catalog3Vo implements Serializable {
+        @Serial private static final long serialVersionUID = 1L;
 
         private String catalog2Id;
 

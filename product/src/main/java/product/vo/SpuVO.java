@@ -17,7 +17,7 @@ public class SpuVO {
      */
     private String spuName;
     private String spuDescription;
-    private Long catelogId;
+    private Long catalogId;
     private Long brandId;
     private BigDecimal weight;
     private Integer publishStatus;

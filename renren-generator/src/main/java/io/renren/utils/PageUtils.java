@@ -2,7 +2,6 @@ package io.renren.utils;
 
 import java.io.Serializable;
 import java.util.List;
-
 /**
  * 分页工具类
  * 
@@ -11,8 +10,7 @@ import java.util.List;
  * @date 2016年11月4日 下午12:59:00
  */
 public class PageUtils implements Serializable {
-	private static final long serialVersionUID = 1L;
-	//总记录数
+private static final long serialVersionUID = 1L;	//总记录数
 	private int totalCount;
 	//每页记录数
 	private int pageSize;

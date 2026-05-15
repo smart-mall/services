@@ -1,8 +1,10 @@
 package product.controller;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import common.utils.PageUtils;
 import common.utils.R;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import product.entity.BrandEntity;
 import product.entity.CategoryBrandRelationEntity;
@@ -23,15 +25,20 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("product/categorybrandrelation")
+@Slf4j
 public class CategoryBrandRelationController {
-    @Autowired
-    private CategoryBrandRelationService categoryBrandRelationService;
+    private final CategoryBrandRelationService categoryBrandRelationService;
+
+    public CategoryBrandRelationController(CategoryBrandRelationService categoryBrandRelationService) {
+        this.categoryBrandRelationService = categoryBrandRelationService;
+    }
 
     /**
      * 获取分类关联列表
      */
-    @GetMapping("/catelog/list")
-    public R catelogList(@RequestParam Long brandId){
+    @GetMapping("/catalog/list")
+    public R catalogList(@RequestParam Long brandId){
+        log.info("根据品牌获取分类关联列表：{}", brandId);
         List<CategoryBrandRelationEntity> list = categoryBrandRelationService.listCategoryBrandRelation(brandId);
 
         return R.ok().put("list", list);
@@ -42,6 +49,7 @@ public class CategoryBrandRelationController {
      */
     @GetMapping("/brands/list")
     public R relationBrandList(@RequestParam Long catId){
+        log.info("根据分类获取分类品牌关联表：{}", catId);
         List<BrandEntity> list = categoryBrandRelationService.getBrandByCatId(catId);
 
         List<BrandVO> data = list.stream().map(item -> {
@@ -62,6 +70,7 @@ public class CategoryBrandRelationController {
      */
     @RequestMapping("/list")
     public R list(@RequestParam Map<String, Object> params){
+        log.info("获取分类品牌关联表；{}", JSON.toJSONString(params, SerializerFeature.PrettyFormat));
         PageUtils page = categoryBrandRelationService.queryPage(params);
 
         return R.ok().put("page", page);
@@ -73,6 +82,7 @@ public class CategoryBrandRelationController {
      */
     @RequestMapping("/info/{id}")
     public R info(@PathVariable("id") Long id){
+        log.info("通过id获取分类品牌关联表: {}", id);
 		CategoryBrandRelationEntity categoryBrandRelation = categoryBrandRelationService.getById(id);
 
         return R.ok().put("categoryBrandRelation", categoryBrandRelation);
@@ -83,6 +93,7 @@ public class CategoryBrandRelationController {
      */
     @RequestMapping("/save")
     public R save(@RequestBody CategoryBrandRelationEntity categoryBrandRelation){
+        log.info("保存：{}", categoryBrandRelation);
 		categoryBrandRelationService.saveDetail(categoryBrandRelation);
 
         return R.ok();
@@ -93,7 +104,9 @@ public class CategoryBrandRelationController {
      */
     @RequestMapping("/update")
     public R update(@RequestBody CategoryBrandRelationEntity categoryBrandRelation){
-		categoryBrandRelationService.updateById(categoryBrandRelation);
+        log.info("更新：{}", categoryBrandRelation);
+
+        categoryBrandRelationService.updateById(categoryBrandRelation);
 
         return R.ok();
     }
@@ -103,6 +116,7 @@ public class CategoryBrandRelationController {
      */
     @RequestMapping("/delete")
     public R delete(@RequestBody Long[] ids){
+        log.info("删除：{}", JSON.toJSONString(ids, SerializerFeature.PrettyFormat));
 		categoryBrandRelationService.removeByIds(Arrays.asList(ids));
 
         return R.ok();

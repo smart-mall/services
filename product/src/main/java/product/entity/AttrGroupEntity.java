@@ -19,8 +19,7 @@ import java.util.List;
 @Data
 @TableName("pms_attr_group")
 public class AttrGroupEntity implements Serializable {
-	@Serial
-	private static final long serialVersionUID = 1L;
+	@Serial private static final long serialVersionUID = 1L;
 
 	/**
 	 * 分组id
@@ -46,12 +45,12 @@ public class AttrGroupEntity implements Serializable {
 	/**
 	 * 所属分类id
 	 */
-	private Long catelogId;
+	private Long catalogId;
 
 	/**
 	 * 分类完整路径[父分类id,父分类id...]
 	 */
 	@TableField(exist = false)
-	private List<Long> catelogIds;
+	private List<Long> catalogIds;
 
 }

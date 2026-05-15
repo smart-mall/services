@@ -4,7 +4,8 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
-import java.io.Serializable;
+import java.io.Serial;
+import java.io.Serial;import java.io.Serializable;
 
 /**
  * 品牌分类关联
@@ -16,7 +17,7 @@ import java.io.Serializable;
 @Data
 @TableName("pms_category_brand_relation")
 public class CategoryBrandRelationEntity implements Serializable {
-	private static final long serialVersionUID = 1L;
+	@Serial private static final long serialVersionUID = 1L;
 
 	/**
 	 * 
@@ -30,7 +31,7 @@ public class CategoryBrandRelationEntity implements Serializable {
 	/**
 	 * 分类id
 	 */
-	private Long catelogId;
+	private Long catalogId;
 	/**
 	 * 
 	 */
@@ -38,6 +39,6 @@ public class CategoryBrandRelationEntity implements Serializable {
 	/**
 	 * 
 	 */
-	private String catelogName;
+	private String catalogName;
 
 }

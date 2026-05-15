@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
-import java.io.Serializable;
+import java.io.Serial;import java.io.Serializable;
 import java.math.BigDecimal;
 
 /**
@@ -17,7 +17,7 @@ import java.math.BigDecimal;
 @Data
 @TableName("pms_sku_info")
 public class SkuInfoEntity implements Serializable {
-	private static final long serialVersionUID = 1L;
+	@Serial private static final long serialVersionUID = 1L;
 
 	/**
 	 * skuId
@@ -39,7 +39,7 @@ public class SkuInfoEntity implements Serializable {
 	/**
 	 * 所属分类id
 	 */
-	private Long catelogId;
+	private Long catalogId;
 	/**
 	 * 品牌id
 	 */

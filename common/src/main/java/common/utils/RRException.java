@@ -8,13 +8,15 @@
 
 package common.utils;
 
+import java.io.Serial;
+
 /**
  * 自定义异常
  *
  * @author Mark sunlightcs@gmail.com
  */
 public class RRException extends RuntimeException {
-	private static final long serialVersionUID = 1L;
+	@Serial private static final long serialVersionUID = 1L;
 	
     private String msg;
     private int code = 500;

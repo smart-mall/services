@@ -17,8 +17,7 @@ import java.io.Serializable;
 @Data
 @TableName("pms_attr")
 public class AttrEntity implements Serializable {
-	@Serial
-	private static final long serialVersionUID = 1L;
+	@Serial private static final long serialVersionUID = 1L;
 
 	/**
 	 * 属性id
@@ -56,7 +55,7 @@ public class AttrEntity implements Serializable {
 	/**
 	 * 所属分类
 	 */
-	private Long catelogId;
+	private Long catalogId;
 	/**
 	 * 快速展示【是否展示在介绍上；0-否 1-是】，在sku中仍然可以调整
 	 */

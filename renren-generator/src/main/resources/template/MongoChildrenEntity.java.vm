@@ -5,7 +5,7 @@ package ${package}.${moduleName}.entity;
 import java.util.List;
 #end
 
-import java.io.Serializable;
+import java.io.Serial;import java.io.Serializable;
 import java.util.Date;
 import lombok.Data;
 import org.springframework.data.mongodb.core.mapping.Document;

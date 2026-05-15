@@ -12,8 +12,7 @@ import java.util.Map;
  * @date 2017-03-14 23:15
  */
 public class Query extends LinkedHashMap<String, Object> {
-	private static final long serialVersionUID = 1L;
-	//当前页码
+private static final long serialVersionUID = 1L;	//当前页码
     private int page;
     //每页条数
     private int limit;

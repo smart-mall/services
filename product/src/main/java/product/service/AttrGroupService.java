@@ -25,7 +25,7 @@ public interface AttrGroupService extends IService<AttrGroupEntity> {
 
     void deleteRelation(AttrGroupRelationVO[] vos);
 
-    List<AttrGroupWithAttrsVO> getAttrGroupWithAttrs(Long catelogId);
+    List<AttrGroupWithAttrsVO> getAttrGroupWithAttrs(Long catalogId);
 
     List<SpuItemAttrGroupVo> getAttrGroupWithAttrsBySpuId(Long spuId, Long catalogId);
 

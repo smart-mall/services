@@ -14,7 +14,7 @@ import product.dao.CategoryDao;
 import product.entity.CategoryEntity;
 import product.service.CategoryBrandRelationService;
 import product.service.CategoryService;
-import product.vo.Catelog2Vo;
+import product.vo.Catalog2Vo;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -92,7 +92,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
     }
 
     @Override
-    public List<Long> findCatelogIds(Long catId) {
+    public List<Long> findcatalogIds(Long catId) {
         // 初始化可变集合（LinkedList支持addFirst操作，效率高）
         List<Long> path = new LinkedList<>();
         findParentPath(catId, path);
@@ -117,7 +117,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
 
     @Cacheable(value = "category",key = "#root.method.name")
     @Override
-    public Map<String, List<Catelog2Vo>> getCatalogJson() {
+    public Map<String, List<Catalog2Vo>> getCatalogJson() {
 
         //将数据库的多次查询变为一次
         List<CategoryEntity> selectList = this.baseMapper.selectList(null);
@@ -127,33 +127,33 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
         List<CategoryEntity> level1Categorys = getParent_cid(selectList, 0L);
 
         //封装数据
-        Map<String, List<Catelog2Vo>> parentCid = level1Categorys.stream().collect(Collectors.toMap(k -> k.getCatId().toString(), v -> {
+        Map<String, List<Catalog2Vo>> parentCid = level1Categorys.stream().collect(Collectors.toMap(k -> k.getCatId().toString(), v -> {
             //1、每一个的一级分类,查到这个一级分类的二级分类
             List<CategoryEntity> categoryEntities = getParent_cid(selectList, v.getCatId());
 
             //2、封装上面的结果
-            List<Catelog2Vo> catelog2Vos = null;
+            List<Catalog2Vo> catalog2Vos = null;
             if (categoryEntities != null) {
-                catelog2Vos = categoryEntities.stream().map(l2 -> {
-                    Catelog2Vo catelog2Vo = new Catelog2Vo(v.getCatId().toString(), null, l2.getCatId().toString(), l2.getName().toString());
+                catalog2Vos = categoryEntities.stream().map(l2 -> {
+                    Catalog2Vo catalog2Vo = new Catalog2Vo(v.getCatId().toString(), null, l2.getCatId().toString(), l2.getName().toString());
 
                     //1、找当前二级分类的三级分类封装成vo
-                    List<CategoryEntity> level3Catelog = getParent_cid(selectList, l2.getCatId());
+                    List<CategoryEntity> level3catalog = getParent_cid(selectList, l2.getCatId());
 
-                    if (level3Catelog != null) {
-                        List<Catelog2Vo.Catelog3Vo> category3Vos = level3Catelog.stream().map(l3 -> {
+                    if (level3catalog != null) {
+                        List<Catalog2Vo.Catalog3Vo> category3Vos = level3catalog.stream().map(l3 -> {
                             //2、封装成指定格式
 
-                            return new Catelog2Vo.Catelog3Vo(l2.getCatId().toString(), l3.getCatId().toString(), l3.getName());
+                            return new Catalog2Vo.Catalog3Vo(l2.getCatId().toString(), l3.getCatId().toString(), l3.getName());
                         }).collect(Collectors.toList());
-                        catelog2Vo.setCatalog3List(category3Vos);
+                        catalog2Vo.setCatalog3List(category3Vos);
                     }
 
-                    return catelog2Vo;
+                    return catalog2Vo;
                 }).collect(Collectors.toList());
             }
 
-            return catelog2Vos;
+            return catalog2Vos;
         }));
 
         return parentCid;
@@ -167,15 +167,15 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
 
     /**
      * 递归填充父路径（使用可变集合作为参数传递，避免创建不可变集合）
-     * @param catelogId 当前分类ID
+     * @param catalogId 当前分类ID
      * @param path 用于存储完整路径的可变集合
      */
-    private void findParentPath(Long catelogId, List<Long> path) {
-        // 1. 查询当前分类信息（确保catelogId有效，避免空指针）
-        if (catelogId == null) {
+    private void findParentPath(Long catalogId, List<Long> path) {
+        // 1. 查询当前分类信息（确保catalogId有效，避免空指针）
+        if (catalogId == null) {
             return;
         }
-        CategoryEntity categoryEntity = baseMapper.selectById(catelogId);
+        CategoryEntity categoryEntity = baseMapper.selectById(catalogId);
         if (categoryEntity == null) {
             return;
         }

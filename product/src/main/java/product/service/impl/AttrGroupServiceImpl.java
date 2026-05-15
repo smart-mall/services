@@ -61,7 +61,7 @@ public class AttrGroupServiceImpl extends ServiceImpl<AttrGroupDao, AttrGroupEnt
         LambdaQueryWrapper<AttrGroupEntity> lambdaQueryWrapper = new LambdaQueryWrapper<>();
 
         if (categoryId != null && categoryId != 0) {
-            lambdaQueryWrapper.eq(AttrGroupEntity::getCatelogId, categoryId);
+            lambdaQueryWrapper.eq(AttrGroupEntity::getCatalogId, categoryId);
         }
 
         String key = (String) params.get("key");
@@ -79,7 +79,7 @@ public class AttrGroupServiceImpl extends ServiceImpl<AttrGroupDao, AttrGroupEnt
         List<AttrGroupRespVO> attrGroupRespVOS = page.getRecords().stream().map(attrGroupEntity -> {
             AttrGroupRespVO attrGroupRespVO = new AttrGroupRespVO();
             BeanUtils.copyProperties(attrGroupEntity, attrGroupRespVO);
-            attrGroupRespVO.setCatelogName(list.stream().filter(categoryEntity -> categoryEntity.getCatId().equals(attrGroupEntity.getCatelogId())).findFirst().get().getName());
+            attrGroupRespVO.setCatalogName(list.stream().filter(categoryEntity -> categoryEntity.getCatId().equals(attrGroupEntity.getCatalogId())).findFirst().get().getName());
             return attrGroupRespVO;
         }).toList();
         PageUtils pageUtils = new PageUtils(page);
@@ -99,8 +99,8 @@ public class AttrGroupServiceImpl extends ServiceImpl<AttrGroupDao, AttrGroupEnt
     }
 
     @Override
-    public List<AttrGroupWithAttrsVO> getAttrGroupWithAttrs(Long catelogId) {
-        List<AttrGroupEntity> attrGroupEntities = baseMapper.selectList(new LambdaQueryWrapper<>(AttrGroupEntity.class).eq(AttrGroupEntity::getCatelogId, catelogId));
+    public List<AttrGroupWithAttrsVO> getAttrGroupWithAttrs(Long catalogId) {
+        List<AttrGroupEntity> attrGroupEntities = baseMapper.selectList(new LambdaQueryWrapper<>(AttrGroupEntity.class).eq(AttrGroupEntity::getCatalogId, catalogId));
 
         return attrGroupEntities.stream().map(attrGroupEntity -> {
             AttrGroupWithAttrsVO attrGroupWithAttrsVO = new AttrGroupWithAttrsVO();

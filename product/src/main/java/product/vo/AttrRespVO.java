@@ -9,6 +9,6 @@ import java.util.List;
 @Data
 public class AttrRespVO  extends AttrVO {
     private String groupName;
-    private String catelogName;
-    private List<Long> catelogPath;
+    private String catalogName;
+    private List<Long> catalogPath;
 }
