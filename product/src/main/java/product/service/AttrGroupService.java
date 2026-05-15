@@ -28,5 +28,9 @@ public interface AttrGroupService extends IService<AttrGroupEntity> {
     List<AttrGroupWithAttrsVO> getAttrGroupWithAttrs(Long catelogId);
 
     List<SpuItemAttrGroupVo> getAttrGroupWithAttrsBySpuId(Long spuId, Long catalogId);
+
+    void deleteByIds(List<Long> list);
+
+    void updateDetail(AttrGroupEntity attrGroup);
 }
 

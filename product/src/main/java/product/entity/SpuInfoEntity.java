@@ -37,7 +37,7 @@ public class SpuInfoEntity implements Serializable {
 	/**
 	 * 所属分类id
 	 */
-	private Long catelogId;
+	private Long catalogId;
 	/**
 	 * 品牌id
 	 */

@@ -2,6 +2,7 @@ package product.controller;
 
 import common.utils.PageUtils;
 import common.utils.R;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import product.entity.AttrAttrgroupRelationEntity;
@@ -20,6 +21,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("product/attrattrgrouprelation")
+@Slf4j
 public class AttrAttrgroupRelationController {
     @Autowired
     private AttrAttrgroupRelationService attrAttrgroupRelationService;

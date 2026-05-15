@@ -1,5 +1,7 @@
 package thirdParty.controller;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import common.utils.R;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -127,5 +129,17 @@ public class MinIOController {
         } catch (Exception e) {
             return R.error(e.getMessage());
         }
+    }
+
+    /**
+     * 删除文件
+     */
+    @DeleteMapping("/deleteFile")
+    R deleteFile(@RequestBody List<String> https) {
+        log.info("删除文件,{}", JSON.toJSONString(https, SerializerFeature.PrettyFormat));
+        for (String http : https) {
+            minIOUtil.deleteFile(http);
+        }
+        return R.ok();
     }
 }

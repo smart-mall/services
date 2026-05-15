@@ -1,9 +1,12 @@
 package product.controller;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import common.utils.PageUtils;
 import common.utils.R;
 import common.valid.AddGroup;
 import common.valid.UpdateGroup;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +26,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("product/brand")
+@Slf4j
 public class BrandController {
     @Autowired
     private BrandService brandService;
@@ -32,6 +36,7 @@ public class BrandController {
      */
     @RequestMapping("/list")
     public R list(@RequestParam Map<String, Object> params){
+        log.info("显示品牌：{}", JSON.toJSONString( params, SerializerFeature.PrettyFormat));
         PageUtils page = brandService.queryPage(params);
 
         return R.ok().put("page", page);
@@ -43,6 +48,7 @@ public class BrandController {
      */
     @RequestMapping("/info/{brandId}")
     public R info(@PathVariable("brandId") Long brandId){
+        log.info("获取品牌：{}", brandId);
 		BrandEntity brand = brandService.getById(brandId);
 
         return R.ok().put("brand", brand);
@@ -53,6 +59,7 @@ public class BrandController {
      */
     @RequestMapping("/save")
     public R save(@Validated(AddGroup.class) @RequestBody BrandEntity brand){
+        log.info("保存品牌：{}", JSON.toJSONString(brand, SerializerFeature.PrettyFormat));
 
 		brandService.save(brand);
 
@@ -64,6 +71,7 @@ public class BrandController {
      */
     @RequestMapping("/update")
     public R update(@Validated(UpdateGroup.class) @RequestBody BrandEntity brand){
+        log.info("修改品牌：{}", JSON.toJSONString(brand, SerializerFeature.PrettyFormat));
 		brandService.updateDetail(brand);
 
         return R.ok();
@@ -74,7 +82,8 @@ public class BrandController {
      */
     @RequestMapping("/delete")
     public R delete(@RequestBody Long[] brandIds){
-		brandService.removeByIds(Arrays.asList(brandIds));
+        log.info("删除品牌：{}", JSON.toJSONString(brandIds, SerializerFeature.PrettyFormat));
+		brandService.deleteByIds(Arrays.asList(brandIds));
 
         return R.ok();
     }

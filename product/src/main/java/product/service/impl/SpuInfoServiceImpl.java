@@ -167,7 +167,7 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
                 SkuInfoEntity skuInfoEntity = new SkuInfoEntity();
                 BeanUtils.copyProperties(sku, skuInfoEntity);
                 skuInfoEntity.setBrandId(spuInfoEntity.getBrandId());
-                skuInfoEntity.setCatelogId(spuInfoEntity.getCatelogId());
+                skuInfoEntity.setCatelogId(spuInfoEntity.getCatalogId());
                 skuInfoEntity.setSaleCount(0L);
                 skuInfoEntity.setSkuDefaultImg(defaultImage);
                 skuInfoEntity.setSpuId(spuInfoEntity.getId());
@@ -237,7 +237,7 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
 
         String catelogId = (String) params.get("catelogId");
         if (catelogId != null && !catelogId.isEmpty()  && !"0".equals(catelogId)) {
-            queryWrapper.eq(SpuInfoEntity::getCatelogId, catelogId);
+            queryWrapper.eq(SpuInfoEntity::getCatalogId, catelogId);
         }
 
 

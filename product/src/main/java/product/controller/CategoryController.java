@@ -1,6 +1,9 @@
 package product.controller;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import common.utils.R;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import product.entity.CategoryEntity;
@@ -19,6 +22,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("product/category")
+@Slf4j
 public class CategoryController {
     @Autowired
     private CategoryService categoryService;
@@ -28,6 +32,7 @@ public class CategoryController {
      */
     @RequestMapping("/list/tree")
     public R list(){
+        log.info("查询所有分类");
         List<CategoryEntity> categoryEntities =  categoryService.listWithTree();
 
         return R.ok().put("tree", categoryEntities);
@@ -39,6 +44,7 @@ public class CategoryController {
      */
     @RequestMapping("/info/{catId}")
     public R info(@PathVariable("catId") Long catId){
+        log.info("查询分类数据{}", catId);
 		CategoryEntity category = categoryService.getById(catId);
 
         return R.ok().put("category", category);
@@ -49,6 +55,8 @@ public class CategoryController {
      */
     @RequestMapping("/save")
     public R save(@RequestBody CategoryEntity category){
+        category.setShowStatus(1);
+        log.info("保存分类数据{}", category);
 		categoryService.save(category);
 
         return R.ok();
@@ -59,6 +67,7 @@ public class CategoryController {
      */
     @RequestMapping("/update")
     public R update(@RequestBody CategoryEntity category){
+        log.info("修改分类数据{}", category);
 		categoryService.updateDetail(category);
 
         return R.ok();
@@ -69,6 +78,7 @@ public class CategoryController {
      */
     @RequestMapping("/update/sort")
     public R updateSort(@RequestBody CategoryEntity[] category){
+        log.info("批量修改菜单{}", JSON.toJSONString(category, SerializerFeature.PrettyFormat));
         categoryService.updateBatchById(Arrays.asList(category));
         return R.ok();
     }
@@ -79,6 +89,7 @@ public class CategoryController {
      */
     @RequestMapping("/delete")
     public R delete(@RequestBody Long[] catIds){
+        log.info("删除分类数据{}",JSON.toJSONString(catIds, SerializerFeature.PrettyFormat));
 		categoryService.removeMenuByIds(Arrays.asList(catIds));
 
         return R.ok();

@@ -60,17 +60,18 @@ public class CategoryBrandRelationServiceImpl extends ServiceImpl<CategoryBrandR
 
     @Override
     public void updateBrand(Long brandId, String name) {
-        new LambdaUpdateWrapper<CategoryBrandRelationEntity>()
+        LambdaUpdateWrapper<CategoryBrandRelationEntity> set = new LambdaUpdateWrapper<CategoryBrandRelationEntity>()
                 .eq(CategoryBrandRelationEntity::getBrandId, brandId)
                 .set(CategoryBrandRelationEntity::getBrandName, name);
-
+        this.update(set);
     }
 
     @Override
     public void updateCategory(Long catId, String name) {
-        new LambdaUpdateWrapper<CategoryBrandRelationEntity>()
+        LambdaUpdateWrapper<CategoryBrandRelationEntity> set = new LambdaUpdateWrapper<CategoryBrandRelationEntity>()
                 .eq(CategoryBrandRelationEntity::getCatelogId, catId)
                 .set(CategoryBrandRelationEntity::getCatelogName, name);
+        this.update(set);
     }
 
     @Override

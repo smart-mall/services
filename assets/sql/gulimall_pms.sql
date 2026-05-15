@@ -27,8 +27,9 @@ DROP TABLE IF EXISTS `pms_attr`;
 CREATE TABLE `pms_attr`  (
   `attr_id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '属性id',
   `attr_name` char(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '属性名',
+  `value_type` tinyint(4) NULL DEFAULT NULL COMMENT '属性值类型[0-唯一，1-单选]',
   `search_type` tinyint(4) NULL DEFAULT NULL COMMENT '是否需要检索[0-不需要，1-需要]',
-  `icon` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '属性图标',
+  `icon` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '属性图标',
   `value_select` char(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '可选值列表[用逗号分隔]',
   `attr_type` tinyint(4) NULL DEFAULT NULL COMMENT '属性类型[0-销售属性，1-基本属性',
   `enable` bigint(20) NULL DEFAULT NULL COMMENT '启用状态[0 - 禁用，1 - 启用]',
@@ -40,18 +41,18 @@ CREATE TABLE `pms_attr`  (
 -- ----------------------------
 -- Records of pms_attr
 -- ----------------------------
-INSERT INTO `pms_attr` VALUES (1, '入网参数', 1, 'xxx', '4G;5G', 1, 1, 225, 1);
-INSERT INTO `pms_attr` VALUES (2, '上市年份', 1, 'xxx', '2019;2020;2021', 1, 1, 225, 1);
-INSERT INTO `pms_attr` VALUES (3, '颜色', 1, 'https://mall-fire.oss-cn-shenzhen.aliyuncs.com/1.jpg', '极光蓝;钛空银;霓影紫;流光幻镜', 1, 1, 225, 1);
-INSERT INTO `pms_attr` VALUES (4, '颜色', 0, 'https://mall-fire.oss-cn-shenzhen.aliyuncs.com/1.jpg', '极光蓝;钛空银;霓影紫;流光幻镜', 0, 1, 225, 0);
-INSERT INTO `pms_attr` VALUES (5, '内存', 0, 'xxx', '4G;6G;8G;12G', 0, 1, 225, 0);
-INSERT INTO `pms_attr` VALUES (6, '套餐', 0, 'xxx', '套餐一;套餐二;套餐三', 0, 1, 225, 0);
-INSERT INTO `pms_attr` VALUES (7, 'CPU型号', 1, 'xxx', '麒麟990;麒麟820', 1, 1, 225, 1);
-INSERT INTO `pms_attr` VALUES (8, 'CPU工艺', 1, 'xxx', '7nm;5nm;3nm', 1, 1, 225, 1);
-INSERT INTO `pms_attr` VALUES (9, '电池容量', 1, 'xxx', '3500mAh;4000mAh;5000mAh', 1, 1, 225, 1);
-INSERT INTO `pms_attr` VALUES (10, '机身长度(mm)', 1, 'xxx', '168;155;172', 1, 1, 225, 1);
-INSERT INTO `pms_attr` VALUES (11, '版本', 0, 'https://mall-fire.oss-cn-shenzhen.aliyuncs.com/2020-06-05/e5ba78ec-9cf5-4bbd-86a7-ad2f611e2512_%E5%9B%BE%E9%9B%861.jpg', '8GB+128GB;8GB+256GB;12GB+256GB', 0, 1, 225, 0);
-INSERT INTO `pms_attr` VALUES (12, 'CPU品牌', 1, 'xxx', '海思(Hisilicon);高通(Qualcomm)', 1, 1, 225, 1);
+INSERT INTO `pms_attr` VALUES (1, '入网参数', 1, 1, '', '4G;5G', 1, 1, 225, 1);
+INSERT INTO `pms_attr` VALUES (2, '上市年份', 1, 1, '', '2019;2020;2021', 1, 1, 225, 1);
+INSERT INTO `pms_attr` VALUES (3, '颜色', 1, 1, '', '极光蓝;钛空银;霓影紫;流光幻镜', 1, 1, 225, 1);
+INSERT INTO `pms_attr` VALUES (4, '颜色', 1, 0, '', '极光蓝;钛空银;霓影紫;流光幻镜', 0, 1, 225, 0);
+INSERT INTO `pms_attr` VALUES (5, '内存', 1, 0, '', '4G;6G;8G;12G', 0, 1, 225, 0);
+INSERT INTO `pms_attr` VALUES (6, '套餐', 1, 0, '', '套餐一;套餐二;套餐三', 0, 1, 225, 0);
+INSERT INTO `pms_attr` VALUES (7, 'CPU型号', 1, 1, '', '麒麟990;麒麟820', 1, 1, 225, 1);
+INSERT INTO `pms_attr` VALUES (8, 'CPU工艺', 1, 1, '', '7nm;5nm;3nm', 1, 1, 225, 1);
+INSERT INTO `pms_attr` VALUES (9, '电池容量', 1, 1, '', '3500mAh;4000mAh;5000mAh', 1, 1, 225, 1);
+INSERT INTO `pms_attr` VALUES (10, '机身长度(mm)', 1, 1, '', '168;155;172', 1, 1, 225, 1);
+INSERT INTO `pms_attr` VALUES (11, '版本', 1, 0, '', '8GB+128GB;8GB+256GB;12GB+256GB', 0, 1, 225, 0);
+INSERT INTO `pms_attr` VALUES (12, 'CPU品牌', 1, 1, '', '海思(Hisilicon);高通(Qualcomm)', 1, 1, 225, 1);
 
 -- ----------------------------
 -- Table structure for pms_attr_attrgroup_relation
@@ -86,7 +87,7 @@ CREATE TABLE `pms_attr_group`  (
   `attr_group_name` char(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '组名',
   `sort` int(11) NULL DEFAULT NULL COMMENT '排序',
   `descript` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '描述',
-  `icon` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '组图标',
+  `icon` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '组图标',
   `catelog_id` bigint(20) NULL DEFAULT NULL COMMENT '所属分类id',
   PRIMARY KEY (`attr_group_id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 5 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '属性分组' ROW_FORMAT = Dynamic;

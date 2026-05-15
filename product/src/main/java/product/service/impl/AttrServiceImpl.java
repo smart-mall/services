@@ -6,19 +6,21 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.constant.ProductConstant;
+import common.exception.BaseException;
 import common.utils.PageUtils;
 import common.utils.Query;
+import common.utils.R;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import product.dao.AttrAttrgroupRelationDao;
 import product.dao.AttrDao;
 import product.dao.AttrGroupDao;
 import product.dao.CategoryDao;
-import product.entity.AttrAttrgroupRelationEntity;
-import product.entity.AttrEntity;
-import product.entity.AttrGroupEntity;
-import product.entity.CategoryEntity;
+import product.entity.*;
+import product.feign.ThirdPartyFeignService;
 import product.service.AttrService;
 import product.service.CategoryService;
 import product.vo.AttrRespVO;
@@ -31,6 +33,7 @@ import java.util.Optional;
 
 
 @Service("attrService")
+@Slf4j
 public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements AttrService {
     private final AttrAttrgroupRelationDao relationDao;
 
@@ -40,11 +43,14 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
 
     private final CategoryService categoryService;
 
-    public AttrServiceImpl(AttrAttrgroupRelationDao relationDao, AttrGroupDao attrGroupDao, CategoryDao categoryDao, CategoryService categoryService) {
+    private final ThirdPartyFeignService thirdPartyFeignService;
+
+    public AttrServiceImpl(AttrAttrgroupRelationDao relationDao, AttrGroupDao attrGroupDao, CategoryDao categoryDao, CategoryService categoryService, ThirdPartyFeignService thirdPartyFeignService) {
         this.relationDao = relationDao;
         this.attrGroupDao = attrGroupDao;
         this.categoryDao = categoryDao;
         this.categoryService = categoryService;
+        this.thirdPartyFeignService = thirdPartyFeignService;
     }
 
     @Override
@@ -163,6 +169,16 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
     public void updateAttr(AttrVO attr) {
         AttrEntity attrEntity = new AttrEntity();
         BeanUtils.copyProperties(attr, attrEntity);
+        log.debug("更新文件");
+        String oldPath = this.getById(attr.getAttrId()).getIcon();
+        if (StringUtils.hasText(oldPath) && !oldPath.equals(attr.getIcon())) {
+            R r = thirdPartyFeignService.deleteFile(List.of(oldPath));
+            if (r.getCode() != 0) {
+                throw new BaseException("删除失败" + r.getMsg());
+            }
+        }
+
+        log.debug("更新基础信息");
         this.updateById(attrEntity);
 
         if (attr.getAttrType() != ProductConstant.AttrEnum.TYPE_BASE.getCode()) {
@@ -187,6 +203,7 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
                             .eq(AttrAttrgroupRelationEntity::getAttrId, attr.getAttrId())
             );
         }
+        log.debug("更新关联信息");
     }
 
     @Override
@@ -206,6 +223,7 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
     @Override
     public PageUtils getNoRelationAttr(Long attrGroupId, Map<String, Object> params) {
         AttrGroupEntity attrGroupEntity = attrGroupDao.selectById(attrGroupId);
+        log.debug("获取分组信息：{}", attrGroupEntity);
 
         Long catelogId = attrGroupEntity.getCatelogId();
 
@@ -213,6 +231,7 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
                 new LambdaQueryWrapper<>(AttrGroupEntity.class)
                         .eq(AttrGroupEntity::getCatelogId, catelogId)
         );
+        log.debug("获取分类下的所有属性组：{}", attrGroupEntities);
 
         List<Long> attrGroupIds = attrGroupEntities.stream().map(AttrGroupEntity::getAttrGroupId).toList();
 
@@ -220,6 +239,7 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
                 new LambdaQueryWrapper<>(AttrAttrgroupRelationEntity.class)
                         .in(AttrAttrgroupRelationEntity::getAttrGroupId, attrGroupIds)
         );
+        log.debug("获取分组下的所有属性：{}", relationEntities);
 
         List<Long> attrIds = relationEntities.stream().map(AttrAttrgroupRelationEntity::getAttrId).toList();
 
@@ -246,6 +266,17 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
     @Override
     public List<Long> selectSearchAttrs(List<Long> attrIds) {
         return this.baseMapper.selectSearchAttrs(attrIds);
+    }
+
+    @Override
+    public void deleteByIds(List<Long> list) {
+        List<AttrEntity> attrEntities = baseMapper.selectByIds(list);
+        List<String> objectNames = attrEntities.stream().map(AttrEntity::getIcon).toList();
+        R r = thirdPartyFeignService.deleteFile(objectNames);
+        if (r.getCode() != 0) {
+            throw new BaseException("删除失败" + r.getMsg());
+        }
+        this.removeByIds(list);
     }
 
 }

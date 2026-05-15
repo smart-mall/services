@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import thirdParty.exception.MinIOException;
 
 import java.io.*;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.*;
@@ -172,9 +173,9 @@ public class MinIOUtil {
     }
 
     /**
-     * @description 解析对象路径，提取目录路径和文件后缀
      * @param objectName 对象完整路径（如："docs/reports/file.pdf"）
      * @return Pair<目录路径, 文件后缀>（如：Pair("docs/reports", ".pdf")）
+     * @description 解析对象路径，提取目录路径和文件后缀
      */
     private Pair<String, String> parseObjectPath(String objectName) {
         // 查找最后一个斜杠的位置
@@ -211,10 +212,10 @@ public class MinIOUtil {
     }
 
     /**
-     * @description 重命名桶
      * @param oldBucketName 原桶名称
      * @param newBucketName 新桶名称
      * @throws MinIOException 当源桶不存在、目标桶已存在或重命名失败时抛出
+     * @description 重命名桶
      */
     public void renameBucket(String oldBucketName, String newBucketName) {
         if (!isBucketExists(oldBucketName)) {
@@ -338,8 +339,9 @@ public class MinIOUtil {
 
     /**
      * 上传文件到MinIO
+     *
      * @param bucketName 桶名称
-     * @param file 文件路径
+     * @param file       文件路径
      * @param objectName 目标对象地址（包含路径的文件名）
      */
     public void uploadFile(String bucketName, String file, String objectName) {
@@ -368,11 +370,11 @@ public class MinIOUtil {
     }
 
     /**
-     * @description 上传本地文件夹到MinIO指定存储桶的指定目录下，保持原目录结构
      * @param bucketName 目标存储桶名称
      * @param folderPath 本地文件夹路径（绝对路径）
-     * @param folder 桶内目标目录（如："docs/reports"，为空则上传到桶根目录）
+     * @param folder     桶内目标目录（如："docs/reports"，为空则上传到桶根目录）
      * @throws MinIOException 当文件夹不存在或上传失败时抛出
+     * @description 上传本地文件夹到MinIO指定存储桶的指定目录下，保持原目录结构
      */
     public void uploadFolder(String bucketName, String folderPath, String folder) {
         File localFolder = new File(folderPath);
@@ -410,10 +412,11 @@ public class MinIOUtil {
 
     /**
      * 递归上传目录中的所有文件和子目录到指定目标目录
-     * @param bucketName 目标存储桶名称
-     * @param rootFolder 本地根文件夹（用于计算相对路径）
+     *
+     * @param bucketName    目标存储桶名称
+     * @param rootFolder    本地根文件夹（用于计算相对路径）
      * @param currentFolder 当前要处理的本地文件夹
-     * @param targetDir 桶内目标目录（可为null，表示根目录）
+     * @param targetDir     桶内目标目录（可为null，表示根目录）
      */
     private void uploadDirectoryToTarget(
             String bucketName,
@@ -460,6 +463,7 @@ public class MinIOUtil {
 
     /**
      * 从MinIO删除文件
+     *
      * @param bucketName 桶名称
      * @param objectName 要删除的对象地址（包含路径的文件名）
      */
@@ -480,10 +484,10 @@ public class MinIOUtil {
     }
 
     /**
-     * @description 删除MinIO中的文件夹（包含所有子文件和子目录）
      * @param bucketName 桶名称
      * @param folderPath 要删除的文件夹路径（例如："docs/reports"）
      * @throws MinIOException 当桶不存在或删除失败时抛出
+     * @description 删除MinIO中的文件夹（包含所有子文件和子目录）
      */
     public void deleteFolder(String bucketName, String folderPath) {
         // 检查桶是否存在
@@ -547,12 +551,12 @@ public class MinIOUtil {
     }
 
     /**
-     * @description 桶间复制文件
      * @param sourceBucketName 源存储桶名称
      * @param sourceObjectName 源对象名称（包含路径）
      * @param targetBucketName 目标存储桶名称
      * @param targetObjectName 目标对象名称（包含路径）
      * @throws MinIOException 当源文件不存在、目标桶不存在或复制失败时抛出
+     * @description 桶间复制文件
      */
     public void copyFile(
             String sourceBucketName,
@@ -597,12 +601,12 @@ public class MinIOUtil {
     }
 
     /**
-     * @description 桶间复制文件夹
      * @param sourceBucketName 源存储桶名称
      * @param sourceFolderPath 源文件夹路径（例如："docs/reports"）
      * @param targetBucketName 目标存储桶名称
      * @param targetFolderPath 目标文件夹路径（例如："backup/reports"）
      * @throws MinIOException 当源文件夹不存在、目标桶不存在或复制失败时抛出
+     * @description 桶间复制文件夹
      */
     public void copyFolder(
             String sourceBucketName,
@@ -779,6 +783,7 @@ public class MinIOUtil {
 
     /**
      * 从MinIO下载文件
+     *
      * @param bucketName 桶名称
      * @param objectName 要下载的对象地址（包含路径的文件名）
      */
@@ -799,11 +804,11 @@ public class MinIOUtil {
     }
 
     /**
-     * @description 重命名文件（保持路径和后缀不变，只修改文件名）
      * @param bucketName 存储桶名称
      * @param objectName 原对象完整路径（包含路径和文件名，如："docs/reports/old-file.pdf"）
-     * @param newName 新文件名（不包含路径和后缀，如："new-file"）
+     * @param newName    新文件名（不包含路径和后缀，如："new-file"）
      * @throws MinIOException 当原文件不存在、新文件已存在或重命名失败时抛出
+     * @description 重命名文件（保持路径和后缀不变，只修改文件名）
      */
     public void renameFile(String bucketName, String objectName, String newName) {
         // 解析原文件路径，提取目录路径和文件后缀
@@ -823,10 +828,10 @@ public class MinIOUtil {
     }
 
     /**
-     * @description 重命名文件夹
-     * @param bucketName 存储桶名称
+     * @param bucketName    存储桶名称
      * @param oldFolderPath 原文件夹完整路径（包含路径和文件夹名，如："docs/old-folder"）
-     * @param newName 新文件夹名（不包含路径，如："new-folder"）
+     * @param newName       新文件夹名（不包含路径，如："new-folder"）
+     * @description 重命名文件夹
      */
     public void renameFolder(String bucketName, String oldFolderPath, String newName) {
         // 解析原文件夹路径，提取父目录路径
@@ -845,11 +850,11 @@ public class MinIOUtil {
     }
 
     /**
-     * @description 随机从文件夹中选取一个文件
      * @param bucketName 存储桶名称
      * @param folderPath 文件夹路径（例如："docs/images"）
      * @return 随机文件的完整路径，如果文件夹为空或不存在则返回null
      * @throws MinIOException 当桶不存在或读取文件列表失败时抛出
+     * @description 随机从文件夹中选取一个文件
      */
     public String getRandomFileFromFolder(String bucketName, String folderPath) {
         // 检查文件夹是否存在
@@ -909,11 +914,11 @@ public class MinIOUtil {
     }
 
     /**
-     * @description 创建空文件（上传一个空内容的对象）
      * @param bucketName 存储桶名称
-     * @param filePath 文件路径（包含文件名，如："docs/empty.txt"）
+     * @param filePath   文件路径（包含文件名，如："docs/empty.txt"）
      * @return 创建成功的文件信息（虚拟File对象，实际操作在MinIO中完成）
      * @throws MinIOException 当桶不存在或创建失败时抛出
+     * @description 创建空文件（上传一个空内容的对象）
      */
     public File createEmptyFile(String bucketName, String filePath) {
         // 检查文件是否已存在
@@ -947,11 +952,11 @@ public class MinIOUtil {
     }
 
     /**
-     * @description 从MinIO下载文件到本地临时文件并返回File对象
      * @param bucketName 桶名称
      * @param objectName 要下载的对象地址（包含路径的文件名）
      * @return 本地临时File对象
      * @throws MinIOException 当文件不存在或下载失败时抛出
+     * @description 从MinIO下载文件到本地临时文件并返回File对象
      */
     public File downloadToFile(String bucketName, String objectName) {
         // 检查文件是否存在
@@ -992,11 +997,11 @@ public class MinIOUtil {
     }
 
     /**
-     * @description 读取文件内容为字符串
      * @param bucketName 存储桶名称
      * @param objectName 文件对象路径
      * @return 文件内容字符串
      * @throws MinIOException 当文件不存在或读取失败时抛出
+     * @description 读取文件内容为字符串
      */
     public String readFileToString(String bucketName, String objectName) {
         // 检查文件是否存在
@@ -1026,12 +1031,12 @@ public class MinIOUtil {
     }
 
     /**
-     * @description 向文件写入字符串（会覆盖原有内容）
-     * @param bucketName 存储桶名称
-     * @param objectName 文件对象路径
-     * @param content 要写入的内容
+     * @param bucketName  存储桶名称
+     * @param objectName  文件对象路径
+     * @param content     要写入的内容
      * @param contentType 文件内容类型（默认为text/plain）
      * @throws MinIOException 当写入失败时抛出
+     * @description 向文件写入字符串（会覆盖原有内容）
      */
     public void writeStringToFile(String bucketName, String objectName, String content, String contentType) {
         // 先检查桶是否存在
@@ -1071,13 +1076,13 @@ public class MinIOUtil {
     }
 
     /**
-     * @description 获取目标文件夹下的所有文件路径
-     * @param bucketName 存储桶名称
-     * @param folderPath 文件夹路径（例如："docs/images"）
-     * @param recursive 是否递归获取子文件夹中的文件（默认false）
+     * @param bucketName     存储桶名称
+     * @param folderPath     文件夹路径（例如："docs/images"）
+     * @param recursive      是否递归获取子文件夹中的文件（默认false）
      * @param includeFolders 是否包含文件夹路径（默认false）
      * @return 文件路径列表
      * @throws MinIOException 当桶不存在或读取失败时抛出
+     * @description 获取目标文件夹下的所有文件路径
      */
     public List<String> getFilePathsFromFolder(
             String bucketName,
@@ -1151,13 +1156,13 @@ public class MinIOUtil {
     }
 
     /**
-     * @description 获取目标文件夹下的所有文件路径的分割为路径字符数组（倒序返回）
      * @param bucketName 存储桶名称
      * @param folderPath 文件夹路径（默认为根目录）
-     * @param recursive 是否递归获取子文件夹中的文件（true）
-     * @param reverse 是否倒序返回 （默认true）
+     * @param recursive  是否递归获取子文件夹中的文件（true）
+     * @param reverse    是否倒序返回 （默认true）
      * @return 分割后的路径字符数组列表，按路径深度倒序排列
      * @throws MinIOException 当桶不存在或读取失败时抛出
+     * @description 获取目标文件夹下的所有文件路径的分割为路径字符数组（倒序返回）
      */
     public List<List<String>> getFilePathsFromFolderSplit(
             String bucketName,
@@ -1222,12 +1227,12 @@ public class MinIOUtil {
     }
 
     /**
-     * @description 生成用于前端直传的预签名 PUT URL
      * @param bucketName 存储桶名称
      * @param objectName 对象名称（包含路径）
      * @param expiryTime 过期时间（单位：秒，默认7天）
      * @return 预签名 URL
      * @throws MinIOException 当生成失败时抛出
+     * @description 生成用于前端直传的预签名 PUT URL
      */
     public String generatePresignedPutUrl(String bucketName, String objectName, int expiryTime) {
         if (!isBucketExists(bucketName)) {
@@ -1254,12 +1259,12 @@ public class MinIOUtil {
     }
 
     /**
-     * @description 生成用于前端下载的预签名 GET URL
      * @param bucketName 存储桶名称
      * @param objectName 对象名称（包含路径）
      * @param expiryTime 过期时间（单位：秒，默认7天）
      * @return 预签名 URL
      * @throws MinIOException 当生成失败时抛出
+     * @description 生成用于前端下载的预签名 GET URL
      */
     public String generatePresignedGetUrl(String bucketName, String objectName, int expiryTime) {
         if (!isFileExists(bucketName, objectName)) {
@@ -1286,12 +1291,12 @@ public class MinIOUtil {
     }
 
     /**
-     * @description 生成用于前端删除的预签名 DELETE URL
      * @param bucketName 存储桶名称
      * @param objectName 对象名称（包含路径）
      * @param expiryTime 过期时间（单位：秒，默认1小时）
      * @return 预签名 URL
      * @throws MinIOException 当生成失败时抛出
+     * @description 生成用于前端删除的预签名 DELETE URL
      */
     public String generatePresignedDeleteUrl(String bucketName, String objectName, int expiryTime) {
         if (!isFileExists(bucketName, objectName)) {
@@ -1318,13 +1323,13 @@ public class MinIOUtil {
     }
 
     /**
-     * @description 批量生成预签名 URL
-     * @param bucketName 存储桶名称
+     * @param bucketName  存储桶名称
      * @param objectNames 对象名称列表
-     * @param method HTTP 方法（PUT/GET/DELETE）
-     * @param expiryTime 过期时间（单位：秒）
+     * @param method      HTTP 方法（PUT/GET/DELETE）
+     * @param expiryTime  过期时间（单位：秒）
      * @return 对象名称到预签名 URL 的映射
      * @throws MinIOException 当生成失败时抛出
+     * @description 批量生成预签名 URL
      */
     public Map<String, String> generateBatchPresignedUrls(String bucketName, List<String> objectNames,
                                                           Method method, int expiryTime) {
@@ -1353,9 +1358,9 @@ public class MinIOUtil {
     }
 
     /**
-     * @description 验证预签名 URL 是否有效
      * @param presignedUrl 预签名 URL
      * @return 是否有效
+     * @description 验证预签名 URL 是否有效
      */
     public boolean validatePresignedUrl(String presignedUrl) {
         try {
@@ -1374,9 +1379,9 @@ public class MinIOUtil {
     }
 
     /**
-     * @description 获取预签名 URL 的过期时间
      * @param presignedUrl 预签名 URL
      * @return 过期时间戳（毫秒），如果无法解析返回 -1
+     * @description 获取预签名 URL 的过期时间
      */
     public long getPresignedUrlExpiry(String presignedUrl) {
         try {
@@ -1398,4 +1403,30 @@ public class MinIOUtil {
             return -1;
         }
     }
+
+    /**
+     * 从MinIO删除文件
+     *
+     * @param http https地址
+     */
+    public void deleteFile(String http) {
+        try {
+            // 1. 解析 URL，提取路径部分
+            URI uri = new URI(http);
+            String path = uri.getPath();  // /gulimall/2026-5-15/xxx.png
+
+            // 2. 去掉开头的 /
+            String bucketAndObject = path.substring(1);
+
+            // 3. 分离 bucket 和 objectName
+            int firstSlash = bucketAndObject.indexOf('/');
+            String bucket = bucketAndObject.substring(0, firstSlash);
+            String objectName = bucketAndObject.substring(firstSlash + 1);
+
+            deleteFile(bucket, objectName);
+        } catch (Exception e) {
+            throw new MinIOException("删除文件失败: " + e.getMessage());
+        }
+    }
+
 }

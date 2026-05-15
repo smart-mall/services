@@ -1,6 +1,5 @@
 package product.service.impl;
 
-import ch.qos.logback.core.util.StringUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -17,10 +16,7 @@ import product.service.CategoryBrandRelationService;
 import product.service.CategoryService;
 import product.vo.Catelog2Vo;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -47,25 +43,47 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
         // 先获取所有分类
         List<CategoryEntity> categoryEntities = baseMapper.selectList(null);
 
-        // 获取以及分类id映射表
-        Map<Long, CategoryEntity> categoryEntityMap = categoryEntities.stream().collect(Collectors.toMap(CategoryEntity::getCatId, v -> v));
+        // 获取一级分类id映射表
+        Map<Long, CategoryEntity> categoryEntityMap = categoryEntities.stream()
+                .collect(Collectors.toMap(CategoryEntity::getCatId, v -> v));
 
-        // 一级菜单list
-        List<CategoryEntity> level1Menus = categoryEntities.stream().filter(categoryEntity -> categoryEntity.getParentCid() == 0).toList();
+        // 一级菜单list（按sort升序排序）
+        List<CategoryEntity> level1Menus = categoryEntities.stream()
+                .filter(categoryEntity -> categoryEntity.getParentCid() == 0)
+                .sorted(Comparator.comparingInt(CategoryEntity::getSort))
+                .collect(Collectors.toList());
 
+        // 构建父子关系
         categoryEntities.forEach(categoryEntity -> {
             if (categoryEntity.getParentCid() == 0) {
                 return;
             }
             // 先找到父菜单
             CategoryEntity categoryParent = categoryEntityMap.get(categoryEntity.getParentCid());
-            if (categoryParent.getChildren() == null) {
-                categoryParent.setChildren(new ArrayList<>());
+            if (categoryParent != null) {
+                if (categoryParent.getChildren() == null) {
+                    categoryParent.setChildren(new ArrayList<>());
+                }
+                categoryParent.getChildren().add(categoryEntity);
             }
-            categoryParent.getChildren().add(categoryEntity);
         });
 
+        // 对所有层级的子菜单进行排序
+        level1Menus.forEach(this::sortChildren);
+
         return level1Menus;
+    }
+
+    /**
+     * 递归排序子节点
+     */
+    private void sortChildren(CategoryEntity category) {
+        if (category.getChildren() != null && !category.getChildren().isEmpty()) {
+            // 按 sort 升序排序
+            category.getChildren().sort(Comparator.comparingInt(CategoryEntity::getSort));
+            // 递归排序子节点的子节点
+            category.getChildren().forEach(this::sortChildren);
+        }
     }
 
     @Override
@@ -84,10 +102,10 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
     @Override
     @Transactional
     public void updateDetail(CategoryEntity category) {
-        this.save( category);
-        if (StringUtil.isNullOrEmpty(category.getName())) {
-            categoryBrandRelationService.updateCategory(category.getCatId(), category.getName());
-        }
+        log.debug("先修改分类表");
+        this.updateById(category);
+        log.debug("修改品牌分类关联表");
+        categoryBrandRelationService.updateCategory(category.getCatId(), category.getName());
     }
 
     @Cacheable(value = {"category"},key = "#root.method.name",sync = true)

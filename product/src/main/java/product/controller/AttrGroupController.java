@@ -1,7 +1,10 @@
 package product.controller;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import common.utils.PageUtils;
 import common.utils.R;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import product.entity.AttrEntity;
 import product.entity.AttrGroupEntity;
@@ -26,6 +29,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("product/attrgroup")
+@Slf4j
 public class AttrGroupController {
     private final AttrGroupService attrGroupService;
     private final CategoryService categoryService;
@@ -44,6 +48,7 @@ public class AttrGroupController {
      */
     @GetMapping("/{catelogId}/withattr")
     public R getAttrGroupWithAttrs(@PathVariable Long catelogId) {
+        log.info("根据分类id获取属性分组以及具体属性：{}", catelogId);
         List<AttrGroupWithAttrsVO> list = attrGroupService.getAttrGroupWithAttrs(catelogId);
 
         return R.ok().put("data", list);
@@ -54,6 +59,7 @@ public class AttrGroupController {
      */
     @GetMapping("/{attrGroupId}/attr/relation")
     public R attrRelation(@PathVariable Long attrGroupId) {
+        log.info("获取分组的所有属性：{}", attrGroupId);
         List<AttrEntity> list = attrService.getRelationAttr(attrGroupId);
         return R.ok().put("data", list);
     }
@@ -64,6 +70,7 @@ public class AttrGroupController {
     @GetMapping("/{attrGroupId}/noattr/relation")
     public R attrNoRelation(@RequestParam Map<String, Object> params,
                             @PathVariable Long attrGroupId) {
+        log.info("获取分组的所有属性：{}, {}", attrGroupId, JSON.toJSONString(params, SerializerFeature.PrettyFormat));
         PageUtils pageUtils = attrService.getNoRelationAttr(attrGroupId, params);
         return R.ok().put("page", pageUtils);
     }
@@ -73,6 +80,7 @@ public class AttrGroupController {
      */
     @PostMapping("/attr/relation")
     public R addRelation(@RequestBody List<AttrGroupRelationVO> vos) {
+        log.info("添加分组下的属性：{}", JSON.toJSONString(vos, SerializerFeature.PrettyFormat));
         relationService.addRelation(vos);
         return R.ok();
     }
@@ -83,6 +91,7 @@ public class AttrGroupController {
      */
     @PostMapping("/attr/relation/delete")
     public R deleteRelation(@RequestBody AttrGroupRelationVO[] vos) {
+        log.info("删除分组下的属性：{}", JSON.toJSONString(vos, SerializerFeature.PrettyFormat));
         attrGroupService.deleteRelation(vos);
         return R.ok();
     }
@@ -94,6 +103,7 @@ public class AttrGroupController {
      */
     @RequestMapping("/list/{categoryId}")
     public R list(@RequestParam Map<String, Object> params, @PathVariable Long categoryId){
+        log.info("列表：{}", JSON.toJSONString(params, SerializerFeature.PrettyFormat));
         PageUtils page = attrGroupService.queryPage(params, categoryId);
 
         return R.ok().put("page", page);
@@ -105,6 +115,7 @@ public class AttrGroupController {
      */
     @RequestMapping("/info/{attrGroupId}")
     public R info(@PathVariable("attrGroupId") Long attrGroupId){
+        log.info("信息：{}", attrGroupId);
 		AttrGroupEntity attrGroup = attrGroupService.getById(attrGroupId);
 
 
@@ -119,6 +130,7 @@ public class AttrGroupController {
      */
     @RequestMapping("/save")
     public R save(@RequestBody AttrGroupEntity attrGroup){
+        log.info("保存：{}", JSON.toJSONString(attrGroup, SerializerFeature.PrettyFormat));
 		attrGroupService.save(attrGroup);
 
         return R.ok();
@@ -129,7 +141,8 @@ public class AttrGroupController {
      */
     @RequestMapping("/update")
     public R update(@RequestBody AttrGroupEntity attrGroup){
-		attrGroupService.updateById(attrGroup);
+        log.info("修改：{}", JSON.toJSONString(attrGroup, SerializerFeature.PrettyFormat));
+		attrGroupService.updateDetail(attrGroup);
 
         return R.ok();
     }
@@ -139,7 +152,8 @@ public class AttrGroupController {
      */
     @RequestMapping("/delete")
     public R delete(@RequestBody Long[] attrGroupIds){
-		attrGroupService.removeByIds(Arrays.asList(attrGroupIds));
+        log.info("删除：{}", JSON.toJSONString(attrGroupIds, SerializerFeature.PrettyFormat));
+		attrGroupService.deleteByIds(Arrays.asList(attrGroupIds));
 
         return R.ok();
     }

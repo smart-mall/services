@@ -86,3 +86,11 @@ spring:
 
 server:
   port: 53000
+
+
+logging:
+  level:
+    reactor.netty: DEBUG
+    reactor.netty.http.client: DEBUG
+    reactor.netty.http.server: DEBUG
+    org.springframework.cloud.gateway: DEBUG
