@@ -1,19 +1,17 @@
 package order.controller;
 
-import java.util.Arrays;
-import java.util.Map;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
-import order.entity.OrderEntity;
-import order.service.OrderService;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import common.utils.PageUtils;
 import common.utils.R;
+import lombok.extern.slf4j.Slf4j;
+import order.entity.OrderEntity;
+import order.service.OrderService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Arrays;
+import java.util.Map;
 
 
 
@@ -26,6 +24,7 @@ import common.utils.R;
  */
 @RestController
 @RequestMapping("order/order")
+@Slf4j
 public class OrderController {
     @Autowired
     private OrderService orderService;
@@ -35,6 +34,7 @@ public class OrderController {
      */
     @RequestMapping("/list")
     public R list(@RequestParam Map<String, Object> params){
+        log.info("查询订单列表: {}", JSON.toJSONString( params, SerializerFeature.PrettyFormat));
         PageUtils page = orderService.queryPage(params);
 
         return R.ok().put("page", page);
@@ -46,6 +46,7 @@ public class OrderController {
      */
     @RequestMapping("/info/{id}")
     public R info(@PathVariable("id") Long id){
+        log.info("信息: {}", id);
 		OrderEntity order = orderService.getById(id);
 
         return R.ok().put("order", order);
@@ -56,6 +57,7 @@ public class OrderController {
      */
     @RequestMapping("/save")
     public R save(@RequestBody OrderEntity order){
+        log.info("保存订单: {}", JSON.toJSONString(order, SerializerFeature.PrettyFormat));
 		orderService.save(order);
 
         return R.ok();
@@ -66,6 +68,7 @@ public class OrderController {
      */
     @RequestMapping("/update")
     public R update(@RequestBody OrderEntity order){
+        log.info("修改订单: {}", JSON.toJSONString(order, SerializerFeature.PrettyFormat));
 		orderService.updateById(order);
 
         return R.ok();
@@ -76,6 +79,7 @@ public class OrderController {
      */
     @RequestMapping("/delete")
     public R delete(@RequestBody Long[] ids){
+        log.info("删除订单: {}", JSON.toJSONString(ids, SerializerFeature.PrettyFormat));
 		orderService.removeByIds(Arrays.asList(ids));
 
         return R.ok();

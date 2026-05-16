@@ -1,5 +1,7 @@
 package member.controller;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import common.utils.PageUtils;
 import common.utils.R;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +45,7 @@ public class MemberLevelController {
      */
     @RequestMapping("/list")
     public R list(@RequestParam Map<String, Object> params){
+        log.info("列表: {}", JSON.toJSONString(params, SerializerFeature.PrettyFormat));
         PageUtils page = memberLevelService.queryPage(params);
 
         return R.ok().put("page", page);
@@ -54,6 +57,7 @@ public class MemberLevelController {
      */
     @RequestMapping("/info/{id}")
     public R info(@PathVariable("id") Long id){
+        log.info("信息: {}", id);
 		MemberLevelEntity memberLevel = memberLevelService.getById(id);
 
         return R.ok().put("memberLevel", memberLevel);
@@ -64,6 +68,7 @@ public class MemberLevelController {
      */
     @RequestMapping("/save")
     public R save(@RequestBody MemberLevelEntity memberLevel){
+        log.info("保存会员等级: {}", JSON.toJSONString(memberLevel, SerializerFeature.PrettyFormat));
 		memberLevelService.save(memberLevel);
 
         return R.ok();
@@ -74,6 +79,7 @@ public class MemberLevelController {
      */
     @RequestMapping("/update")
     public R update(@RequestBody MemberLevelEntity memberLevel){
+        log.info("修改会员等级: {}", JSON.toJSONString(memberLevel, SerializerFeature.PrettyFormat));
 		memberLevelService.updateById(memberLevel);
 
         return R.ok();
@@ -84,6 +90,7 @@ public class MemberLevelController {
      */
     @RequestMapping("/delete")
     public R delete(@RequestBody Long[] ids){
+        log.info("删除会员等级: {}", JSON.toJSONString(ids, SerializerFeature.PrettyFormat));
 		memberLevelService.removeByIds(Arrays.asList(ids));
 
         return R.ok();

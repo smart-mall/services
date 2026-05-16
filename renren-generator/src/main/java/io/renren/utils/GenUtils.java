@@ -305,8 +305,8 @@ public class GenUtils {
         if (template.contains("MongoChildrenEntity.java.vm")) {
             return packagePath + "entity" + File.separator + "inner" + File.separator + currentTableName+ File.separator + splitInnerName(className)+ "InnerEntity.java";
         }
-        if (template.contains("Entity.java.vm") || template.contains("MongoEntity.java.vm")) {
-            return packagePath + "entity" + File.separator + className + "Entity.java";
+        if (template.contains("entity.java.vm") || template.contains("MongoEntity.java.vm")) {
+            return packagePath + "entity" + File.separator + className + "entity.java";
         }
 
         if (template.contains("Dao.java.vm")) {

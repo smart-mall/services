@@ -15,36 +15,69 @@ import ware.dao.PurchaseDao;
 import ware.dao.PurchaseDetailDao;
 import ware.entity.PurchaseDetailEntity;
 import ware.entity.PurchaseEntity;
+import ware.entity.WareInfoEntity;
 import ware.service.PurchaseService;
+import ware.service.WareInfoService;
 import ware.service.WareSkuService;
 import ware.vo.MergeVO;
 import ware.vo.PurchaseDoneVO;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 @Service("purchaseService")
 public class PurchaseServiceImpl extends ServiceImpl<PurchaseDao, PurchaseEntity> implements PurchaseService {
     private final PurchaseDetailDao purchaseDetailDao;
     private final WareSkuService wareSkuService;
+    private final WareInfoService wareInfoService;
 
-    public PurchaseServiceImpl(PurchaseDetailDao purchaseDetailDao, WareSkuService wareSkuService) {
+    public PurchaseServiceImpl(PurchaseDetailDao purchaseDetailDao, WareSkuService wareSkuService, WareInfoService wareInfoService) {
         this.purchaseDetailDao = purchaseDetailDao;
         this.wareSkuService = wareSkuService;
+        this.wareInfoService = wareInfoService;
     }
 
 
     @Override
     public PageUtils queryPage(Map<String, Object> params) {
+        List<WareInfoEntity> wareInfoEntities = wareInfoService.list();
+
+
         IPage<PurchaseEntity> page = this.page(
                 new Query<PurchaseEntity>().getPage(params),
                 new QueryWrapper<>()
         );
 
-        return new PageUtils(page);
+        page.getRecords().forEach(item -> {
+            item.setWareName(wareInfoEntities.stream()
+                    .filter(wareInfoEntity -> wareInfoEntity.getId().equals(item.getWareId()))
+                    .findFirst()
+                    .map(WareInfoEntity::getName)
+                    .orElse(null));
+        });
+
+        String key = (String) params.get("key");
+        Object statusObj = params.get("status");
+        Integer status = statusObj != null ? Integer.valueOf(statusObj.toString()) : null;
+
+        List<PurchaseEntity> list = page.getRecords().stream()
+                .filter(item -> {
+                    // 状态匹配
+                    if (status != null && !Objects.equals(item.getStatus(), status)) {
+                        return false;
+                    }
+                    // 如果有关键词搜索
+                    if (key != null && !key.isEmpty()) {
+                        boolean matchAssignee = item.getAssigneeName() != null && item.getAssigneeName().contains(key);
+                        boolean matchWareName = item.getWareName() != null && item.getWareName().contains(key);
+                        return matchAssignee || matchWareName;
+                    }
+                    return true;
+                })
+                .toList();
+        PageUtils pageUtils = new PageUtils(page);
+        pageUtils.setList(list);
+        return pageUtils;
     }
 
     @Override

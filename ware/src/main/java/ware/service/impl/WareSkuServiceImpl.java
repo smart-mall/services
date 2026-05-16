@@ -16,15 +16,16 @@ import common.utils.R;
 import lombok.Data;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ware.dao.WareSkuDao;
+import ware.entity.WareInfoEntity;
 import ware.entity.WareOrderTaskDetailEntity;
 import ware.entity.WareOrderTaskEntity;
 import ware.entity.WareSkuEntity;
 import ware.feign.OrderFeignService;
 import ware.feign.ProductFeignService;
+import ware.service.WareInfoService;
 import ware.service.WareOrderTaskDetailService;
 import ware.service.WareOrderTaskService;
 import ware.service.WareSkuService;
@@ -41,30 +42,28 @@ import java.util.Map;
 @Service("wareSkuService")
 public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> implements WareSkuService {
 
-    @Autowired
-    private WareSkuDao wareSkuDao;
+    private final WareSkuDao wareSkuDao;
+    private final ProductFeignService productFeignService;
+    private final RabbitTemplate rabbitTemplate;
+    private final WareOrderTaskService wareOrderTaskService;
+    private final WareOrderTaskDetailService wareOrderTaskDetailService;
+    private final OrderFeignService orderFeignService;
+    private final WareInfoService wareInfoService;
 
-    @Autowired
-    private ProductFeignService productFeignService;
-
-    @Autowired
-    private RabbitTemplate rabbitTemplate;
-
-    @Autowired
-    private WareOrderTaskService wareOrderTaskService;
-
-    @Autowired
-    private WareOrderTaskDetailService wareOrderTaskDetailService;
-
-    @Autowired
-    private OrderFeignService orderFeignService;
-
-    public WareSkuServiceImpl(ProductFeignService productFeignService) {
+    public WareSkuServiceImpl(WareSkuDao wareSkuDao, ProductFeignService productFeignService, RabbitTemplate rabbitTemplate, WareOrderTaskService wareOrderTaskService, WareOrderTaskDetailService wareOrderTaskDetailService, OrderFeignService orderFeignService, WareInfoService wareInfoService) {
+        this.wareSkuDao = wareSkuDao;
         this.productFeignService = productFeignService;
+        this.rabbitTemplate = rabbitTemplate;
+        this.wareOrderTaskService = wareOrderTaskService;
+        this.wareOrderTaskDetailService = wareOrderTaskDetailService;
+        this.orderFeignService = orderFeignService;
+        this.wareInfoService = wareInfoService;
     }
 
     @Override
     public PageUtils queryPage(Map<String, Object> params) {
+        List<WareInfoEntity> wareInfoEntities = wareInfoService.list();
+
         LambdaQueryWrapper<WareSkuEntity> queryWrapper = new LambdaQueryWrapper<>();
 
         String key = (String) params.get("skuId");
@@ -81,6 +80,10 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
                 new Query<WareSkuEntity>().getPage(params),
                 queryWrapper
         );
+
+        page.getRecords().forEach(wareSkuEntity -> {
+            wareSkuEntity.setWareName(wareInfoEntities.stream().filter(wareInfoEntity -> wareInfoEntity.getId().equals(wareSkuEntity.getWareId())).findFirst().get().getName());
+        });
 
         return new PageUtils(page);
     }

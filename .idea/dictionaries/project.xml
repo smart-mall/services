@@ -2,6 +2,8 @@
   <dictionary name="project">
     <words>
       <w>catelog</w>
+      <w>cityinfo</w>
+      <w>countyinfo</w>
       <w>decript</w>
       <w>descript</w>
       <w>discrip</w>
@@ -13,6 +15,8 @@
       <w>minioadmin</w>
       <w>nacos</w>
       <w>noattr</w>
+      <w>provincialinfo</w>
+      <w>purchasedetail</w>
       <w>renren</w>
       <w>seckillsession</w>
       <w>skufullreduction</w>
@@ -20,6 +24,7 @@
       <w>spubounds</w>
       <w>spuinfo</w>
       <w>sunlightcs</w>
+      <w>towninfo</w>
       <w>unreceive</w>
       <w>weixin</w>
       <w>withattr</w>

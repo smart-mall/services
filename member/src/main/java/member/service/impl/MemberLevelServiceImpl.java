@@ -1,6 +1,6 @@
 package member.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.utils.PageUtils;
@@ -20,9 +20,19 @@ public class MemberLevelServiceImpl extends ServiceImpl<MemberLevelDao, MemberLe
 
     @Override
     public PageUtils queryPage(Map<String, Object> params) {
+        String key = (String)params.get("key");
+
+        LambdaQueryWrapper<MemberLevelEntity> wrapper = new LambdaQueryWrapper<>();
+
+        if(key != null && !key.trim().isEmpty()){
+            wrapper.like(MemberLevelEntity::getName, key)
+                .or()
+                .like(MemberLevelEntity::getId, key);
+        }
+
         IPage<MemberLevelEntity> page = this.page(
                 new Query<MemberLevelEntity>().getPage(params),
-                new QueryWrapper<MemberLevelEntity>()
+                wrapper
         );
 
         return new PageUtils(page);

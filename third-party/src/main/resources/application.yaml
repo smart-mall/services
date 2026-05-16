@@ -5,6 +5,6 @@ spring:
     import:
       - optional:classpath:application-common.yaml
   datasource:
-    name: third-party
+    name: third_party
 server:
   port: 52600

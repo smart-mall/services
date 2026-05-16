@@ -1,19 +1,17 @@
 package ware.controller;
 
-import java.util.Arrays;
-import java.util.Map;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
-import ware.entity.PurchaseDetailEntity;
-import ware.service.PurchaseDetailService;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import common.utils.PageUtils;
 import common.utils.R;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.*;
+import ware.entity.PurchaseDetailEntity;
+import ware.feign.ProductFeignService;
+import ware.service.PurchaseDetailService;
+
+import java.util.Arrays;
+import java.util.Map;
 
 
 
@@ -26,15 +24,22 @@ import common.utils.R;
  */
 @RestController
 @RequestMapping("ware/purchasedetail")
+@Slf4j
 public class PurchaseDetailController {
-    @Autowired
-    private PurchaseDetailService purchaseDetailService;
+    private final PurchaseDetailService purchaseDetailService;
+    private final ProductFeignService productFeignService;
+
+    public PurchaseDetailController(PurchaseDetailService purchaseDetailService, ProductFeignService productFeignService) {
+        this.purchaseDetailService = purchaseDetailService;
+        this.productFeignService = productFeignService;
+    }
 
     /**
      * 列表
      */
     @RequestMapping("/list")
     public R list(@RequestParam Map<String, Object> params){
+        log.info("list params:{}", JSON.toJSONString(params, SerializerFeature.PrettyFormat));
         PageUtils page = purchaseDetailService.queryPage(params);
 
         return R.ok().put("page", page);
@@ -46,6 +51,7 @@ public class PurchaseDetailController {
      */
     @RequestMapping("/info/{id}")
     public R info(@PathVariable("id") Long id){
+        log.info("采购单信息: {}", id);
 		PurchaseDetailEntity purchaseDetail = purchaseDetailService.getById(id);
 
         return R.ok().put("purchaseDetail", purchaseDetail);
@@ -56,7 +62,8 @@ public class PurchaseDetailController {
      */
     @RequestMapping("/save")
     public R save(@RequestBody PurchaseDetailEntity purchaseDetail){
-		purchaseDetailService.save(purchaseDetail);
+        log.info("保存采购单: {}", JSON.toJSONString(purchaseDetail, SerializerFeature.PrettyFormat));
+        purchaseDetailService.save(purchaseDetail);
 
         return R.ok();
     }
@@ -66,6 +73,7 @@ public class PurchaseDetailController {
      */
     @RequestMapping("/update")
     public R update(@RequestBody PurchaseDetailEntity purchaseDetail){
+        log.info("修改采购单: {}", JSON.toJSONString(purchaseDetail, SerializerFeature.PrettyFormat));
 		purchaseDetailService.updateById(purchaseDetail);
 
         return R.ok();
@@ -76,6 +84,7 @@ public class PurchaseDetailController {
      */
     @RequestMapping("/delete")
     public R delete(@RequestBody Long[] ids){
+        log.info("删除采购单: {}", JSON.toJSONString(ids, SerializerFeature.PrettyFormat));
 		purchaseDetailService.removeByIds(Arrays.asList(ids));
 
         return R.ok();

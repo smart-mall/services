@@ -1,12 +1,13 @@
 package ware.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-
-import java.math.BigDecimal;
-import java.io.Serial;import java.io.Serializable;
-import java.util.Date;
 import lombok.Data;
+
+import java.io.Serial;
+import java.io.Serializable;
+import java.math.BigDecimal;
 
 /**
  * 
@@ -49,5 +50,11 @@ public class PurchaseDetailEntity implements Serializable {
 	 * 状态[0新建，1已分配，2正在采购，3已完成，4采购失败]
 	 */
 	private Integer status;
+
+	@TableField(exist = false)
+	private String skuName =  "";
+
+	@TableField(exist = false)
+	private String wareName = "";
 
 }

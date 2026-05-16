@@ -1,11 +1,12 @@
 package ware.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-
-import java.io.Serial;import java.io.Serializable;
-import java.util.Date;
 import lombok.Data;
+
+import java.io.Serial;
+import java.io.Serializable;
 
 /**
  * 商品库存
@@ -44,5 +45,8 @@ public class WareSkuEntity implements Serializable {
 	 * 锁定库存
 	 */
 	private Integer stockLocked;
+
+	@TableField(exist=false)
+	private String wareName;
 
 }

@@ -4,6 +4,7 @@ import common.vo.MemberResponseVo;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -22,6 +23,7 @@ import static common.constant.AuthServerConstant.LOGIN_USER;
  **/
 
 @Component
+@Slf4j
 public class LoginUserInterceptor implements HandlerInterceptor {
 
     public static ThreadLocal<MemberResponseVo> loginUser = new ThreadLocal<>();
@@ -29,8 +31,10 @@ public class LoginUserInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
 //        放行所有后台接口
-        String orign = request.getHeader("origin");
-        if ("http://admin.gulimall.com".equalsIgnoreCase(orign)) {
+        String origin = request.getHeader("origin");
+        log.debug("当前请求的uri:{}", origin);
+        if ("http://admin.gulimall.com".equalsIgnoreCase(origin)
+                || "http://localhost:56731".equalsIgnoreCase(origin)) {
             return true;
         }
 

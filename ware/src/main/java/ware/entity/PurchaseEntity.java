@@ -1,12 +1,14 @@
 package ware.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-
-import java.math.BigDecimal;
-import java.io.Serial;import java.io.Serializable;
-import java.util.Date;
 import lombok.Data;
+
+import java.io.Serial;
+import java.io.Serializable;
+import java.math.BigDecimal;
+import java.util.Date;
 
 /**
  * 采购信息
@@ -62,4 +64,6 @@ public class PurchaseEntity implements Serializable {
 	 */
 	private Date updateTime;
 
+	@TableField (exist = false)
+	private String wareName;
 }
