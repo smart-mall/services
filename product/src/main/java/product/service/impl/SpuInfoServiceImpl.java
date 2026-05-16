@@ -23,6 +23,7 @@ import product.feign.SearchFeignService;
 import product.feign.WareFeignService;
 import product.service.*;
 import product.vo.SkuHasStockVo;
+import product.vo.SpuSelectVO;
 import product.vo.SpuVO;
 
 import java.math.BigDecimal;
@@ -246,6 +247,18 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
                 queryWrapper
         );
 
+        Map<Long, String> brandName = brandService.listByIds(page.getRecords().stream().map(SpuInfoEntity::getBrandId).toList())
+                .stream().collect(Collectors.toMap(BrandEntity::getBrandId, BrandEntity::getName));
+
+        Map<Long, String> catalogName = categoryService.listByIds(page.getRecords().stream().map(SpuInfoEntity::getCatalogId).toList())
+                .stream().collect(Collectors.toMap(CategoryEntity::getCatId, CategoryEntity::getName));
+
+        page.getRecords().forEach(item -> {
+            item.setBrandName(brandName.get(item.getBrandId()));
+            item.setCatalogName(catalogName.get(item.getCatalogId()));
+        });
+
+
         return new PageUtils(page);
     }
 
@@ -336,6 +349,23 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
         spuInfoEntity.setBrandName(brandEntity.getName());
 
         return spuInfoEntity;
+    }
+
+    @Override
+    public Map<Long, String> getUserNames(List<Long> list) {
+        List<SpuInfoEntity> spuInfoEntities = baseMapper.selectByIds(list);
+        return spuInfoEntities.stream().collect(Collectors.toMap(SpuInfoEntity::getId, SpuInfoEntity::getSpuName));
+    }
+
+    @Override
+    public List<SpuSelectVO> getSpuSelect() {
+        List<SpuInfoEntity> spuInfoEntities = baseMapper.selectList(null);
+        return spuInfoEntities.stream().map(item -> {
+            SpuSelectVO spuSelectVO = new SpuSelectVO();
+            spuSelectVO.setId(item.getId());
+            spuSelectVO.setName(item.getSpuName());
+            return spuSelectVO;
+        }).toList();
     }
 
 

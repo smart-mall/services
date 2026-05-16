@@ -1,14 +1,18 @@
 package product.controller;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import common.utils.PageUtils;
 import common.utils.R;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import product.entity.SkuInfoEntity;
 import product.service.SkuInfoService;
+import product.vo.SkuSelectVO;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 
@@ -21,9 +25,33 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("product/skuinfo")
+@Slf4j
 public class SkuInfoController {
-    @Autowired
-    private SkuInfoService skuInfoService;
+    private final SkuInfoService skuInfoService;
+
+    public SkuInfoController(SkuInfoService skuInfoService) {
+        this.skuInfoService = skuInfoService;
+    }
+
+    // 获取sku下拉框选择信息
+    @GetMapping(value = "/getSkuSelect")
+    public R getSkuSelect() {
+        log.info("获取sku下拉框选择信息");
+        List<SkuSelectVO> skuSelect = skuInfoService.getSkuSelect();
+
+        return R.ok().setData(skuSelect);
+    }
+
+
+    // 批量获取spuName
+    @PostMapping(value = "/getSkuNames")
+    public R getSkuNames(@RequestBody List<Long> spuIds) {
+        log.info("批量获取spuName：{}", JSON.toJSONString(spuIds, SerializerFeature.PrettyFormat));
+
+        Map<Long, String> map = skuInfoService.getUserNames(spuIds);
+
+        return R.ok().setData(map);
+    }
 
     /**
      * 根据skuId查询当前商品的价格

@@ -1,11 +1,13 @@
 package coupon.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-
-import java.io.Serial;import java.io.Serializable;
-import java.util.Date;
 import lombok.Data;
+
+import java.io.Serial;
+import java.io.Serializable;
+import java.util.Date;
 
 /**
  * 秒杀活动
@@ -48,5 +50,8 @@ public class SeckillPromotionEntity implements Serializable {
 	 * 创建人
 	 */
 	private Long userId;
+
+	@TableField(exist = false)
+	private String userName;
 
 }

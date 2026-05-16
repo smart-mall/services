@@ -1815,7 +1815,7 @@ CREATE TABLE `pms_spu_images`  (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
   `spu_id` bigint(20) NULL DEFAULT NULL COMMENT 'spu_id',
   `img_name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '图片名',
-  `img_url` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '图片地址',
+  `img_url` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '图片地址',
   `img_sort` int(11) NULL DEFAULT NULL COMMENT '顺序',
   `default_img` tinyint(4) NULL DEFAULT NULL COMMENT '是否默认图',
   PRIMARY KEY (`id`) USING BTREE

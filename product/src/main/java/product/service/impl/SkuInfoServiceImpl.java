@@ -15,16 +15,14 @@ import product.entity.SkuInfoEntity;
 import product.entity.SpuInfoDescEntity;
 import product.feign.SeckillFeignService;
 import product.service.*;
-import product.vo.SeckillSkuVo;
-import product.vo.SkuItemSaleAttrVo;
-import product.vo.SkuItemVo;
-import product.vo.SpuItemAttrGroupVo;
+import product.vo.*;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.stream.Collectors;
 
 
 @Service("skuInfoService")
@@ -154,6 +152,23 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
                 .get();
 
         return skuItemVo;
+    }
+
+    @Override
+    public List<SkuSelectVO> getSkuSelect() {
+        List<SkuInfoEntity> spuInfoEntities = baseMapper.selectList(null);
+        return spuInfoEntities.stream().map(item -> {
+            SkuSelectVO spuSelectVO = new SkuSelectVO();
+            spuSelectVO.setId(item.getSkuId());
+            spuSelectVO.setName(item.getSkuName());
+            return spuSelectVO;
+        }).toList();
+    }
+
+    @Override
+    public Map<Long, String> getUserNames(List<Long> list) {
+        List<SkuInfoEntity> spuInfoEntities = baseMapper.selectByIds(list);
+        return spuInfoEntities.stream().collect(Collectors.toMap(SkuInfoEntity::getSkuId, SkuInfoEntity::getSkuName));
     }
 
     public List<SkuInfoEntity> getSkusBySpuId(Long spuId) {

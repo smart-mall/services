@@ -1,19 +1,17 @@
 package coupon.controller;
 
-import java.util.Arrays;
-import java.util.Map;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
-import coupon.entity.SeckillPromotionEntity;
-import coupon.service.SeckillPromotionService;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import common.utils.PageUtils;
 import common.utils.R;
+import coupon.entity.SeckillPromotionEntity;
+import coupon.service.SeckillPromotionService;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Arrays;
+import java.util.Date;
+import java.util.Map;
 
 
 
@@ -26,15 +24,20 @@ import common.utils.R;
  */
 @RestController
 @RequestMapping("coupon/seckillpromotion")
+@Slf4j
 public class SeckillPromotionController {
-    @Autowired
-    private SeckillPromotionService seckillPromotionService;
+    private final SeckillPromotionService seckillPromotionService;
+
+    public SeckillPromotionController(SeckillPromotionService seckillPromotionService) {
+        this.seckillPromotionService = seckillPromotionService;
+    }
 
     /**
      * 列表
      */
     @RequestMapping("/list")
     public R list(@RequestParam Map<String, Object> params){
+        log.info("列表：{}", JSON.toJSONString(params, SerializerFeature.PrettyFormat));
         PageUtils page = seckillPromotionService.queryPage(params);
 
         return R.ok().put("page", page);
@@ -46,6 +49,7 @@ public class SeckillPromotionController {
      */
     @RequestMapping("/info/{id}")
     public R info(@PathVariable("id") Long id){
+        log.info("通过id查询：{}", id);
 		SeckillPromotionEntity seckillPromotion = seckillPromotionService.getById(id);
 
         return R.ok().put("seckillPromotion", seckillPromotion);
@@ -56,7 +60,9 @@ public class SeckillPromotionController {
      */
     @RequestMapping("/save")
     public R save(@RequestBody SeckillPromotionEntity seckillPromotion){
-		seckillPromotionService.save(seckillPromotion);
+        log.info("保存：{}", JSON.toJSONString(seckillPromotion, SerializerFeature.PrettyFormat));
+        seckillPromotion.setCreateTime(new Date());
+        seckillPromotionService.save(seckillPromotion);
 
         return R.ok();
     }
@@ -66,6 +72,7 @@ public class SeckillPromotionController {
      */
     @RequestMapping("/update")
     public R update(@RequestBody SeckillPromotionEntity seckillPromotion){
+        log.info("修改：{}", JSON.toJSONString(seckillPromotion, SerializerFeature.PrettyFormat));
 		seckillPromotionService.updateById(seckillPromotion);
 
         return R.ok();
@@ -76,6 +83,7 @@ public class SeckillPromotionController {
      */
     @RequestMapping("/delete")
     public R delete(@RequestBody Long[] ids){
+        log.info("删除：{}", JSON.toJSONString(ids, SerializerFeature.PrettyFormat));
 		seckillPromotionService.removeByIds(Arrays.asList(ids));
 
         return R.ok();

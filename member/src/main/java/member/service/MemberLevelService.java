@@ -3,7 +3,9 @@ package member.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import common.utils.PageUtils;
 import member.entity.MemberLevelEntity;
+import member.vo.MemberSelectVO;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -16,5 +18,7 @@ import java.util.Map;
 public interface MemberLevelService extends IService<MemberLevelEntity> {
 
     PageUtils queryPage(Map<String, Object> params);
+
+    List<MemberSelectVO> getMemberSelect();
 }
 

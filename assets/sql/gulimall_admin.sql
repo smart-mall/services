@@ -764,6 +764,7 @@ INSERT INTO `sys_menu` VALUES (72, 70, '采购单', 'ware/purchase', '', 1, 'men
 INSERT INTO `sys_menu` VALUES (73, 41, '商品管理', 'product/manager', '', 1, 'zonghe', 0);
 INSERT INTO `sys_menu` VALUES (74, 42, '会员价格', 'coupon/memberprice', '', 1, 'admin', 0);
 INSERT INTO `sys_menu` VALUES (75, 42, '每日秒杀', 'coupon/seckillsession', '', 1, 'job', 0);
+INSERT INTO `sys_menu` VALUES ( 76, 37, '规格维护', 'product/attrupdate', NULL, 2, 'log', 0 );
 
 -- ----------------------------
 -- Table structure for sys_oss

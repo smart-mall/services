@@ -15,6 +15,7 @@ import product.entity.BrandEntity;
 import product.entity.CategoryBrandRelationEntity;
 import product.service.CategoryBrandRelationService;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -77,6 +78,9 @@ public class CategoryBrandRelationServiceImpl extends ServiceImpl<CategoryBrandR
     @Override
     public List<BrandEntity> getBrandByCatId(Long catId) {
         List<CategoryBrandRelationEntity> list = this.list(new LambdaQueryWrapper<>(CategoryBrandRelationEntity.class).eq(CategoryBrandRelationEntity::getCatalogId, catId));
+        if (list == null || list.isEmpty()) {
+            return new ArrayList<>();
+        }
         List<Long> ids = list.stream().map(CategoryBrandRelationEntity::getBrandId).toList();
         return brandDao.selectByIds(ids);
     }

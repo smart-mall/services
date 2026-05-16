@@ -20,6 +20,7 @@ import io.renren.modules.sys.entity.SysUserEntity;
 import io.renren.modules.sys.form.PasswordForm;
 import io.renren.modules.sys.service.SysUserRoleService;
 import io.renren.modules.sys.service.SysUserService;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.apache.shiro.crypto.hash.Sha256Hash;
@@ -36,6 +37,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/sys/user")
+@Slf4j
 public class SysUserController extends AbstractController {
 	@Autowired
 	private SysUserService sysUserService;
@@ -151,5 +153,13 @@ public class SysUserController extends AbstractController {
 		sysUserService.deleteBatch(userIds);
 		
 		return R.ok();
+	}
+
+	// 批量获取用户名
+	@SysLog("批量获取用户名")
+	@PostMapping("/getUserNames")
+	public R getUserNames(@RequestBody List<Long> userIds) {
+		log.info("批量获取用户名：{}", userIds);
+		return R.ok().put("data", sysUserService.getUserNames(userIds));
 	}
 }

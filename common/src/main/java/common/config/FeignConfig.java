@@ -32,8 +32,11 @@ public class FeignConfig {
                 //2、同步请求头的数据（主要是cookie）
                 //把老请求的cookie值放到新请求上来，进行一个同步
                 String cookie = request.getHeader("Cookie");
-                log.debug("解决feign远程调用丢失请求头问题：在新请求添加Cookie:{}", cookie);
+                String token = request.getHeader("token");
+                log.debug("解决feign远程调用丢失请求头问题：在新请求添加Cookie和token:{}--{}", cookie,  token);
+
                 template.header("Cookie", cookie);
+                template.header("token", token);
             }
         };
     }

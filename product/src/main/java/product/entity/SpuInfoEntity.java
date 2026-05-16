@@ -62,4 +62,7 @@ public class SpuInfoEntity implements Serializable {
 	@TableField(exist = false)
 	private String brandName;
 
+	@TableField(exist = false)
+	private String catalogName;
+
 }

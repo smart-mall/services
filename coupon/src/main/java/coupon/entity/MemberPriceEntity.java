@@ -1,12 +1,13 @@
 package coupon.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-
-import java.math.BigDecimal;
-import java.io.Serial;import java.io.Serializable;
-import java.util.Date;
 import lombok.Data;
+
+import java.io.Serial;
+import java.io.Serializable;
+import java.math.BigDecimal;
 
 /**
  * 商品会员价格
@@ -45,5 +46,8 @@ public class MemberPriceEntity implements Serializable {
 	 * 可否叠加其他优惠[0-不可叠加优惠，1-可叠加]
 	 */
 	private Integer addOther;
+
+	@TableField(exist = false)
+	private String skuName;
 
 }

@@ -8,6 +8,7 @@
 
 package io.renren.modules.sys.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -27,10 +28,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 /**
@@ -121,7 +119,19 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserDao, SysUserEntity> i
 		return this.update(userEntity,
 				new QueryWrapper<SysUserEntity>().eq("user_id", userId).eq("password", password));
 	}
-	
+
+	@Override
+	public Map<Long, String> getUserNames(List<Long> userIds) {
+		LambdaQueryWrapper<SysUserEntity> wrapper = new LambdaQueryWrapper<>();
+		wrapper.in(SysUserEntity::getUserId, userIds);
+		List<SysUserEntity> list = this.list(wrapper);
+		Map<Long, String> map = new HashMap<>();
+		for (SysUserEntity sysUserEntity : list) {
+			map.put(sysUserEntity.getUserId(), sysUserEntity.getUsername());
+		}
+		return map;
+	}
+
 	/**
 	 * 检查角色是否越权
 	 */

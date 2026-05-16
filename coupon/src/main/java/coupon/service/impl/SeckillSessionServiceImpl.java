@@ -1,5 +1,6 @@
 package coupon.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -33,12 +34,14 @@ public class SeckillSessionServiceImpl extends ServiceImpl<SeckillSessionDao, Se
     @Override
     public PageUtils queryPage(Map<String, Object> params) {
 
-        QueryWrapper<SeckillSessionEntity> queryWrapper = new QueryWrapper<>();
+        LambdaQueryWrapper<SeckillSessionEntity> queryWrapper = new LambdaQueryWrapper<>();
 
         String key = (String) params.get("key");
 
         if (!StringUtils.isEmpty(key)) {
-            queryWrapper.eq("id",key);
+            queryWrapper.like(SeckillSessionEntity::getName, key)
+                    .or()
+                    .eq(SeckillSessionEntity::getId, key);
         }
 
         IPage<SeckillSessionEntity> page = this.page(

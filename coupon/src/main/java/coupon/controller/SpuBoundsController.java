@@ -1,19 +1,16 @@
 package coupon.controller;
 
-import java.util.Arrays;
-import java.util.Map;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
-import coupon.entity.SpuBoundsEntity;
-import coupon.service.SpuBoundsService;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import common.utils.PageUtils;
 import common.utils.R;
+import coupon.entity.SpuBoundsEntity;
+import coupon.service.SpuBoundsService;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Arrays;
+import java.util.Map;
 
 
 
@@ -26,15 +23,20 @@ import common.utils.R;
  */
 @RestController
 @RequestMapping("coupon/spubounds")
+@Slf4j
 public class SpuBoundsController {
-    @Autowired
-    private SpuBoundsService spuBoundsService;
+    private final SpuBoundsService spuBoundsService;
+
+    public SpuBoundsController(SpuBoundsService spuBoundsService) {
+        this.spuBoundsService = spuBoundsService;
+    }
 
     /**
      * 列表
      */
     @RequestMapping("/list")
     public R list(@RequestParam Map<String, Object> params){
+        log.info("列表查询spuBounds：{}", JSON.toJSONString( params, SerializerFeature.PrettyFormat));
         PageUtils page = spuBoundsService.queryPage(params);
 
         return R.ok().put("page", page);
@@ -47,6 +49,7 @@ public class SpuBoundsController {
     @RequestMapping("/info/{id}")
     public R info(@PathVariable("id") Long id){
 		SpuBoundsEntity spuBounds = spuBoundsService.getById(id);
+        log.info("根据id查询spuBounds：{}", id);
 
         return R.ok().put("spuBounds", spuBounds);
     }
@@ -56,6 +59,7 @@ public class SpuBoundsController {
      */
     @RequestMapping("/save")
     public R save(@RequestBody SpuBoundsEntity spuBounds){
+        log.info("保存spuBounds：{}", JSON.toJSONString(spuBounds, SerializerFeature.PrettyFormat));
 		spuBoundsService.save(spuBounds);
 
         return R.ok();
@@ -66,6 +70,7 @@ public class SpuBoundsController {
      */
     @RequestMapping("/update")
     public R update(@RequestBody SpuBoundsEntity spuBounds){
+        log.info("修改spuBounds：{}", JSON.toJSONString(spuBounds, SerializerFeature.PrettyFormat));
 		spuBoundsService.updateById(spuBounds);
 
         return R.ok();
@@ -76,6 +81,7 @@ public class SpuBoundsController {
      */
     @RequestMapping("/delete")
     public R delete(@RequestBody Long[] ids){
+        log.info("删除spuBounds：{}", JSON.toJSONString(ids, SerializerFeature.PrettyFormat));
 		spuBoundsService.removeByIds(Arrays.asList(ids));
 
         return R.ok();

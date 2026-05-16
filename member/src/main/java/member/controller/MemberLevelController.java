@@ -1,19 +1,17 @@
 package member.controller;
 
-import java.util.Arrays;
-import java.util.Map;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
-import member.entity.MemberLevelEntity;
-import member.service.MemberLevelService;
 import common.utils.PageUtils;
 import common.utils.R;
+import lombok.extern.slf4j.Slf4j;
+import member.entity.MemberLevelEntity;
+import member.service.MemberLevelService;
+import member.vo.MemberSelectVO;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 
 
@@ -26,9 +24,19 @@ import common.utils.R;
  */
 @RestController
 @RequestMapping("member/memberlevel")
+@Slf4j
 public class MemberLevelController {
     @Autowired
     private MemberLevelService memberLevelService;
+
+    // 获取spu下拉框选择信息
+    @GetMapping(value = "/getMemberSelect")
+    public R getSpuSelect() {
+        log.info("获取会员等级下拉框选择信息");
+        List<MemberSelectVO> spuSelect = memberLevelService.getMemberSelect();
+
+        return R.ok().setData(spuSelect);
+    }
 
     /**
      * 列表
