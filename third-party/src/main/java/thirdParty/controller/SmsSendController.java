@@ -2,7 +2,9 @@ package thirdParty.controller;
 
 import common.utils.HttpUtils;
 import common.utils.R;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpResponse;
+import org.apache.http.util.EntityUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -14,10 +16,12 @@ import java.util.Map;
 
 @RestController
 @RequestMapping(value = "/sms")
+@Slf4j
 public class SmsSendController {
 
     @GetMapping(value = "/sendCode")
     public R sendCode(@RequestParam("phone") String phone, @RequestParam("code") String code, @RequestParam("time") Integer time) {
+        log.info("发送验证码: {}--{}--{}",  phone, code, time);
 
         String host = "https://gyytz.market.alicloudapi.com";
         String path = "/sms/smsSend";
@@ -39,11 +43,10 @@ public class SmsSendController {
 
         try {
             HttpResponse response = HttpUtils.doPost(host, path, method, headers, querys, bodys);
-            System.out.println(response.toString());
-            //获取response的body
-            //System.out.println(EntityUtils.toString(response.getEntity()));
+            String responseBody = EntityUtils.toString(response.getEntity(), "UTF-8");
+            log.info("响应体内容: {}", responseBody);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("发送验证码异常", e);
         }
 
         return R.ok();

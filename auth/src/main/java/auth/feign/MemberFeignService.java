@@ -1,6 +1,7 @@
 package auth.feign;
 
 
+import auth.vo.QQUserInfo;
 import auth.vo.SocialUser;
 import auth.vo.UserLoginVo;
 import auth.vo.UserRegisterVo;
@@ -8,7 +9,6 @@ import common.utils.R;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
 
 /**
  * @Description:
@@ -30,6 +30,6 @@ public interface MemberFeignService {
     @PostMapping(value = "/member/member/oauth2/login")
     R oauthLogin(@RequestBody SocialUser socialUser) throws Exception;
 
-    @PostMapping(value = "/member/member/weixin/login")
-    R weixinLogin(@RequestParam("accessTokenInfo") String accessTokenInfo);
+    @PostMapping(value = "/member/member/qq/login")
+    R qqLogin(QQUserInfo qqUserInfo);
 }

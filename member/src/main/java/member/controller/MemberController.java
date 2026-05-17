@@ -1,14 +1,18 @@
 package member.controller;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import common.exception.BaseCodeEnum;
 import common.utils.PageUtils;
 import common.utils.R;
+import lombok.extern.slf4j.Slf4j;
 import member.entity.MemberEntity;
 import member.exception.PhoneException;
 import member.exception.UsernameException;
 import member.service.MemberService;
 import member.vo.MemberUserLoginVo;
 import member.vo.MemberUserRegisterVo;
+import member.vo.QQUserInfo;
 import member.vo.SocialUser;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,6 +28,7 @@ import java.util.Map;
  * @email sunlightcs@gmail.com
  * @date 2025-09-15 11:14:17
  */
+@Slf4j
 @RestController
 @RequestMapping("member/member")
 public class MemberController {
@@ -73,10 +78,11 @@ public class MemberController {
         }
     }
 
-    @PostMapping(value = "/weixin/login")
-    public R weixinLogin(@RequestParam("accessTokenInfo") String accessTokenInfo) {
+    @PostMapping(value = "/qq/login")
+    public R qqLogin(@RequestBody QQUserInfo qqUserInfo) {
+        log.info("进入qq登录: {}", JSON.toJSONString(qqUserInfo, SerializerFeature.PrettyFormat));
 
-        MemberEntity memberEntity = memberService.login(accessTokenInfo);
+        MemberEntity memberEntity = memberService.login(qqUserInfo);
         if (memberEntity != null) {
             return R.ok().setData(memberEntity);
         } else {

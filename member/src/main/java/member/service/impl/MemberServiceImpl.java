@@ -2,14 +2,14 @@ package member.service.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.alibaba.nacos.shaded.com.google.gson.Gson;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import common.utils.HttpClientUtils;
 import common.utils.HttpUtils;
 import common.utils.PageUtils;
 import common.utils.Query;
+import lombok.extern.slf4j.Slf4j;
 import member.dao.MemberDao;
 import member.dao.MemberLevelDao;
 import member.entity.MemberEntity;
@@ -19,6 +19,7 @@ import member.exception.UsernameException;
 import member.service.MemberService;
 import member.vo.MemberUserLoginVo;
 import member.vo.MemberUserRegisterVo;
+import member.vo.QQUserInfo;
 import member.vo.SocialUser;
 import org.apache.http.HttpResponse;
 import org.apache.http.util.EntityUtils;
@@ -31,6 +32,7 @@ import java.util.Map;
 
 
 @Service("memberService")
+@Slf4j
 public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> implements MemberService {
     private final MemberLevelDao memberLevelDao;
 
@@ -196,50 +198,22 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
     }
 
     @Override
-    public MemberEntity login(String accessTokenInfo) {
+    public MemberEntity login(QQUserInfo qqUserInfo) {
+        String openid = qqUserInfo.getOpenId();
 
-        //从accessTokenInfo中获取出来两个值 access_token 和 oppenid
-        //把accessTokenInfo字符串转换成map集合，根据map里面中的key取出相对应的value
-        Gson gson = new Gson();
-        HashMap accessMap = gson.fromJson(accessTokenInfo, HashMap.class);
-        String accessToken = (String) accessMap.get("access_token");
-        String openid = (String) accessMap.get("openid");
-
-        //3、拿到access_token 和 oppenid，再去请求微信提供固定的API，获取到扫码人的信息
-        //TODO 查询数据库当前用用户是否曾经使用过微信登录
-
-        MemberEntity memberEntity = this.baseMapper.selectOne(new QueryWrapper<MemberEntity>().eq("social_uid", openid));
+        MemberEntity memberEntity = this.baseMapper.selectOne(
+                new LambdaQueryWrapper<>(MemberEntity.class).eq( MemberEntity::getSocialUid, openid)
+        );
 
         if (memberEntity == null) {
-            System.out.println("新用户注册");
-            //访问微信的资源服务器，获取用户信息
-            String baseUserInfoUrl = "https://api.weixin.qq.com/sns/userinfo" +
-                    "?access_token=%s" +
-                    "&openid=%s";
-            String userInfoUrl = String.format(baseUserInfoUrl, accessToken, openid);
-            //发送请求
-            String resultUserInfo = null;
-            try {
-                resultUserInfo = HttpClientUtils.get(userInfoUrl);
-                System.out.println("resultUserInfo==========" + resultUserInfo);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-            //解析json
-            HashMap userInfoMap = gson.fromJson(resultUserInfo, HashMap.class);
-            String nickName = (String) userInfoMap.get("nickname");      //昵称
-            Double sex = (Double) userInfoMap.get("sex");        //性别
-            String headimgurl = (String) userInfoMap.get("headimgurl");      //微信头像
-
+            log.debug("新用户注册");
             //把扫码人的信息添加到数据库中
             memberEntity = new MemberEntity();
-            memberEntity.setNickname(nickName);
-            memberEntity.setGender(Integer.valueOf(Double.valueOf(sex).intValue()));
-            memberEntity.setHeader(headimgurl);
+            memberEntity.setNickname(qqUserInfo.getNickname());
+            memberEntity.setGender(Double.valueOf(qqUserInfo.getGenderType()).intValue());
+            memberEntity.setHeader(qqUserInfo.getFigureurl());
             memberEntity.setCreateTime(new Date());
             memberEntity.setSocialUid(openid);
-            // register.setExpiresIn(socialUser.getExpires_in());
             this.baseMapper.insert(memberEntity);
         }
         return memberEntity;

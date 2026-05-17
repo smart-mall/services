@@ -7,6 +7,7 @@ import member.exception.PhoneException;
 import member.exception.UsernameException;
 import member.vo.MemberUserLoginVo;
 import member.vo.MemberUserRegisterVo;
+import member.vo.QQUserInfo;
 import member.vo.SocialUser;
 
 import java.util.Map;
@@ -32,6 +33,6 @@ public interface MemberService extends IService<MemberEntity> {
 
     MemberEntity login(SocialUser socialUser) throws Exception;
 
-    MemberEntity login(String accessTokenInfo);
+    MemberEntity login(QQUserInfo qqUserInfo);
 }
 

@@ -1,17 +1,21 @@
 package auth.controller;
 
-import common.constant.AuthServerConstant;
 import auth.feign.MemberFeignService;
 import auth.feign.ThirdPartFeignService;
 import auth.vo.UserLoginVo;
 import auth.vo.UserRegisterVo;
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
+import com.alibaba.fastjson.serializer.SerializerFeature;
+import common.constant.AuthServerConstant;
 import common.exception.BaseCodeEnum;
+import common.exception.BaseException;
 import common.utils.R;
 import common.vo.MemberResponseVo;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Controller;
@@ -32,6 +36,7 @@ import static common.constant.AuthServerConstant.LOGIN_USER;
 
 
 @Controller
+@Slf4j
 public class LoginController {
 
     private final ThirdPartFeignService thirdPartFeignService;
@@ -47,7 +52,8 @@ public class LoginController {
     @ResponseBody
     @GetMapping(value = "/sms/sendCode")
     public R sendCode(@RequestParam("phone") String phone) {
-        int time = 100;
+        log.info("发送验证码: {}",  phone);
+        int time = 5;
 
         //1、接口防刷
         String redisCode = stringRedisTemplate.opsForValue().get(AuthServerConstant.SMS_CODE_CACHE_PREFIX + phone);
@@ -69,7 +75,11 @@ public class LoginController {
         stringRedisTemplate.opsForValue().set(AuthServerConstant.SMS_CODE_CACHE_PREFIX+phone,
                 redisStorage,time, TimeUnit.MINUTES);
 
-        thirdPartFeignService.sendCode(phone, codeNum, time);
+        R r = thirdPartFeignService.sendCode(phone, codeNum, time);
+
+        if (r.getCode() != 0) {
+            throw new BaseException("远程服务调用失败" + r.getMsg());
+        }
 
         return R.ok();
     }
@@ -84,6 +94,7 @@ public class LoginController {
     @PostMapping(value = "/register")
     public String register(@Valid UserRegisterVo vos, BindingResult result,
                            RedirectAttributes attributes) {
+        log.info("用户注册: {}", JSON.toJSONString( vos, SerializerFeature.PrettyFormat));
 
         //如果有错误回到注册页面
         if (result.hasErrors()) {
@@ -142,37 +153,14 @@ public class LoginController {
     }
 
 
-    @GetMapping(value = "/login.html")
-    public String loginPage(HttpSession session) {
 
-        //从session先取出来用户的信息，判断用户是否已经登录过了
-        Object attribute = session.getAttribute(LOGIN_USER);
-        //如果用户没登录那就跳转到登录页面
-        if (attribute == null) {
-            return "login";
-        } else {
-            return "redirect:http://gulimall.com";
-        }
 
-    }
 
-    @GetMapping(value = "/reg.html")
-    public String registerPage(HttpSession session) {
-
-        //从session先取出来用户的信息，判断用户是否已经登录过了
-        Object attribute = session.getAttribute(LOGIN_USER);
-        //如果用户没登录那就跳转到登录页面
-        if (attribute == null) {
-            return "reg";
-        } else {
-            return "redirect:http://gulimall.com";
-        }
-
-    }
 
 
     @PostMapping(value = "/login")
     public String login(UserLoginVo vo, RedirectAttributes attributes, HttpSession session) {
+        log.info("用户登录: {}", JSON.toJSONString( vo, SerializerFeature.PrettyFormat));
 
         //远程登录
         R login = memberFeignService.login(vo);
@@ -189,12 +177,40 @@ public class LoginController {
         }
     }
 
+    @GetMapping(value = "/login.html")
+    public String loginPage(HttpSession session) {
+        log.info("用户登录页面");
+
+        //从session先取出来用户的信息，判断用户是否已经登录过了
+        Object attribute = session.getAttribute(LOGIN_USER);
+        //如果用户没登录那就跳转到登录页面
+        if (attribute == null) {
+            return "login";
+        } else {
+            return "redirect:http://gulimall.com";
+        }
+
+    }
 
     @GetMapping(value = "/loguot.html")
     public String logout(HttpServletRequest request) {
+        log.info("用户退出登录");
         request.getSession().removeAttribute(LOGIN_USER);
-        request.getSession().invalidate();
-        return "redirect:http://gulimall.com";
+        return "logout";
     }
 
+    @GetMapping(value = "/reg.html")
+    public String registerPage(HttpSession session) {
+        log.info("用户注册页面");
+
+        //从session先取出来用户的信息，判断用户是否已经登录过了
+        Object attribute = session.getAttribute(LOGIN_USER);
+        //如果用户没登录那就跳转到登录页面
+        if (attribute == null) {
+            return "reg";
+        } else {
+            return "redirect:http://gulimall.com";
+        }
+
+    }
 }

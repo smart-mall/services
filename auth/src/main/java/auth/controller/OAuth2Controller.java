@@ -1,6 +1,7 @@
 package auth.controller;
 
 import auth.feign.MemberFeignService;
+import auth.vo.QQUserInfo;
 import auth.vo.SocialUser;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
@@ -81,4 +82,45 @@ public class OAuth2Controller {
 
     }
 
-}
+    @GetMapping(value = "/oauth2/qq/success")
+    public String qq(@RequestParam("code") String code, HttpSession session) throws Exception {
+        log.info("进入qq登录: {}",  code);
+
+        Map<String, String> map = new HashMap<>();
+        map.put("code",code);
+
+        HttpResponse response = HttpUtils.doGet("https://qq.wch666.com", "/api/get_user_info.php", "get", new HashMap<>(), map);
+
+        if (response.getStatusLine().getStatusCode() == 200) {
+            //获取到了access_token,转为通用社交登录对象
+            String json = EntityUtils.toString(response.getEntity(), "UTF-8");
+            System.out.println("响应内容: " + json);
+            QQUserInfo qqUserInfo = JSON.parseObject(json, QQUserInfo.class);
+            qqUserInfo.setToken( code);
+
+            //知道了哪个社交用户
+            //1）、当前用户如果是第一次进网站，自动注册进来（为当前社交用户生成一个会员信息，以后这个社交账号就对应指定的会员）
+            //登录或者注册这个社交用户
+            //调用远程服务
+            R oauthLogin = memberFeignService.qqLogin(qqUserInfo);
+            if (oauthLogin.getCode() == 0) {
+                MemberResponseVo data = oauthLogin.getData(new TypeReference<>() {
+                });
+                log.info("登录成功：用户信息：{}",data.toString());
+                session.setAttribute(LOGIN_USER,data);
+
+                //2、登录成功跳回首页
+                return "redirect:http://gulimall.com";
+            } else {
+
+                return "redirect:http://auth.gulimall.com/login.html";
+            }
+
+        } else {
+            return "redirect:http://auth.gulimall.com/login.html";
+        }
+
+    }
+
+
+    }
