@@ -2,41 +2,41 @@
 
 # mysql
 mysql:
-  url: gl-mysql
-  port: 3306
+  url: localhost
+  port: 53306
   username: root
   password: root
 
 # nacos
 nacos:
-  url: gl-nacos
-  port: 8848
+  url: localhost
+  port: 58848
 
 redis:
-  url: gl-redis
-  port: 6379
+  url: localhost
+  port: 56379
   password: 123456
 
 minio:
   clientPoint: http://localhost:59000
-  serverPoint: http://gl-minio:9000
+  serverPoint: http://localhost:59000
   access-key: minioadmin  # 访问密钥（默认 minioadmin）
   secret-key: minioadmin  # 密钥
 
 
 rabbitmq:
-  host: gl-rabbitmq
-  port: 5672
+  host: localhost
+  port: 55672
   virtual-host: /
 
 sentinel:
-  dashboard: gl-sentinel:8858
-  port: 8719
+  dashboard: localhost:58858
+  port: 58719
 
 es:
-  url: gl-es
-  port: 9200
+  url: localhost
+  port: 59200
 
 zipkin:
-  url: gl-zipkin
-  port: 9411
+  url: localhost
+  port: 59411

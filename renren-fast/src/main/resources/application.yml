@@ -16,7 +16,7 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: localhost:58848
+        server-addr: gl-nacos:8848
   # 环境 dev|test|prod
   profiles:
     active: dev

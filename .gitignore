@@ -34,3 +34,6 @@ build/
 /.idea/
 /.idea/
 /.idea/
+
+### Docker build script local state ###
+.build-images.state.json

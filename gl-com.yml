@@ -1,0 +1,344 @@
+name: "GrainMall"
+
+services:
+  gl-redis:
+    image: redis
+    container_name: gl-redis
+    ports:
+      - "56379:6379"
+    volumes:
+      - /volume/GrainMall/redis/data:/data
+      - /volume/GrainMall/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    networks:
+      - GrainMall-network
+
+  gl-mysql:
+    image: mysql:8.0
+    container_name: gl-mysql
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "53306:3306"
+    volumes:
+      - /volume/GrainMall/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
+      - /volume/GrainMall/mysql/data:/var/lib/mysql
+    networks:
+      - GrainMall-network
+
+  gl-minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    container_name: gl-minio
+    ports:
+      - "59000:9000"   # S3 API端口
+      - "59001:9001"   # Web控制台端口
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - /volume/GrainMall/minio/data:/data
+      - /volume/GrainMall/minio/config:/root/.minio
+    command: server /data --console-address ":9001"
+    networks:
+      - GrainMall-network
+
+  gl-front-end:
+    image: grain-mall-admin:latest
+    container_name: gl-front-end
+    ports:
+      - "56731:80"     # 后台管理前端（容器内 nginx 默认监听 80）
+    networks:
+      - GrainMall-network
+    depends_on:
+      - gl-gateway
+
+  gl-nacos:
+    image: nacos/nacos-server:latest
+    container_name: gl-nacos
+    environment:
+      - MODE=standalone                    # 单机模式
+      - NACOS_AUTH_TOKEN=SecretKey012345678901234567890123456789012345678901234567890123456789
+      - NACOS_AUTH_IDENTITY_KEY=nacos
+      - NACOS_AUTH_IDENTITY_VALUE=nacos
+      - SPRING_DATASOURCE_PLATFORM=mysql   # 使用MySQL持久化
+      - MYSQL_SERVICE_HOST=gl-mysql           # MySQL主机
+      - MYSQL_SERVICE_PORT=3306            # MySQL端口
+      - MYSQL_SERVICE_DB_NAME=nacos        # 数据库名
+      - MYSQL_SERVICE_USER=root           # 用户名
+      - MYSQL_SERVICE_PASSWORD=root # 密码
+      - MYSQL_DATABASE_NUM=1               # 数据库数量
+      - JVM_XMS=512m                       # JVM初始内存
+      - JVM_XMX=512m                       # JVM最大内存
+    volumes:
+      - /volume/GrainMall/nacos/log:/home/nacos/logs           # 日志挂载
+    ports:
+      - "58080:8080"
+      - "58848:8848"
+      - "59848:9848"
+    networks:
+      - GrainMall-network
+    depends_on:
+      - gl-mysql
+
+  gl-es:
+    image: elasticsearch:8.11.0
+    container_name: gl-es
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "59200:9200"
+      - "59300:9300"
+    volumes:
+      - /volume/GrainMall/es/config:/usr/share/elasticsearch/config
+      - /volume/GrainMall/es/data:/usr/share/elasticsearch/data
+      - /volume/GrainMall/es/plugins:/usr/share/elasticsearch/plugins
+    networks:
+      - GrainMall-network
+
+  gl-kibana:
+    image: kibana:8.11.0
+    container_name: gl-kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://gl-es:9200
+      - XPACK_SECURITY_ENABLED=false
+    ports:
+      - "55601:5601"
+    networks:
+      - GrainMall-network
+    volumes:
+      - /volume/GrainMall/kibana/config:/usr/share/kibana/config
+    depends_on:
+      - gl-es
+
+  gl-rabbitmq:
+    image: rabbitmq:management
+    container_name: gl-rabbitmq
+    ports:
+      - "55671:5671"      # AMQP (TLS)
+      - "55672:5672"      # AMQP 主端口（应用连接）
+      - "54369:4369"      # Erlang 发现端口
+      - "25672:25672"    # Erlang 集群通信端口
+      - "15671:15671"    # Web 管理界面 (HTTPS)
+      - "15672:15672"    # Web 管理界面（浏览器访问）
+      - "51883:1883"      # MQTT 协议端口
+      - "58883:8883"      # MQTT (TLS)
+      - "61613:61613"    # STOMP 协议端口
+      - "61614:61614"    # STOMP (TLS)
+    networks:
+      - GrainMall-network
+
+  gl-sentinel:
+    image: bladex/sentinel-dashboard:latest
+    container_name: gl-sentinel
+    ports:
+      - "58858:8858"
+      - "58719:8719"
+    networks:
+      - GrainMall-network
+
+  gl-zipkin:
+    image: openzipkin/zipkin:latest
+    container_name: gl-zipkin
+    ports:
+      - "59411:9411"      # Zipkin UI 和 API 端口
+    environment:
+      - STORAGE_TYPE=mem  # 使用内存存储（开发环境）
+      - JAVA_OPTS=-Xms256m -Xmx512m
+    networks:
+      - GrainMall-network
+
+  # ==================== 业务服务（本地构建的 gl-* 镜像）====================
+  # 只做端口映射，不注入任何环境变量、不挂数据卷，连接参数取 common/src/main/resources/args.yaml
+  # 服务自身端口在各自 application.yaml 的 server.port 里写死，因此这里映射成宿主同端口
+  # 前置条件：镜像必须已存在于本机（本机构建的 gl-* 镜像，或 docker load / 从仓库 pull）
+
+  gl-gateway:
+    image: gl-gateway:latest
+    container_name: gl-gateway
+    ports:
+      - "53000:53000"
+    networks:
+      - GrainMall-network
+    depends_on:
+      - gl-nacos
+      - gl-product
+      - gl-coupon
+      - gl-member
+      - gl-ware
+      - gl-order
+      - gl-search
+      - gl-third-party
+      - gl-auth
+      - gl-cart
+      - gl-seckill
+
+  gl-product:
+    image: gl-product:latest
+    container_name: gl-product
+    ports:
+      - "52400:52400"
+    networks:
+      - GrainMall-network
+    depends_on:
+      - gl-nacos
+      - gl-mysql
+      - gl-redis
+      - gl-rabbitmq
+      - gl-sentinel
+      - gl-zipkin
+      - gl-minio
+
+  gl-coupon:
+    image: gl-coupon:latest
+    container_name: gl-coupon
+    ports:
+      - "52100:52100"
+    networks:
+      - GrainMall-network
+    depends_on:
+      - gl-nacos
+      - gl-mysql
+      - gl-redis
+      - gl-rabbitmq
+      - gl-sentinel
+      - gl-zipkin
+
+  gl-member:
+    image: gl-member:latest
+    container_name: gl-member
+    ports:
+      - "52200:52200"
+    networks:
+      - GrainMall-network
+    depends_on:
+      - gl-nacos
+      - gl-mysql
+      - gl-redis
+      - gl-rabbitmq
+      - gl-sentinel
+      - gl-zipkin
+
+  gl-ware:
+    image: gl-ware:latest
+    container_name: gl-ware
+    ports:
+      - "52500:52500"
+    networks:
+      - GrainMall-network
+    depends_on:
+      - gl-nacos
+      - gl-mysql
+      - gl-redis
+      - gl-rabbitmq
+      - gl-sentinel
+      - gl-zipkin
+
+  gl-order:
+    image: gl-order:latest
+    container_name: gl-order
+    ports:
+      - "52300:52300"
+    networks:
+      - GrainMall-network
+    depends_on:
+      - gl-nacos
+      - gl-mysql
+      - gl-redis
+      - gl-rabbitmq
+      - gl-sentinel
+      - gl-zipkin
+
+  gl-search:
+    image: gl-search:latest
+    container_name: gl-search
+    ports:
+      - "52900:52900"
+    networks:
+      - GrainMall-network
+    depends_on:
+      - gl-nacos
+      - gl-es
+      - gl-redis
+      - gl-rabbitmq
+      - gl-sentinel
+      - gl-zipkin
+
+  gl-third-party:
+    image: gl-third-party:latest
+    container_name: gl-third-party
+    ports:
+      - "52600:52600"
+    networks:
+      - GrainMall-network
+    depends_on:
+      - gl-nacos
+      - gl-mysql
+      - gl-redis
+      - gl-rabbitmq
+      - gl-sentinel
+      - gl-zipkin
+      - gl-minio
+
+  gl-auth:
+    image: gl-auth:latest
+    container_name: gl-auth
+    ports:
+      - "53100:53100"
+    networks:
+      - GrainMall-network
+    depends_on:
+      - gl-nacos
+      - gl-mysql
+      - gl-redis
+      - gl-rabbitmq
+      - gl-sentinel
+      - gl-zipkin
+
+  gl-cart:
+    image: gl-cart:latest
+    container_name: gl-cart
+    ports:
+      - "53200:53200"
+    networks:
+      - GrainMall-network
+    depends_on:
+      - gl-nacos
+      - gl-redis
+      - gl-rabbitmq
+      - gl-sentinel
+      - gl-zipkin
+
+  gl-seckill:
+    image: gl-seckill:latest
+    container_name: gl-seckill
+    ports:
+      - "53300:53300"
+    networks:
+      - GrainMall-network
+    depends_on:
+      - gl-nacos
+      - gl-mysql
+      - gl-redis
+      - gl-rabbitmq
+      - gl-sentinel
+      - gl-zipkin
+
+  gl-renren-fast:
+    image: gl-renren-fast:latest
+    container_name: gl-renren-fast
+    ports:
+      - "58880:58880"
+    networks:
+      - GrainMall-network
+    depends_on:
+      - gl-nacos
+      - gl-mysql
+      - gl-redis
+
+
+networks:
+  GrainMall-network:
+    name: GrainMall-network
+    driver: bridge
