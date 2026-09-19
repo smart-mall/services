@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  仅供 Docker 构建阶段使用（Dockerfile 里显式 -s settings.xml 指定）。
+  Maven 不会自动读取 .mvn/settings.xml，因此本文件不影响本机直接执行 mvn 的行为。
+  作用：镜像内没有本机的全局 settings.xml，用阿里云源加速依赖下载。
+  注意：ojdbc6 / sqljdbc4 这类包在 central 上不存在，必须走 aliyun-spring 仓库。
+-->
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
+
+    <mirrors>
+        <mirror>
+            <id>aliyun-central</id>
+            <name>aliyun central</name>
+            <mirrorOf>central</mirrorOf>
+            <url>https://maven.aliyun.com/repository/central</url>
+        </mirror>
+    </mirrors>
+
+    <profiles>
+        <profile>
+            <id>aliyun-repos</id>
+            <repositories>
+                <repository>
+                    <id>aliyun-public</id>
+                    <name>aliyun public</name>
+                    <url>https://maven.aliyun.com/repository/public</url>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                </repository>
+                <repository>
+                    <id>aliyun-spring</id>
+                    <name>aliyun spring</name>
+                    <url>https://maven.aliyun.com/repository/spring</url>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                </repository>
+            </repositories>
+            <pluginRepositories>
+                <pluginRepository>
+                    <id>aliyun-public</id>
+                    <name>aliyun public</name>
+                    <url>https://maven.aliyun.com/repository/public</url>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                </pluginRepository>
+                <pluginRepository>
+                    <id>aliyun-spring</id>
+                    <name>aliyun spring</name>
+                    <url>https://maven.aliyun.com/repository/spring</url>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                </pluginRepository>
+            </pluginRepositories>
+        </profile>
+    </profiles>
+
+    <activeProfiles>
+        <activeProfile>aliyun-repos</activeProfile>
+    </activeProfiles>
+
+</settings>

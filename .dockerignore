@@ -1,0 +1,18 @@
+# 每个 Dockerfile 的构建上下文都是仓库根目录，这里排除构建用不到的内容以缩小上下文。
+# 注意：不要排除 .mvn/ （Dockerfile 需要 COPY .mvn/settings.xml）
+
+# 版本控制与 IDE
+.git
+.gitignore
+.idea
+
+# 构建产物
+**/target
+
+# 运行时残留
+arthas-output
+*.log
+hs_err_pid*.log
+
+# 数据库脚本（镜像构建不需要）
+assets
