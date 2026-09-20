@@ -1,6 +1,5 @@
 package product.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -14,7 +13,7 @@ import product.dao.CategoryDao;
 import product.entity.CategoryEntity;
 import product.service.CategoryBrandRelationService;
 import product.service.CategoryService;
-import product.vo.Catalog2Vo;
+import product.vo.CategoryVo;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -108,59 +107,39 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
         categoryBrandRelationService.updateCategory(category.getCatId(), category.getName());
     }
 
-    @Cacheable(value = {"category"},key = "#root.method.name",sync = true)
+    /**
+     * 前台首页/全局导航使用的完整三级分类树。
+     *
+     * 一次 selectList(null) 把分类全捞出来（show_status 由 CategoryEntity 上的 @TableLogic 自动过滤），
+     * 后续组树全部在内存里完成，不再按层级反复查库，也不会出现 N+1。
+     */
+    @Cacheable(value = "category", key = "#root.method.name", sync = true)
     @Override
-    public List<CategoryEntity> getLevel1Categories() {
-        return this.baseMapper.selectList(
-                new LambdaQueryWrapper<>( CategoryEntity.class).eq(CategoryEntity::getParentCid, 0));
-    }
-
-    @Cacheable(value = "category",key = "#root.method.name")
-    @Override
-    public Map<String, List<Catalog2Vo>> getCatalogJson() {
-
-        //将数据库的多次查询变为一次
+    public List<CategoryVo> getCatalogTree() {
         List<CategoryEntity> selectList = this.baseMapper.selectList(null);
 
-        //1、查出所有分类
-        //1、1）查出所有一级分类
-        List<CategoryEntity> level1Categorys = getParent_cid(selectList, 0L);
+        // 按 parentCid 分组，一次遍历代替每层都 stream().filter() 扫一遍全表
+        Map<Long, List<CategoryEntity>> childrenByParentCid = selectList.stream()
+                .collect(Collectors.groupingBy(CategoryEntity::getParentCid));
 
-        //封装数据
-        Map<String, List<Catalog2Vo>> parentCid = level1Categorys.stream().collect(Collectors.toMap(k -> k.getCatId().toString(), v -> {
-            //1、每一个的一级分类,查到这个一级分类的二级分类
-            List<CategoryEntity> categoryEntities = getParent_cid(selectList, v.getCatId());
-
-            //2、封装上面的结果
-            List<Catalog2Vo> catalog2Vos = null;
-            if (categoryEntities != null) {
-                catalog2Vos = categoryEntities.stream().map(l2 -> {
-                    Catalog2Vo catalog2Vo = new Catalog2Vo(v.getCatId().toString(), null, l2.getCatId().toString(), l2.getName().toString());
-
-                    //1、找当前二级分类的三级分类封装成vo
-                    List<CategoryEntity> level3catalog = getParent_cid(selectList, l2.getCatId());
-
-                    if (level3catalog != null) {
-                        List<Catalog2Vo.Catalog3Vo> category3Vos = level3catalog.stream().map(l3 -> {
-                            //2、封装成指定格式
-
-                            return new Catalog2Vo.Catalog3Vo(l2.getCatId().toString(), l3.getCatId().toString(), l3.getName());
-                        }).collect(Collectors.toList());
-                        catalog2Vo.setCatalog3List(category3Vos);
-                    }
-
-                    return catalog2Vo;
-                }).collect(Collectors.toList());
-            }
-
-            return catalog2Vos;
-        }));
-
-        return parentCid;
+        return buildTree(childrenByParentCid, 0L);
     }
 
-    private List<CategoryEntity> getParent_cid(List<CategoryEntity> selectList,Long parentCid) {
-        return selectList.stream().filter(item -> item.getParentCid().equals(parentCid)).collect(Collectors.toList());
+    /**
+     * 递归把分类实体组装成 CategoryVo 树，每一层都按 sort 升序排序
+     *
+     * @param childrenByParentCid 已经按 parentCid 分好组的全部分类
+     * @param parentCid           当前要组装的父分类id，一级分类传 0
+     */
+    private List<CategoryVo> buildTree(Map<Long, List<CategoryEntity>> childrenByParentCid, Long parentCid) {
+        return childrenByParentCid.getOrDefault(parentCid, List.of()).stream()
+                .sorted(Comparator.comparingInt(CategoryEntity::getSort))
+                .map(category -> new CategoryVo(
+                        category.getCatId(),
+                        category.getName(),
+                        category.getIcon(),
+                        buildTree(childrenByParentCid, category.getCatId())))
+                .collect(Collectors.toList());
     }
 
 

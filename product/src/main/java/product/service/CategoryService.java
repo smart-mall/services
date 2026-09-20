@@ -3,7 +3,7 @@ package product.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import common.utils.PageUtils;
 import product.entity.CategoryEntity;
-import product.vo.Catalog2Vo;
+import product.vo.CategoryVo;
 
 import java.util.List;
 import java.util.Map;
@@ -27,8 +27,11 @@ public interface CategoryService extends IService<CategoryEntity> {
 
     void updateDetail(CategoryEntity category);
 
-    List<CategoryEntity> getLevel1Categories();
-
-    Map<String, List<Catalog2Vo>> getCatalogJson();
+    /**
+     * 前台首页/全局导航使用的完整三级分类树，一级分类已按 sort 升序排列，子分类同样有序。
+     *
+     * @return 一级分类列表，每个节点通过 children 嵌套二级、三级分类
+     */
+    List<CategoryVo> getCatalogTree();
 }
 

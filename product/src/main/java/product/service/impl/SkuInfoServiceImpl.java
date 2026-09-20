@@ -8,12 +8,14 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.utils.PageUtils;
 import common.utils.Query;
 import common.utils.R;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import product.dao.SkuInfoDao;
 import product.entity.SkuImagesEntity;
 import product.entity.SkuInfoEntity;
 import product.entity.SpuInfoDescEntity;
 import product.feign.SeckillFeignService;
+import product.feign.WareFeignService;
 import product.service.*;
 import product.vo.*;
 
@@ -25,20 +27,23 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.stream.Collectors;
 
 
+@Slf4j
 @Service("skuInfoService")
 public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> implements SkuInfoService {
     private final SpuInfoDescService spuInfoDescService;
     private final AttrGroupService attrGroupService;
     private final SkuSaleAttrValueService skuSaleAttrValueService;
     private final SeckillFeignService seckillFeignService;
+    private final WareFeignService wareFeignService;
     private final ThreadPoolExecutor executor;
     private final SkuImagesService skuImagesService;
 
-    public SkuInfoServiceImpl(SpuInfoDescService spuInfoDescService, AttrGroupService attrGroupService, SkuSaleAttrValueService skuSaleAttrValueService, SeckillFeignService seckillFeignService, ThreadPoolExecutor executor, SkuImagesService skuImagesService) {
+    public SkuInfoServiceImpl(SpuInfoDescService spuInfoDescService, AttrGroupService attrGroupService, SkuSaleAttrValueService skuSaleAttrValueService, SeckillFeignService seckillFeignService, WareFeignService wareFeignService, ThreadPoolExecutor executor, SkuImagesService skuImagesService) {
         this.spuInfoDescService = spuInfoDescService;
         this.attrGroupService = attrGroupService;
         this.skuSaleAttrValueService = skuSaleAttrValueService;
         this.seckillFeignService = seckillFeignService;
+        this.wareFeignService = wareFeignService;
         this.executor = executor;
         this.skuImagesService = skuImagesService;
     }
@@ -99,6 +104,11 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
             return info;
         }, executor);
 
+        // 商品不存在时提前返回：下面的销售属性、介绍、规格参数都要用 info.getSpuId()，
+        // 不拦的话会在异步线程里抛 NPE，.get() 再抛 ExecutionException，前端拿到的是一个 500
+        if (infoFuture.join() == null) {
+            return skuItemVo;
+        }
 
         CompletableFuture<Void> saleAttrFuture = infoFuture.thenAcceptAsync((res) -> {
             //3、获取spu的销售属性组合
@@ -146,9 +156,27 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
         }, executor);
 
 
+        //4、远程调用库存服务，查询当前sku是否有货
+        CompletableFuture<Void> stockFuture = CompletableFuture.runAsync(() -> {
+            try {
+                R skuStockInfo = wareFeignService.getSkusHasStock(List.of(skuId));
+                if (skuStockInfo.getCode() == 0) {
+                    List<SkuHasStockVo> skuHasStockVos = skuStockInfo.getData("data", new TypeReference<>() {});
+                    if (skuHasStockVos != null && !skuHasStockVos.isEmpty()
+                            && skuHasStockVos.get(0).getHasStock() != null) {
+                        skuItemVo.setHasStock(skuHasStockVos.get(0).getHasStock());
+                    }
+                }
+            } catch (Exception e) {
+                // 库存服务异常不能让商品详情页跟着挂，保持 SkuItemVo 里默认的"有货"
+                log.error("查询库存失败，skuId={}", skuId, e);
+            }
+        }, executor);
+
+
         //等到所有任务都完成
         CompletableFuture
-                .allOf(saleAttrFuture,descFuture,baseAttrFuture,imageFuture,seckillFuture)
+                .allOf(saleAttrFuture,descFuture,baseAttrFuture,imageFuture,seckillFuture,stockFuture)
                 .get();
 
         return skuItemVo;
