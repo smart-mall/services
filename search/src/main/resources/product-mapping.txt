@@ -1,3 +1,13 @@
+# product 索引映射（Kibana Dev Tools 里执行）
+#
+# skuPrice 必须是数值类型（double）。写成 keyword 的后果是排序和区间筛选都会退化成字符串字典序：
+#   sort=skuPrice_asc  -> 254.0, 41.0, 4188.0, 452.0 ... （不是数值升序）
+#   skuPrice=1000_5000 -> 多算 254/41，漏掉 512/523/565
+# 代码那边是对的：MallSearchServiceImpl 用的是 NumberRangeQuery + Double.parseDouble，要求的就是数值区间。
+#
+# brandName / brandImg / catalogName / attrs.attrName 不能设 index:false 和 doc_values:false，
+# 因为检索结果里的品牌、分类、属性筛选列表是用 terms 聚合算出来的，而聚合依赖 doc_values。
+# skuImg 只从 _source 里取，不做检索、排序、聚合，所以保留这两个优化是安全的。
 PUT product
 {
   "mappings": {
@@ -13,7 +23,7 @@ PUT product
         "analyzer": "ik_smart"
       },
       "skuPrice": {
-        "type": "keyword"
+        "type": "double"
       },
       "skuImg": {
         "type": "keyword",
@@ -36,19 +46,13 @@ PUT product
         "type": "long"
       },
       "brandName": {
-        "type": "keyword",
-        "index": false,
-        "doc_values": false
+        "type": "keyword"
       },
       "brandImg": {
-        "type": "keyword",
-        "index": false,
-        "doc_values": false
+        "type": "keyword"
       },
       "catalogName": {
-        "type": "keyword",
-        "index": false,
-        "doc_values": false
+        "type": "keyword"
       },
       "attrs": {
         "type": "nested",
@@ -57,9 +61,7 @@ PUT product
             "type": "long"
           },
           "attrName": {
-            "type": "keyword",
-            "index": false,
-            "doc_values": false
+            "type": "keyword"
           },
           "attrValue": {
             "type": "keyword"
@@ -69,4 +71,3 @@ PUT product
     }
   }
 }
-

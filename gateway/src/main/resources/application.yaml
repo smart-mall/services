@@ -45,6 +45,14 @@ spring:
                 - Path=/api/thirdParty/**
               filters:
                 - RewritePath=/api/(?<segment>.*),/$\{segment}
+            # search 原来只有 Host 路由（search.gulimall.com），前台换成 Vue 之后要经 /api 调用。
+            # 必须放在 admin-route（Path=/api/**）之前，否则会被它的通配路由抢走。
+            - id: search-api-route
+              uri: lb://search
+              predicates:
+                - Path=/api/search/**
+              filters:
+                - RewritePath=/api/(?<segment>.*),/$\{segment}
             - id: admin-route
               uri: lb://renren-fast
               predicates:

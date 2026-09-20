@@ -63,11 +63,25 @@ public class SearchResult {
     private List<NavVo> navs = new ArrayList<>();
     private List<Long> attrIds = new ArrayList<>();
 
+    /**
+     * 面包屑导航的一条。原来这里是一个后端拼好的 link（写死了
+     * http://search.gulimall.com/list.html?...），SPA 里不必让后端拼 URL：
+     * 后端只负责告诉前端"要移除哪个查询参数的哪个值"，前端从自己的查询条件里删掉后重新请求即可。
+     */
     @Data
     public static class NavVo {
+
+        /** 显示的分类名，例如"品牌"、"分类"、"内存" */
         private String navName;
+
+        /** 显示的具体值，例如"华为"、"手机"、"8GB" */
         private String navValue;
-        private String link;
+
+        /** 点击 x 时要从前端查询条件里移除的参数名，例如 brandId / catalog3Id / attrs */
+        private String removeKey;
+
+        /** 要移除的参数值，原样未做 URL 编码，例如 "1" / "5" / "1_华为" */
+        private String removeValue;
     }
 
 

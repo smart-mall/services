@@ -8,6 +8,7 @@ import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.ChildScoreMode;
 import co.elastic.clients.elasticsearch._types.query_dsl.NumberRangeQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.RangeQuery;
+import common.exception.BaseException;
 import es.SkuEsModel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -28,8 +29,6 @@ import search.service.MallSearchService;
 import search.vo.SearchParam;
 import search.vo.SearchResult;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -251,6 +250,8 @@ public class MallSearchServiceImpl implements MallSearchService {
         //6、构建面包屑导航（属性）
         if (param.getAttrs() != null && !param.getAttrs().isEmpty()) {
             List<SearchResult.NavVo> navs = result.getNavs();
+            // 一条都没命中时聚合结果整体为空，result.getAttrs() 会是 null
+            List<SearchResult.AttrVo> attrs = result.getAttrs() == null ? List.of() : result.getAttrs();
 
             for (String attr : param.getAttrs()) {
                 String[] s = attr.split("_");
@@ -262,16 +263,16 @@ public class MallSearchServiceImpl implements MallSearchService {
                 result.getAttrIds().add(attrId);
 
                 // 从聚合结果中获取属性名称
-                String attrName = result.getAttrs().stream()
+                String attrName = attrs.stream()
                         .filter(a -> a.getAttrId().equals(attrId))
                         .map(SearchResult.AttrVo::getAttrName)
                         .findFirst()
                         .orElse(String.valueOf(attrId));
                 navVo.setNavName(attrName);
 
-                // 生成移除链接
-                String replace = repleceQueryString(param, attr, "attrs", countParamSize(param));
-                navVo.setLink("http://search.gulimall.com/list.html?" + replace);
+                // 前端点 x 时把 attrs 里的这一项删掉重新请求，值形如 "属性id_属性值"
+                navVo.setRemoveKey("attrs");
+                navVo.setRemoveValue(attr);
                 navs.add(navVo);
             }
             result.setNavs(navs);
@@ -280,102 +281,50 @@ public class MallSearchServiceImpl implements MallSearchService {
         //7. 品牌面包屑导航
         if (param.getBrandId() != null && !param.getBrandId().isEmpty()) {
             List<SearchResult.NavVo> navs = result.getNavs();
-            SearchResult.NavVo navVo = new SearchResult.NavVo();
-            navVo.setNavName("品牌");
+            // 一条都没命中时聚合结果整体为空，result.getBrands() 会是 null
+            List<SearchResult.BrandVo> brands = result.getBrands() == null ? List.of() : result.getBrands();
 
-            // 直接从聚合结果中获取品牌名称
-            List<SearchResult.BrandVo> brands = result.getBrands();
-            StringBuilder buffer = new StringBuilder();
-            String replace = "";
-
+            // 选了多个品牌就生成多条面包屑，每条各自负责移除自己的 brandId。
+            // 原来是把所有品牌名拼成一条、但点击 x 只移除第一个 brandId，剩下的品牌还在过滤却看不到了
             for (Long brandId : param.getBrandId()) {
-                // 从聚合结果中匹配品牌名称
-                String brandName = brands.stream()
+                SearchResult.NavVo navVo = new SearchResult.NavVo();
+                navVo.setNavName("品牌");
+                navVo.setNavValue(brands.stream()
                         .filter(b -> b.getBrandId().equals(brandId))
                         .map(SearchResult.BrandVo::getBrandName)
                         .findFirst()
-                        .orElse(String.valueOf(brandId));
-
-                buffer.append(brandName);
-                if (replace.isEmpty()) {
-                    replace = repleceQueryString(param, String.valueOf(brandId), "brandId", countParamSize(param));
-                }
+                        .orElse(String.valueOf(brandId)));
+                navVo.setRemoveKey("brandId");
+                navVo.setRemoveValue(String.valueOf(brandId));
+                navs.add(navVo);
             }
-            navVo.setNavValue(buffer.toString());
-            navVo.setLink("http://search.gulimall.com/list.html?" + replace);
-            navs.add(navVo);
         }
 
         //8. 分类面包屑导航
         if (param.getCatalog3Id() != null) {
             List<SearchResult.NavVo> navs = result.getNavs();
+            // 一条都没命中时聚合结果整体为空，result.getCatalogs() 会是 null
+            List<SearchResult.CatalogVo> catalogs = result.getCatalogs() == null ? List.of() : result.getCatalogs();
+
             SearchResult.NavVo navVo = new SearchResult.NavVo();
             navVo.setNavName("分类");
 
             // 从聚合结果中获取分类名称
-            String catalogName = result.getCatalogs().stream()
+            navVo.setNavValue(catalogs.stream()
                     .filter(c -> c.getCatalogId().equals(param.getCatalog3Id()))
                     .map(SearchResult.CatalogVo::getCatalogName)
                     .findFirst()
-                    .orElse(String.valueOf(param.getCatalog3Id()));
+                    .orElse(String.valueOf(param.getCatalog3Id())));
 
-            navVo.setNavValue(catalogName);
-            String replace = repleceQueryString(param, String.valueOf(param.getCatalog3Id()), "catalog3Id", countParamSize(param));
-            navVo.setLink("http://search.gulimall.com/list.html?" + replace);
+            navVo.setRemoveKey("catalog3Id");
+            navVo.setRemoveValue(String.valueOf(param.getCatalog3Id()));
             navs.add(navVo);
         }
 
-        log.info("result:{}", result);
+        log.debug("result:{}", result);
 
         return result;
     }
-
-    private int countParamSize(SearchParam param) {
-        int count = 0;
-        if (param.getKeyword() != null) {
-            count++;
-        }
-        if (param.getCatalog3Id() != null) {
-            count++;
-        }
-        if (param.getSort() != null) {
-            count++;
-        }
-        if (param.getHasStock() != null) {
-            count++;
-        }
-        if (param.getSkuPrice() != null) {
-            count++;
-        }
-        if (param.getBrandId() != null) {
-            count += param.getBrandId().size();
-        }
-        if (param.getAttrs() != null) {
-            count += param.getAttrs().size();
-        }
-        return count;
-    }
-
-    private String repleceQueryString(SearchParam param, String value, String key, int size) {
-        String encode = URLEncoder.encode(value, StandardCharsets.UTF_8);
-        encode = encode.replace("+", "%20");
-
-        String queryString = param.get_queryString();
-        String target = key + "=" + encode;
-
-        if (queryString.startsWith(target)) {
-            // 参数在第一位，删除后可能需要处理后面的 &
-            String result = queryString.replace(target, "");
-            if (result.startsWith("&")) {
-                result = result.substring(1);  // 去掉开头的 &
-            }
-            return result;
-        } else {
-            // 参数不在第一位，前面肯定有 &
-            return queryString.replace("&" + target, "");
-        }
-    }
-
 
     private NativeQuery buildNativeQuery(SearchParam param) {
 
@@ -498,6 +447,13 @@ public class MallSearchServiceImpl implements MallSearchService {
 
         // 2. 排序
         if (StringUtils.hasText(param.getSort())) {
+            // 前端传错排序值以前会变成一个没有 code/msg 的 500：字段名不对 ES 直接报错，
+            // 少写 _asc/_desc 则是 sortFields[1] 数组越界。这里先拦一道，抛 BaseException，
+            // 由 common 的 GlobalExceptionHandler 统一转成 R.error(444, msg)
+            if (!SearchParam.isValidSort(param.getSort())) {
+                throw new BaseException("排序参数不合法：" + param.getSort()
+                        + "，格式应为 skuPrice/saleCount/hotScore 加 _asc 或 _desc");
+            }
             String[] sortFields = param.getSort().split("_");
             Sort.Order order = new Sort.Order(
                     "asc".equalsIgnoreCase(sortFields[1]) ?
@@ -517,8 +473,8 @@ public class MallSearchServiceImpl implements MallSearchService {
         // 4. 高亮
         if (StringUtils.hasText(param.getKeyword())) {
             HighlightFieldParameters fieldParameters = HighlightFieldParameters.builder()
-                    .withPreTags("<b style='color:red'>")
-                    .withPostTags("</b>")
+                    .withPreTags("<em>")
+                    .withPostTags("</em>")
                     .build();
 
             queryBuilder.withHighlightQuery(
