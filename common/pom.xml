@@ -148,6 +148,30 @@
 			<artifactId>zipkin-reporter-brave</artifactId>
 		</dependency>
 
+		<!--
+			JWT：登录态从 Session 改成 JWT 之后，auth 负责签发、gateway 负责验签。
+			放在 common 里是因为 gateway 已经依赖 common（见 gateway/pom.xml），
+			两边共用同一套 Claims 定义，不用各写一份。
+			只把 jjwt-api 作为编译期依赖；impl / jackson 是运行时实现，按要求放 runtime。
+		-->
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-api</artifactId>
+			<version>0.13.0</version>
+		</dependency>
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-impl</artifactId>
+			<version>0.13.0</version>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-jackson</artifactId>
+			<version>0.13.0</version>
+			<scope>runtime</scope>
+		</dependency>
+
 
 	</dependencies>
 	<dependencyManagement>

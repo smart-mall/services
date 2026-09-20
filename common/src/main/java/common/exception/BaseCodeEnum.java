@@ -15,6 +15,11 @@ public enum BaseCodeEnum {
     PHONE_EXIST_EXCEPTION(15002,"存在相同的手机号"),
     NO_STOCK_EXCEPTION(21000,"商品库存不足"),
     LOGINACCT_PASSWORD_EXCEPTION(15003,"账号或密码错误"),
+
+    // 下面两个配合 HTTP 401 一起用。前端 request.ts 是看 HTTP 状态码 401 去清 token 的，
+    // 不看 body 里的 code，所以状态码必须是真 401，body 里的 code 只是给人看日志用的。
+    NOT_LOGIN_EXCEPTION(15004,"请先登录"),
+    LOGIN_EXPIRED_EXCEPTION(15005,"登录已过期，请重新登录"),
     ;
 
 

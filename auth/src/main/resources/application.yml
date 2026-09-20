@@ -7,3 +7,9 @@ spring:
 server:
   port: 53100
 
+auth:
+  # 社交登录（微博/QQ）成功后跳回的前端地址。
+  # 原来是写死的 http://gulimall.com，SPA 之后改成配置项：
+  # 开发时指向 vite dev server，生产环境换成 SPA 的地址。
+  # 注意要和网关 CORS 放行的源一致，否则回调页拿到了 token 也调不通接口。
+  front-url: http://localhost:5173

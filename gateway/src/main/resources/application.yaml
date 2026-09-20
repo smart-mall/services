@@ -53,6 +53,15 @@ spring:
                 - Path=/api/search/**
               filters:
                 - RewritePath=/api/(?<segment>.*),/$\{segment}
+            # auth 原来只有 Host 路由（auth.gulimall.com），前台换成 Vue、登录态改成 JWT 之后
+            # 前端要走 /api/auth/**。同样必须放在 admin-route（Path=/api/**）之前，
+            # 否则会被它抢走，最后落到 renren-fast 变成 404。
+            - id: auth-api-route
+              uri: lb://auth
+              predicates:
+                - Path=/api/auth/**
+              filters:
+                - RewritePath=/api/(?<segment>.*),/$\{segment}
             - id: admin-route
               uri: lb://renren-fast
               predicates:

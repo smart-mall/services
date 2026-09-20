@@ -124,5 +124,9 @@ alipay:
   charset: utf-8
   gatewayUrl: https://openapi.alipaydev.com/gateway.do
 
+jwt:
+  secret: gulimall-jwt-hs256-secret-please-override-in-production-2026
+  expire-hours: 168   # 7 天，前端没有 refresh token，过期就重新登录
+
 
 

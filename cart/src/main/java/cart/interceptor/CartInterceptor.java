@@ -1,18 +1,17 @@
 package cart.interceptor;
 
 import cart.to.UserInfoTo;
+import common.utils.LoginUserUtils;
 import common.vo.MemberResponseVo;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
 
 import java.util.UUID;
 
-import static common.constant.AuthServerConstant.LOGIN_USER;
 import static common.constant.CartConstant.TEMP_USER_COOKIE_NAME;
 import static common.constant.CartConstant.TEMP_USER_COOKIE_TIMEOUT;
 
@@ -45,10 +44,9 @@ public class CartInterceptor implements HandlerInterceptor {
 
         UserInfoTo userInfoTo = new UserInfoTo();
 
-        HttpSession session = request.getSession();
-        //获得当前登录用户的信息
-        MemberResponseVo memberResponseVo = (MemberResponseVo) session.getAttribute(LOGIN_USER);
-
+        // 获取当前登录用户：登录态是 JWT，网关验签之后把用户信息放在请求头里，
+        // 这里不再读 HttpSession（原来读的是 session 里的 loginUser）
+        MemberResponseVo memberResponseVo = LoginUserUtils.currentUser(request);
         if (memberResponseVo != null) {
             //用户登录了
             userInfoTo.setUserId(memberResponseVo.getId());
@@ -111,6 +109,7 @@ public class CartInterceptor implements HandlerInterceptor {
 
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
-
+        // 线程复用的清理，理由见 order 模块的 LoginUserInterceptor
+        toThreadLocal.remove();
     }
 }

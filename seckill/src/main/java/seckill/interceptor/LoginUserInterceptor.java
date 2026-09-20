@@ -1,20 +1,27 @@
 package seckill.interceptor;
 
 
+import common.utils.LoginUserUtils;
 import common.vo.MemberResponseVo;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
 
-import java.io.PrintWriter;
-
-import static common.constant.AuthServerConstant.LOGIN_USER;
-
-
+/**
+ * 登录拦截器。
+ *
+ * <p>登录态是 JWT：token 的解析统一在网关做（gateway 的 JwtAuthFilter），网关验签通过之后
+ * 把用户信息放在 {@link common.constant.AuthServerConstant#MEMBER_CLAIMS_HEADER} 请求头里，
+ * 这里只读这个头 —— 不解析 token，也不读 HttpSession。</p>
+ *
+ * <p>未登录时由"写一段 {@code <script>alert(...)</script>}"改成 HTTP 401 + JSON，
+ * 原因见 order 模块里同名拦截器的注释：调用方是 SPA 的 XHR，HTML 会让它 JSON 解析失败。</p>
+ */
+@Slf4j
 @Component
 public class LoginUserInterceptor implements HandlerInterceptor {
 
@@ -24,7 +31,7 @@ public class LoginUserInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         //        放行所有后台接口
         String orign = request.getHeader("origin");
-        if ("http://admin.gulimall.com".equalsIgnoreCase(orign)){
+        if ("http://admin.gulimall.com".equalsIgnoreCase(orign)) {
             return true;
         }
 
@@ -33,22 +40,15 @@ public class LoginUserInterceptor implements HandlerInterceptor {
         boolean match = antPathMatcher.match("/kill", uri);
 
         if (match) {
-            HttpSession session = request.getSession();
-            //获取登录的用户信息
-            MemberResponseVo attribute = (MemberResponseVo) session.getAttribute(LOGIN_USER);
-            if (attribute != null) {
-                //把登录后用户的信息放在ThreadLocal里面进行保存
-                loginUser.set(attribute);
-                return true;
-            } else {
-                //未登录，返回登录页面
-                response.setContentType("text/html;charset=UTF-8");
-                PrintWriter out = response.getWriter();
-                out.println("<script>alert('请先进行登录，再进行后续操作！');location.href='http://auth.gulimall.com/login.html'</script>");
-                // session.setAttribute("msg", "请先进行登录");
-                // response.sendRedirect("http://auth.gulimall.com/login.html");
+            // 获取登录的用户信息（网关验签之后注入的请求头）
+            MemberResponseVo attribute = LoginUserUtils.currentUser(request);
+            if (attribute == null) {
+                // 未登录：HTTP 401 + JSON
+                LoginUserUtils.writeUnauthorized(response);
                 return false;
             }
+            // 把登录后用户的信息放在ThreadLocal里面进行保存
+            loginUser.set(attribute);
         }
         return true;
     }
@@ -60,6 +60,7 @@ public class LoginUserInterceptor implements HandlerInterceptor {
 
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
-
+        // 线程复用的清理，理由见 order 模块的 LoginUserInterceptor
+        loginUser.remove();
     }
 }
