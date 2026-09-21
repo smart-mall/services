@@ -12,6 +12,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -20,9 +21,14 @@ import java.util.Map;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    /**
+     * 业务异常。code 由抛出方指定，不再统一写死成 444 ——
+     * 入参不合法抛出的是 {@code BaseCodeEnum.VALID_EXCEPTION}(10001)，
+     * 其余兜底场景默认 {@code UNKNOWN_EXCEPTION}(10000)。
+     */
     @ExceptionHandler(BaseException.class)
     public R handleException(BaseException e) {
-        return R.error(444, e.getMessage());
+        return R.error(e.getCode(), e.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -67,6 +73,19 @@ public class GlobalExceptionHandler {
     public R handleMissingParameter(MissingServletRequestParameterException ex) {
         Map<String, String> errors = new LinkedHashMap<>();
         errors.put(ex.getParameterName(), "不能为空");
+        return R.error(BaseCodeEnum.VALID_EXCEPTION.getCode(), BaseCodeEnum.VALID_EXCEPTION.getMsg()).put("errors", errors);
+    }
+
+    /**
+     * 处理 query 参数类型不对，例如 {@code pageNum=abc}、{@code brandId=xyz}。
+     *
+     * <p>绑定失败时 Spring 抛的是这个异常，不接的话返回它自己那套 400 响应体（同样没有
+     * code / msg）。这一条覆盖了所有数字型查询参数，不用再逐个字段手写类型校验。</p>
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public R handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        Map<String, String> errors = new LinkedHashMap<>();
+        errors.put(ex.getName(), "参数类型不正确");
         return R.error(BaseCodeEnum.VALID_EXCEPTION.getCode(), BaseCodeEnum.VALID_EXCEPTION.getMsg()).put("errors", errors);
     }
 

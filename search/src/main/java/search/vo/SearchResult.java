@@ -37,8 +37,6 @@ public class SearchResult {
      */
     private Integer totalPages;
 
-    private List<Integer> pageNavs;
-
     /**
      * 当前查询到的结果，所有涉及到的品牌
      */
@@ -59,14 +57,17 @@ public class SearchResult {
     //===========================以上是返回给页面的所有信息============================//
 
 
-    /* 面包屑导航数据 */
+    /* 已选筛选条件（前端当筛选 chips 用） */
     private List<NavVo> navs = new ArrayList<>();
     private List<Long> attrIds = new ArrayList<>();
 
     /**
-     * 面包屑导航的一条。原来这里是一个后端拼好的 link（写死了
+     * 已选筛选条件里的一条。原来这里是一个后端拼好的 link（写死了
      * http://search.gulimall.com/list.html?...），SPA 里不必让后端拼 URL：
      * 后端只负责告诉前端"要移除哪个查询参数的哪个值"，前端从自己的查询条件里删掉后重新请求即可。
+     *
+     * <p>它不承担"面包屑"的导航职责，就是当前筛选状态的可视化 ——
+     * 关键词这种没有复选框可以回显的条件，只能靠它显示和清除。</p>
      */
     @Data
     public static class NavVo {
@@ -74,7 +75,10 @@ public class SearchResult {
         /** 显示的分类名，例如"品牌"、"分类"、"内存" */
         private String navName;
 
-        /** 显示的具体值，例如"华为"、"手机"、"8GB" */
+        /**
+         * 显示的具体值，例如"华为"、"手机"、"8GB"。
+         * 属性多选时用顿号连接（内部先把协议里的冒号换成顿号），只用于展示。
+         */
         private String navValue;
 
         /** 点击 x 时要从前端查询条件里移除的参数名，例如 brandId / catalog3Id / attrs */
