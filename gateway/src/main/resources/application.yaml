@@ -67,8 +67,10 @@ spring:
             # SPA 是 fetch('http://localhost:53000/api/...')，Host 是 localhost:53000，
             # 永远匹配不到 Host 路由，于是落到 admin-route 被 renren-fast 的 JWTFilter 拦成
             # {"msg":"invalid token","code":401}（而且它是 HTTP 200，很难查）。
-            # 注意：这两条只是把请求送到正确的服务。cart 的 CartController 仍然是 @Controller、
-            # 返回视图名和 redirect，SPA 想拿到 JSON 还得另外改造它，加路由不等于能用。
+            # 注意：这两条只是把请求送到正确的服务。cart 的 CartController 已经改成
+            # @RestController + /cart/**（写操作走 POST/PUT/DELETE，全部要求登录），
+            # 前端直接调 /api/cart/list 这类路径即可；seckill 仍是 @Controller、
+            # 返回视图名，加路由不等于能用。
             - id: cart-api-route
               uri: lb://cart
               predicates:

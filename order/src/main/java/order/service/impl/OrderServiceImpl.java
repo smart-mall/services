@@ -135,8 +135,14 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
             //每一个线程都来共享之前的请求数据
             RequestContextHolder.setRequestAttributes(requestAttributes);
 
-            //2、远程查询购物车所有选中的购物项
-            List<OrderItemVo> currentCartItems = cartFeignService.getCurrentCartItems();
+            //2、远程查询购物车所有选中的购物项。
+            //   cart 的接口统一套了 R 信封（原来那个裸 List 是全项目唯一的例外），这里要拆一层。
+            //   注意这条调用能成立的前提有两个，缺一个都会失败：
+            //   cart 的接口要求登录，而身份装在 X-Member-Claims 头里 —— 网关注入它，
+            //   再由 common 的 FeignConfig 转发到这条 Feign 请求上，Feign 本身不会继承原请求的头
+            R cartResult = cartFeignService.getCheckedItems();
+            List<OrderItemVo> currentCartItems =
+                    cartResult.getData("data", new TypeReference<List<OrderItemVo>>() {});
             log.info("当前用户购物车：{}", JSON.toJSONString(currentCartItems, SerializerFeature.PrettyFormat));
             confirmVo.setItems(currentCartItems);
             //feign在远程调用之前要构造请求，调用很多的拦截器
@@ -478,7 +484,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         List<OrderItemEntity> orderItemEntityList = new ArrayList<>();
 
         //最后确定每个购物项的价格
-        List<OrderItemVo> currentCartItems = cartFeignService.getCurrentCartItems();
+        R cartResult = cartFeignService.getCheckedItems();
+        List<OrderItemVo> currentCartItems =
+                cartResult.getData("data", new TypeReference<List<OrderItemVo>>() {});
         if (currentCartItems != null && !currentCartItems.isEmpty()) {
             orderItemEntityList = currentCartItems.stream().map((items) -> {
                 //构建订单项数据

@@ -1,21 +1,46 @@
 package cart.controller;
 
 import cart.service.CartService;
-import cart.vo.CartItemVo;
-import cart.vo.CartVo;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
+import cart.vo.AddCartItemVo;
+import cart.vo.ChangeItemCountVo;
+import cart.vo.CheckItemVo;
+import cart.vo.CheckItemsVo;
+import common.utils.R;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
-
-
-@Controller
+/**
+ * 购物车接口（前台 Vue 用）。
+ *
+ * <p>原来是 {@code @Controller} + Thymeleaf：{@code /cart.html} 返回视图 cartList，
+ * 加购 / 改数量 / 删除全是 GET 加一个 302 跳到 {@code http://cart.gulimall.com/...}。
+ * 前台换成 Vue、请求变成跨源 XHR 之后这两套都不能用：视图名前端解析不了，
+ * 302 到 cart.gulimall.com 要么打不开，要么把响应变成一段 HTML 让 JSON 解析崩掉。</p>
+ *
+ * <p>现在全是 JSON 接口，写操作按语义用 POST/PUT/DELETE，不再用 GET ——
+ * GET 做写操作会被浏览器预取、被中间层缓存，语义上也不该有副作用。</p>
+ *
+ * <p>每个写操作都返回<b>整车</b> {@code CartVo} 而不是只返回被改的那一项：
+ * 前端只维护一份状态、不用自己重算总价和件数，也就不会出现"数量改了但总价没跟着变"。</p>
+ *
+ * <p>路径带 cart 前缀才能被网关的 cart-api-route（Path=/api/cart/** 且会剥掉 /api）命中：
+ * {@code GET /api/cart/list} → {@code /cart/list}。</p>
+ */
+@Validated
+@RestController
+@RequestMapping("cart")
 public class CartController {
 
     private final CartService cartService;
@@ -24,120 +49,76 @@ public class CartController {
         this.cartService = cartService;
     }
 
-    /**
-     * 获取当前用户的购物车商品项
-     * @return
-     */
-    @GetMapping(value = "/currentUserCartItems")
-    @ResponseBody
-    public List<CartItemVo> getCurrentCartItems() {
-
-        return cartService.getUserCartItems();
+    /** 整车（含未勾选项） */
+    @GetMapping("/list")
+    public R list() {
+        return R.ok().setData(cartService.getCart());
     }
 
     /**
-     * 去购物车页面的请求
-     * 浏览器有一个cookie:user-key 标识用户的身份，一个月过期
-     * 如果第一次使用jd的购物车功能，都会给一个临时的用户身份:
-     * 浏览器以后保存，每次访问都会带上这个cookie；
+     * 已勾选的购物项，价格刷新到最新。订单确认页用。
      *
-     * 登录：session有
-     * 没登录：按照cookie里面带来user-key来做
-     * 第一次，如果没有临时用户，自动创建一个临时用户
+     * <p>以前叫 {@code GET /currentUserCartItems}，返回裸 List，是全项目唯一一个
+     * 不套 {@code R} 的接口。统一之后旧路径删掉了，order 的 CartFeignService 改调这里。</p>
+     */
+    @GetMapping("/checked")
+    public R checked() {
+        return R.ok().setData(cartService.getCheckedCartItems());
+    }
+
+    /** 加购。车里已有这个 sku 就累加数量 */
+    @PostMapping("/items")
+    public R addItem(@Valid @RequestBody AddCartItemVo vo) {
+        cartService.addToCart(vo.getSkuId(), vo.getNum());
+        return R.ok().setData(cartService.getCart());
+    }
+
+    /** 改数量。绝对值，不是增量 */
+    @PutMapping("/items/{skuId}/count")
+    public R changeCount(@PathVariable("skuId") Long skuId,
+                         @Valid @RequestBody ChangeItemCountVo vo) {
+        cartService.changeItemCount(skuId, vo.getNum());
+        return R.ok().setData(cartService.getCart());
+    }
+
+    /** 勾选 / 取消勾选单项 */
+    @PutMapping("/items/{skuId}/check")
+    public R checkItem(@PathVariable("skuId") Long skuId,
+                       @Valid @RequestBody CheckItemVo vo) {
+        cartService.checkItems(List.of(skuId), vo.getChecked());
+        return R.ok().setData(cartService.getCart());
+    }
+
+    /**
+     * 批量勾选 / 全选反选。
      *
-     * @return
+     * <p>路径是 {@code /cart/items/check}，和上面的 {@code /cart/items/{skuId}/check}
+     * 段数不同（3 段 vs 4 段），Spring 不会歧义。</p>
      */
-    @GetMapping(value = "/cart.html")
-    public String cartListPage(Model model) throws ExecutionException, InterruptedException {
-        //快速得到用户信息：id,user-key
-        // UserInfoTo userInfoTo = CartInterceptor.toThreadLocal.get();
-
-        CartVo cartVo = cartService.getCart();
-        model.addAttribute("cart",cartVo);
-        return "cartList";
+    @PutMapping("/items/check")
+    public R checkItems(@Valid @RequestBody CheckItemsVo vo) {
+        cartService.checkItems(vo.getSkuIds(), vo.getChecked());
+        return R.ok().setData(cartService.getCart());
     }
 
-
-    /**
-     * 添加商品到购物车
-     * RedirectAttributes
-     *      attributes.addFlashAttribute():将数据放在session中，可以在页面中取出，但是只能取一次
-     *      attributes.addAttribute():将数据放在url后面
-     * @return
-     */
-    @GetMapping(value = "/addCartItem")
-    public String addCartItem(@RequestParam("skuId") Long skuId,
-                              @RequestParam("num") Integer num,
-                              RedirectAttributes attributes) throws ExecutionException, InterruptedException {
-
-        cartService.addToCart(skuId,num);
-
-        attributes.addAttribute("skuId",skuId);
-        return "redirect:http://cart.gulimall.com/addToCartSuccessPage.html";
+    /** 删除单项 */
+    @DeleteMapping("/items/{skuId}")
+    public R deleteItem(@PathVariable("skuId") Long skuId) {
+        cartService.deleteCartItems(List.of(skuId));
+        return R.ok().setData(cartService.getCart());
     }
 
-
     /**
-     * 跳转到添加购物车成功页面
-     * @param skuId
-     * @param model
-     * @return
+     * 批量删除。
+     *
+     * <p>skuIds 走查询参数（{@code ?skuIds=1&skuIds=2}）而不是 DELETE 的 body：
+     * 带 body 的 DELETE 虽然合法，但 axios 要额外写 {@code config.data}，
+     * 而且有些代理会直接把 DELETE 的 body 丢掉，得靠"删不成功"才发现。</p>
      */
-    @GetMapping(value = "/addToCartSuccessPage.html")
-    public String addToCartSuccessPage(@RequestParam("skuId") Long skuId,
-                                       Model model) {
-        //重定向到成功页面。再次查询购物车数据即可
-        CartItemVo cartItemVo = cartService.getCartItem(skuId);
-        model.addAttribute("cartItem",cartItemVo);
-        return "success";
-    }
-
-
-    /**
-     * 商品是否选中
-     * @param skuId
-     * @param checked
-     * @return
-     */
-    @GetMapping(value = "/checkItem")
-    public String checkItem(@RequestParam(value = "skuId") Long skuId,
-                            @RequestParam(value = "checked") Integer checked) {
-
-        cartService.checkItem(skuId,checked);
-
-        return "redirect:http://cart.gulimall.com/cart.html";
-
-    }
-
-
-    /**
-     * 改变商品数量
-     * @param skuId
-     * @param num
-     * @return
-     */
-    @GetMapping(value = "/countItem")
-    public String countItem(@RequestParam(value = "skuId") Long skuId,
-                            @RequestParam(value = "num") Integer num) {
-
-        cartService.changeItemCount(skuId,num);
-
-        return "redirect:http://cart.gulimall.com/cart.html";
-    }
-
-
-    /**
-     * 删除商品信息
-     * @param skuId
-     * @return
-     */
-    @GetMapping(value = "/deleteItem")
-    public String deleteItem(@RequestParam("skuId") Integer skuId) {
-
-        cartService.deleteIdCartInfo(skuId);
-
-        return "redirect:http://cart.gulimall.com/cart.html";
-
+    @DeleteMapping("/items")
+    public R deleteItems(@RequestParam("skuIds") @NotEmpty(message = "不能为空") List<Long> skuIds) {
+        cartService.deleteCartItems(skuIds);
+        return R.ok().setData(cartService.getCart());
     }
 
 }

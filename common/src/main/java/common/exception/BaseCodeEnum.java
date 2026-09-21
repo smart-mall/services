@@ -15,6 +15,11 @@ public enum BaseCodeEnum {
     NO_STOCK_EXCEPTION(21000,"商品库存不足"),
     USERNAME_PASSWORD_EXCEPTION(15003,"账号或密码错误"),
 
+    // 购物车。两件事分开给码：排查时一个要看商品服务（商品被删了）、
+    // 一个要看前端状态（拿着已经不在车里的 skuId 来改数量），合成一个码会把这两条路都堵死。
+    CART_ITEM_NOT_FOUND(16000,"购物车中没有该商品"),
+    CART_SKU_NOT_FOUND(16001,"商品不存在或已下架"),
+
     // 下面两个配合 HTTP 401 一起用。前端 request.ts 是看 HTTP 状态码 401 去清 token 的，
     // 不看 body 里的 code，所以状态码必须是真 401，body 里的 code 只是给人看日志用的。
     NOT_LOGIN_EXCEPTION(15004,"请先登录"),

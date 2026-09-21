@@ -1,24 +1,23 @@
 package cart.service.impl;
 
-import cart.exception.CartExceptionHandler;
 import cart.feign.ProductFeignService;
-import cart.interceptor.CartInterceptor;
+import cart.interceptor.LoginUserInterceptor;
 import cart.service.CartService;
-import cart.to.UserInfoTo;
 import cart.vo.CartItemVo;
 import cart.vo.CartVo;
 import cart.vo.SkuInfoVo;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
+import common.exception.BaseCodeEnum;
+import common.exception.BaseException;
 import common.utils.R;
+import common.vo.MemberResponseVo;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.BoundHashOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -29,256 +28,196 @@ import static common.constant.CartConstant.CART_PREFIX;
 
 
 /**
- * @Description:
- * @Created: with IntelliJ IDEA.
- * @author: 夏沫止水
- * @createTime: 2020-06-30 17:06
- **/
-
+ * 购物车实现。
+ *
+ * <p>存储是 Redis Hash：key = {@code gulimall:cart:<userId>}，field = skuId，value = CartItemVo 的 JSON。
+ * 用 Hash 而不是一个 JSON 数组，是为了改一项只写一项，不用读改写整个车。</p>
+ */
 @Slf4j
 @Service("cartService")
 public class CartServiceImpl implements CartService {
 
-    @Autowired
-    private StringRedisTemplate redisTemplate;
+    private final StringRedisTemplate redisTemplate;
 
-    @Autowired
-    private ProductFeignService productFeignService;
+    private final ProductFeignService productFeignService;
 
-    @Autowired
-    private ThreadPoolExecutor executor;
+    private final ThreadPoolExecutor executor;
+
+    public CartServiceImpl(StringRedisTemplate redisTemplate,
+                           ProductFeignService productFeignService,
+                           ThreadPoolExecutor executor) {
+        this.redisTemplate = redisTemplate;
+        this.productFeignService = productFeignService;
+        this.executor = executor;
+    }
 
     @Override
-    public CartItemVo addToCart(Long skuId, Integer num) throws ExecutionException, InterruptedException {
+    public CartItemVo addToCart(Long skuId, Integer num) {
+        BoundHashOperations<String, Object, Object> cartOps = cartOps();
 
-        //拿到要操作的购物车信息
-        BoundHashOperations<String, Object, Object> cartOps = getCartOps();
-
-        //判断Redis是否有该商品的信息
-        String productRedisValue = (String) cartOps.get(skuId.toString());
-        //如果没有就添加数据
-        if (StringUtils.isEmpty(productRedisValue)) {
-
-            //2、添加新的商品到购物车(redis)
-            CartItemVo cartItemVo = new CartItemVo();
-            //开启第一个异步任务
-            CompletableFuture<Void> getSkuInfoFuture = CompletableFuture.runAsync(() -> {
-                //1、远程查询当前要添加商品的信息
-                R productSkuInfo = productFeignService.getInfo(skuId);
-                SkuInfoVo skuInfo = productSkuInfo.getData("skuInfo", new TypeReference<SkuInfoVo>() {});
-                //数据赋值操作
-                cartItemVo.setSkuId(skuInfo.getSkuId());
-                cartItemVo.setTitle(skuInfo.getSkuTitle());
-                cartItemVo.setImage(skuInfo.getSkuDefaultImg());
-                cartItemVo.setPrice(skuInfo.getPrice());
-                cartItemVo.setCount(num);
-            }, executor);
-
-            //开启第二个异步任务
-            CompletableFuture<Void> getSkuAttrValuesFuture = CompletableFuture.runAsync(() -> {
-                //2、远程查询skuAttrValues组合信息
-                List<String> skuSaleAttrValues = productFeignService.getSkuSaleAttrValues(skuId);
-                cartItemVo.setSkuAttrValues(skuSaleAttrValues);
-            }, executor);
-
-            // 阻塞等待所有的异步任务全部完成
-            CompletableFuture.allOf(getSkuInfoFuture, getSkuAttrValuesFuture).get();
-
-            String cartItemJson = JSON.toJSONString(cartItemVo);
-            cartOps.put(skuId.toString(), cartItemJson);
-
-            return cartItemVo;
-        } else {
-            //购物车有此商品，修改数量即可
-            CartItemVo cartItemVo = JSON.parseObject(productRedisValue, CartItemVo.class);
-            cartItemVo.setCount(cartItemVo.getCount() + num);
-            //修改redis的数据
-            String cartItemJson = JSON.toJSONString(cartItemVo);
-            cartOps.put(skuId.toString(),cartItemJson);
-
-            return cartItemVo;
+        String cached = (String) cartOps.get(skuId.toString());
+        if (cached != null) {
+            // 车里已经有这个 sku：只累加数量，标题/图片/属性沿用上次查到的。
+            // 商品改过名也无所谓，读购物车时会用最新数据刷新（见 refreshPrices）
+            CartItemVo item = JSON.parseObject(cached, CartItemVo.class);
+            item.setCount(item.getCount() + num);
+            cartOps.put(skuId.toString(), JSON.toJSONString(item));
+            return item;
         }
+
+        CartItemVo item = new CartItemVo();
+
+        // 两次远程调用互不依赖，并行发
+        CompletableFuture<Void> skuInfoFuture = CompletableFuture.runAsync(() -> {
+            R productSkuInfo = productFeignService.getInfo(skuId);
+            SkuInfoVo skuInfo = productSkuInfo.getData("skuInfo", new TypeReference<SkuInfoVo>() {});
+            if (skuInfo == null) {
+                // 商品服务对不存在的 skuId 返回的是 {code:0, skuInfo:null}。
+                // 不判空的话下面 setTitle 拿到 null，会往车里塞一条标题为空的幽灵商品，
+                // 而且它在购物车页面上看起来"就是有点怪"，不会报任何错
+                throw new BaseException(BaseCodeEnum.CART_SKU_NOT_FOUND, "商品不存在或已下架：" + skuId);
+            }
+            item.setSkuId(skuInfo.getSkuId());
+            item.setTitle(skuInfo.getSkuTitle());
+            item.setImage(skuInfo.getSkuDefaultImg());
+            item.setPrice(skuInfo.getPrice());
+            item.setCount(num);
+        }, executor);
+
+        CompletableFuture<Void> skuAttrValuesFuture = CompletableFuture.runAsync(
+                () -> item.setSkuAttrValues(productFeignService.getSkuSaleAttrValues(skuId)), executor);
+
+        // 原实现把 ExecutionException / InterruptedException 直接往外抛，Controller 也跟着 throws。
+        // 那两个异常既没有 @ExceptionHandler 接，也不在 GlobalExceptionHandler 的覆盖范围里，
+        // 最后落到 Spring 默认的错误页（没有 code / msg，前端只能提示一个取不到原因的失败）。
+        // 在这里收口，转成 BaseException 走统一的 {code, msg} 格式。
+        try {
+            CompletableFuture.allOf(skuInfoFuture, skuAttrValuesFuture).get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new BaseException("加入购物车被中断，请重试");
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof BaseException baseException) {
+                // 异步块里抛的 BaseException 被 CompletableFuture 包了一层，拆出来保住原始 code
+                throw baseException;
+            }
+            log.error("加购时查询商品信息失败，skuId={}", skuId, cause);
+            throw new BaseException("查询商品信息失败，请稍后重试");
+        }
+
+        cartOps.put(skuId.toString(), JSON.toJSONString(item));
+        return item;
     }
 
     @Override
-    public CartItemVo getCartItem(Long skuId) {
-        //拿到要操作的购物车信息
-        BoundHashOperations<String, Object, Object> cartOps = getCartOps();
-
-        String redisValue = (String) cartOps.get(skuId.toString());
-
-        CartItemVo cartItemVo = JSON.parseObject(redisValue, CartItemVo.class);
-
-        return cartItemVo;
-    }
-
-    /**
-     * 获取用户登录或者未登录购物车里所有的数据
-     * @return
-     * @throws ExecutionException
-     * @throws InterruptedException
-     */
-    @Override
-    public CartVo getCart() throws ExecutionException, InterruptedException {
+    public CartVo getCart() {
+        List<CartItemVo> items = allItems();
+        refreshPrices(items);
 
         CartVo cartVo = new CartVo();
-//        通过线程获取用户信息
-        UserInfoTo userInfoTo = CartInterceptor.toThreadLocal.get();
-        if (userInfoTo.getUserId() != null) {
-            //1、登录
-            String cartKey = CART_PREFIX + userInfoTo.getUserId();
-            //临时购物车的键
-            String temptCartKey = CART_PREFIX + userInfoTo.getUserKey();
-
-            //2、如果临时购物车的数据还未进行合并
-            List<CartItemVo> tempCartItems = getCartItems(temptCartKey);
-            if (tempCartItems != null) {
-                //临时购物车有数据需要进行合并操作
-                for (CartItemVo item : tempCartItems) {
-                    addToCart(item.getSkuId(),item.getCount());
-                }
-                //清除临时购物车的数据
-                clearCartInfo(temptCartKey);
-            }
-
-            //3、获取登录后的购物车数据【包含合并过来的临时购物车的数据和登录后购物车的数据】
-            List<CartItemVo> cartItems = getCartItems(cartKey);
-            cartVo.setItems(cartItems);
-
-        } else {
-            //没登录
-            String cartKey = CART_PREFIX + userInfoTo.getUserKey();
-            //获取临时购物车里面的所有购物项
-            List<CartItemVo> cartItems = getCartItems(cartKey);
-            cartVo.setItems(cartItems);
-        }
-
+        cartVo.setItems(items);
         return cartVo;
     }
 
-    /**
-     * 获取到我们要操作的购物车
-     * @return
-     */
-    private BoundHashOperations<String, Object, Object> getCartOps() {
-        //先得到当前用户信息
-        UserInfoTo userInfoTo = CartInterceptor.toThreadLocal.get();
-
-        String cartKey = "";
-        if (userInfoTo.getUserId() != null) {
-            //gulimall:cart:1
-            cartKey = CART_PREFIX + userInfoTo.getUserId();
-        } else {
-            cartKey = CART_PREFIX + userInfoTo.getUserKey();
-        }
-
-        //绑定指定的key操作Redis
-        BoundHashOperations<String, Object, Object> operations = redisTemplate.boundHashOps(cartKey);
-
-        return operations;
-    }
-
-
-    /**
-     * 获取购物车里面的数据
-     * @param cartKey
-     * @return
-     */
-    private List<CartItemVo> getCartItems(String cartKey) {
-        //获取购物车里面的所有商品
-        BoundHashOperations<String, Object, Object> operations = redisTemplate.boundHashOps(cartKey);
-        List<Object> values = operations.values();
-        if (values != null && values.size() > 0) {
-            List<CartItemVo> cartItemVoStream = values.stream().map((obj) -> {
-                String str = (String) obj;
-                CartItemVo cartItem = JSON.parseObject(str, CartItemVo.class);
-                return cartItem;
-            }).collect(Collectors.toList());
-            return cartItemVoStream;
-        }
-        return null;
-    }
-
-
     @Override
-    public void clearCartInfo(String cartKey) {
-        redisTemplate.delete(cartKey);
+    public List<CartItemVo> getCheckedCartItems() {
+        List<CartItemVo> checked = allItems().stream()
+                .filter(item -> Boolean.TRUE.equals(item.getCheck()))
+                .collect(Collectors.toList());
+        refreshPrices(checked);
+        return checked;
     }
 
     @Override
-    public void checkItem(Long skuId, Integer check) {
-
-        //查询购物车里面的商品
-        CartItemVo cartItem = getCartItem(skuId);
-        //修改商品状态
-        cartItem.setCheck(check == 1?true:false);
-
-        //序列化存入redis中
-        String redisValue = JSON.toJSONString(cartItem);
-
-        BoundHashOperations<String, Object, Object> cartOps = getCartOps();
-        cartOps.put(skuId.toString(),redisValue);
-
+    public void checkItems(List<Long> skuIds, Boolean checked) {
+        if (skuIds == null || skuIds.isEmpty()) {
+            return;
+        }
+        BoundHashOperations<String, Object, Object> cartOps = cartOps();
+        for (Long skuId : skuIds) {
+            CartItemVo item = readItem(cartOps, skuId);
+            if (item == null) {
+                // 不报错。批量勾选时前端的列表可能已经过期（另一个标签页删掉了商品），
+                // 为了一个失效的 skuId 让整次"全选"失败，用户会以为是勾选功能坏了
+                log.debug("勾选时跳过购物车中不存在的商品：skuId={}", skuId);
+                continue;
+            }
+            item.setCheck(checked);
+            cartOps.put(skuId.toString(), JSON.toJSONString(item));
+        }
     }
 
-    /**
-     * 修改购物项数量
-     * @param skuId
-     * @param num
-     */
     @Override
     public void changeItemCount(Long skuId, Integer num) {
-
-        //查询购物车里面的商品
-        CartItemVo cartItem = getCartItem(skuId);
-        cartItem.setCount(num);
-
-        BoundHashOperations<String, Object, Object> cartOps = getCartOps();
-        //序列化存入redis中
-        String redisValue = JSON.toJSONString(cartItem);
-        cartOps.put(skuId.toString(),redisValue);
+        BoundHashOperations<String, Object, Object> cartOps = cartOps();
+        CartItemVo item = readItem(cartOps, skuId);
+        if (item == null) {
+            // 和勾选不一样：改数量是"把这个 sku 的数量设成 N"，车里没有这个 sku
+            // 说明前端的状态已经错了（或者商品已被别的标签页删掉），得让它知道
+            throw new BaseException(BaseCodeEnum.CART_ITEM_NOT_FOUND);
+        }
+        item.setCount(num);
+        cartOps.put(skuId.toString(), JSON.toJSONString(item));
     }
 
+    @Override
+    public void deleteCartItems(List<Long> skuIds) {
+        if (skuIds == null || skuIds.isEmpty()) {
+            return;
+        }
+        Object[] fields = skuIds.stream().map(String::valueOf).toArray();
+        cartOps().delete(fields);
+    }
 
     /**
-     * 删除购物项
-     * @param skuId
+     * 当前用户的购物车 Redis Hash。key 一定是 {@code gulimall:cart:<userId>} ——
+     * 未登录的请求在 LoginUserInterceptor 那层就被 401 挡掉了，这里没有匿名分支。
      */
-    @Override
-    public void deleteIdCartInfo(Integer skuId) {
-
-        BoundHashOperations<String, Object, Object> cartOps = getCartOps();
-        cartOps.delete(skuId.toString());
+    private BoundHashOperations<String, Object, Object> cartOps() {
+        return redisTemplate.boundHashOps(CART_PREFIX + currentUserId());
     }
 
-    @Override
-    public List<CartItemVo> getUserCartItems() {
-
-        List<CartItemVo> cartItemVoList;
-        //获取当前用户登录的信息
-        UserInfoTo userInfoTo = CartInterceptor.toThreadLocal.get();
-        //如果用户未登录直接返回null
-        if (userInfoTo.getUserId() == null) {
-            return null;
-        } else {
-            //获取购物车项
-            String cartKey = CART_PREFIX + userInfoTo.getUserId();
-            //获取所有的
-            List<CartItemVo> cartItems = getCartItems(cartKey);
-            if (cartItems == null) {
-                throw new CartExceptionHandler();
-            }
-            //筛选出选中的
-            cartItemVoList = cartItems.stream()
-                    .filter(CartItemVo::getCheck)
-                    .peek(item -> {
-                        //更新为最新的价格（查询数据库）
-                        BigDecimal price = productFeignService.getPrice(item.getSkuId());
-                        item.setPrice(price);
-                    })
-                    .collect(Collectors.toList());
+    private Long currentUserId() {
+        MemberResponseVo user = LoginUserInterceptor.loginUser.get();
+        if (user == null || user.getId() == null) {
+            // 正常不可达：LoginUserInterceptor 已经把所有 /cart/** 的匿名请求拦成 401 了。
+            // 留着是因为这里依赖拦截器的注册，万一注册被改掉（比如有人把
+            // addPathPatterns 改回 "/**" 之外的东西），要给出"没登录"而不是一个 NPE
+            throw new BaseException(BaseCodeEnum.NOT_LOGIN_EXCEPTION);
         }
+        return user.getId();
+    }
 
-        return cartItemVoList;
+    /** 车里所有购物项。空车返回空列表，不是 null */
+    private List<CartItemVo> allItems() {
+        List<Object> values = cartOps().values();
+        if (values == null || values.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return values.stream()
+                .map(value -> JSON.parseObject((String) value, CartItemVo.class))
+                .collect(Collectors.toList());
+    }
+
+    private CartItemVo readItem(BoundHashOperations<String, Object, Object> cartOps, Long skuId) {
+        String value = (String) cartOps.get(skuId.toString());
+        return value == null ? null : JSON.parseObject(value, CartItemVo.class);
+    }
+
+    /**
+     * 用商品服务的最新价格覆盖车里存的价格。
+     *
+     * <p>Redis 里存的是"加购那一刻的价格"，不刷新的话购物车页显示一个数、结算页显示另一个数。
+     * 原实现只在下单取已勾选项时刷新，购物车页面看到的一直是加购时的旧价；这次两边都刷。</p>
+     *
+     * <p>串行查是照抄原来的写法：购物车件数不多，换成并行还要额外处理线程池排队和异常聚合。
+     * 查价失败不吞异常 —— 宁可整个请求失败，也不要把过期价格当成真实价格算进总价。
+     * 已知代价：某个 sku 被删掉之后这个购物车会一直打不开，要等"失效商品"那类功能补上才能自愈。</p>
+     */
+    private void refreshPrices(List<CartItemVo> items) {
+        for (CartItemVo item : items) {
+            item.setPrice(productFeignService.getPrice(item.getSkuId()));
+        }
     }
 }

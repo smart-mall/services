@@ -19,6 +19,14 @@ public class BaseException extends RuntimeException {
         this(BaseCodeEnum.UNKNOWN_EXCEPTION.getCode(), message);
     }
 
+    /**
+     * code 和 message 都取自枚举。文案已经固定的错误用这个，
+     * 省得在每个调用点把枚举里的 message 再抄一遍 —— 抄一遍就有抄错的那天。
+     */
+    public BaseException(BaseCodeEnum baseCodeEnum) {
+        this(baseCodeEnum.getCode(), baseCodeEnum.getMsg());
+    }
+
     public BaseException(BaseCodeEnum baseCodeEnum, String message) {
         this(baseCodeEnum.getCode(), message);
     }
