@@ -8,3 +8,12 @@ spring:
     name: third_party
 server:
   port: 52600
+
+# ★ Resend 邮件配置（必须）★
+resend:
+  # Resend API Key，用于发送邮箱验证码；在 Resend 控制台的 API Keys 页面创建。
+  # 权限要求：Sending access。真实值不要提交，提交时这里放占位符
+  api-key: 【必填】你的 Resend API Key，需 Sending access 权限
+  # 发件人，用自己域名下的地址。前提是该域名已在 Resend 后台验证通过（SPF/DKIM 等 DNS 记录配好），
+  # 没验证过 Resend 会返回 403。验证过的域名可以发给任意收件人。
+  from: notify@lxpavilion.top

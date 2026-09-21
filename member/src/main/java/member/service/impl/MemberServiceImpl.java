@@ -14,6 +14,7 @@ import member.dao.MemberDao;
 import member.dao.MemberLevelDao;
 import member.entity.MemberEntity;
 import member.entity.MemberLevelEntity;
+import member.exception.EmailException;
 import member.exception.PhoneException;
 import member.exception.UsernameException;
 import member.service.MemberService;
@@ -21,6 +22,7 @@ import member.vo.MemberUserLoginVo;
 import member.vo.MemberUserRegisterVo;
 import member.vo.QQUserInfo;
 import member.vo.SocialUser;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.util.EntityUtils;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -60,8 +62,15 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
         memberEntity.setLevelId(levelEntity.getId());
 
         //设置其它的默认信息
-        //检查用户名和手机号是否唯一。感知异常，异常机制
-        checkPhoneUnique(vo.getPhone());
+        //检查唯一性。感知异常，异常机制
+        // 手机号和邮箱是二选一：短信注册只带 phone，邮箱注册只带 email。
+        // 所以必须判空再查，否则另一个流程会把 null 当成一个值去查库
+        if (StringUtils.isNotBlank(vo.getPhone())) {
+            checkPhoneUnique(vo.getPhone());
+        }
+        if (StringUtils.isNotBlank(vo.getEmail())) {
+            checkEmailUnique(vo.getEmail());
+        }
         checkUserNameUnique(vo.getUserName());
 
 //        设置昵称
@@ -72,6 +81,7 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
         String encode = bCryptPasswordEncoder.encode(vo.getPassword());
         memberEntity.setPassword(encode);
         memberEntity.setMobile(vo.getPhone());
+        memberEntity.setEmail(vo.getEmail());
         memberEntity.setGender(0);
         memberEntity.setCreateTime(new Date());
 
@@ -110,6 +120,35 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
         if (usernameCount > 0) {
             throw new UsernameException();
         }
+    }
+
+    /**
+     * 检查邮箱唯一。
+     *
+     * <p>注意 {@code ums_member.email} 上<b>没有</b>唯一索引（建表语句里只有主键），
+     * 和 mobile 一样，唯一性只能靠这里查一次来保证。并发下理论上有漏洞，
+     * 但现有的 phone / username 也是同样做法，保持一致。</p>
+     */
+    @Override
+    public void checkEmailUnique(String email) throws EmailException {
+
+        Long emailCount = this.baseMapper.selectCount(
+                new QueryWrapper<MemberEntity>().eq("email", email));
+
+        if (emailCount > 0) {
+            throw new EmailException();
+        }
+    }
+
+    /**
+     * 按邮箱查会员，给「邮箱 + 验证码」登录用。
+     * 验证码是 auth 侧校验的，这里只负责把人取出来；查不到返回 null。
+     */
+    @Override
+    public MemberEntity loginByEmail(String email) {
+
+        return this.baseMapper.selectOne(
+                new QueryWrapper<MemberEntity>().eq("email", email));
     }
 
     @Override

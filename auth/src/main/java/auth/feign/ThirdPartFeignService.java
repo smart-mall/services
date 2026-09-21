@@ -15,7 +15,17 @@ import org.springframework.web.bind.annotation.RequestParam;
 @FeignClient("third-party")
 public interface ThirdPartFeignService {
 
-    @GetMapping(value = "/sms/sendCode")
+    @GetMapping(value = "/thirdParty/sms/sendCode")
     R sendCode(@RequestParam("phone") String phone, @RequestParam("code") String code, @RequestParam("time") int time);
+
+    /**
+     * 发邮箱验证码，third-party 那边用 Resend 发信。
+     *
+     * <p>和上面的短信接口有一点不同：这个接口发信失败时返回的是 {@code R.error}，
+     * 而不是像短信那样一律 {@code R.ok()}，所以调用方能拿到真实的失败原因
+     * （key 不对 401 / 域名没验证 403 / 参数不合法 422 / 限流 429）。</p>
+     */
+    @GetMapping(value = "/thirdParty/email/sendCode")
+    R emailSendCode(@RequestParam("email") String email, @RequestParam("code") String code);
 
 }

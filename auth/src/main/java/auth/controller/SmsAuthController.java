@@ -2,6 +2,7 @@ package auth.controller;
 
 import auth.feign.MemberFeignService;
 import auth.feign.ThirdPartFeignService;
+import auth.utils.VerifyCodeUtils;
 import auth.vo.UserRegisterVo;
 import common.constant.AuthServerConstant;
 import common.exception.BaseCodeEnum;
@@ -9,7 +10,6 @@ import common.exception.BaseException;
 import common.utils.R;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,7 +21,6 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 手机验证码这条链路：发码 + 注册。
@@ -53,7 +52,7 @@ public class SmsAuthController {
     /**
      * 发送短信验证码。
      *
-     * <p>注意 third-party 服务里也有一个同名接口（{@code /sms/sendCode}），别调错：
+     * <p>注意 third-party 服务里也有一个同名接口（{@code /thirdParty/sms/sendCode}），别调错：
      * 前端要调的是这个（走 {@code /api/auth/sms/sendCode}），它负责防刷和验证码的存取，
      * third-party 那个只负责真正把短信发出去。</p>
      */
@@ -62,29 +61,18 @@ public class SmsAuthController {
         log.info("发送验证码: {}", phone);
         int time = 5;
 
-        //1、接口防刷
-        String redisCode = stringRedisTemplate.opsForValue().get(AuthServerConstant.SMS_CODE_CACHE_PREFIX + phone);
-        if (!StringUtils.isEmpty(redisCode)) {
-            //活动存入redis的时间，用当前时间减去存入redis的时间，判断用户手机号是否在60s内发送验证码
-            long currentTime = Long.parseLong(redisCode.split("_")[1]);
-            if (System.currentTimeMillis() - currentTime < 60000) {
-                //60s内不能再发
-                return R.error(BaseCodeEnum.SMS_CODE_EXCEPTION.getCode(), BaseCodeEnum.SMS_CODE_EXCEPTION.getMsg());
+        //1、接口防刷：同一个手机号 60 秒内只能发一次（防刷窗口和验证码共用 sms:code:<phone> 这个 key）
+        if (VerifyCodeUtils.remainingSeconds(stringRedisTemplate, AuthServerConstant.SMS_CODE_CACHE_PREFIX, phone) > 0) {
+            return R.error(BaseCodeEnum.SMS_CODE_EXCEPTION.getCode(), BaseCodeEnum.SMS_CODE_EXCEPTION.getMsg());
+        }
+
+        //2、生成验证码、存 Redis（time 分钟），再交给 third-party 真正把短信发出去
+        VerifyCodeUtils.send(stringRedisTemplate, AuthServerConstant.SMS_CODE_CACHE_PREFIX, phone, time, codeNum -> {
+            R r = thirdPartFeignService.sendCode(phone, codeNum, time);
+            if (r.getCode() != 0) {
+                throw new BaseException("远程服务调用失败" + r.getMsg());
             }
-        }
-
-        //2、生成验证码 redis.存key-phone,value-code_时间戳
-        int code = (int) ((Math.random() * 9 + 1) * 100000);
-        String codeNum = String.valueOf(code);
-        String redisStorage = codeNum + "_" + System.currentTimeMillis();
-
-        stringRedisTemplate.opsForValue().set(AuthServerConstant.SMS_CODE_CACHE_PREFIX + phone,
-                redisStorage, time, TimeUnit.MINUTES);
-
-        R r = thirdPartFeignService.sendCode(phone, codeNum, time);
-        if (r.getCode() != 0) {
-            throw new BaseException("远程服务调用失败" + r.getMsg());
-        }
+        });
 
         return R.ok();
     }
@@ -113,10 +101,9 @@ public class SmsAuthController {
             return fieldError("password2", "两次输入的密码不一致");
         }
 
-        //1、校验验证码
-        String redisCode = stringRedisTemplate.opsForValue()
-                .get(AuthServerConstant.SMS_CODE_CACHE_PREFIX + vo.getPhone());
-        if (StringUtils.isEmpty(redisCode) || !vo.getCode().equals(redisCode.split("_")[0])) {
+        //1、校验验证码（只读不写，等业务成功之后才决定删不删）
+        if (!VerifyCodeUtils.verify(stringRedisTemplate, AuthServerConstant.SMS_CODE_CACHE_PREFIX,
+                vo.getPhone(), vo.getCode())) {
             return fieldError("code", "验证码错误");
         }
 
@@ -135,7 +122,7 @@ public class SmsAuthController {
         }
 
         //3、注册成功才删掉验证码（令牌机制：一次性，用过即废）
-        stringRedisTemplate.delete(AuthServerConstant.SMS_CODE_CACHE_PREFIX + vo.getPhone());
+        VerifyCodeUtils.consume(stringRedisTemplate, AuthServerConstant.SMS_CODE_CACHE_PREFIX, vo.getPhone());
 
         return R.ok();
     }

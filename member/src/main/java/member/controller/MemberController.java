@@ -7,6 +7,7 @@ import common.utils.PageUtils;
 import common.utils.R;
 import lombok.extern.slf4j.Slf4j;
 import member.entity.MemberEntity;
+import member.exception.EmailException;
 import member.exception.PhoneException;
 import member.exception.UsernameException;
 import member.service.MemberService;
@@ -47,6 +48,8 @@ public class MemberController {
             return R.error(BaseCodeEnum.PHONE_EXIST_EXCEPTION.getCode(),BaseCodeEnum.PHONE_EXIST_EXCEPTION.getMsg());
         } catch (UsernameException e) {
             return R.error(BaseCodeEnum.USER_EXIST_EXCEPTION.getCode(),BaseCodeEnum.USER_EXIST_EXCEPTION.getMsg());
+        } catch (EmailException e) {
+            return R.error(BaseCodeEnum.EMAIL_EXIST_EXCEPTION.getCode(),BaseCodeEnum.EMAIL_EXIST_EXCEPTION.getMsg());
         }
 
         return R.ok();
@@ -63,6 +66,23 @@ public class MemberController {
         } else {
             return R.error(BaseCodeEnum.LOGINACCT_PASSWORD_EXCEPTION.getCode(),BaseCodeEnum.LOGINACCT_PASSWORD_EXCEPTION.getMsg());
         }
+    }
+
+
+    /**
+     * 按邮箱查会员，给 auth 的「邮箱 + 验证码」登录用。
+     *
+     * <p>验证码是 auth 侧校验的（存在 Redis 里），所以这里不做任何校验，只按邮箱把人取出来。
+     * 查不到返回 15007，让前端提示"该邮箱尚未注册，请先注册"。</p>
+     */
+    @PostMapping(value = "/email/login")
+    public R emailLogin(@RequestParam("email") String email) {
+        MemberEntity memberEntity = memberService.loginByEmail(email);
+
+        if (memberEntity == null) {
+            return R.error(BaseCodeEnum.EMAIL_NOT_REGISTER_EXCEPTION.getCode(),BaseCodeEnum.EMAIL_NOT_REGISTER_EXCEPTION.getMsg());
+        }
+        return R.ok().setData(memberEntity);
     }
 
 

@@ -15,7 +15,7 @@ import java.util.Map;
 
 
 @RestController
-@RequestMapping(value = "/sms")
+@RequestMapping(value = "/thirdParty/sms")
 @Slf4j
 public class SmsSendController {
 

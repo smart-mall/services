@@ -10,6 +10,10 @@ public class MemberUserRegisterVo {
 
     private String password;
 
+    /** 手机号注册时带这个；邮箱注册时为 null */
     private String phone;
+
+    /** 邮箱注册时带这个；手机号注册时为 null */
+    private String email;
 
 }
