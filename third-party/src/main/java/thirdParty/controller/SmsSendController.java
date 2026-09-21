@@ -20,8 +20,8 @@ import java.util.Map;
 public class SmsSendController {
 
     @GetMapping(value = "/sendCode")
-    public R sendCode(@RequestParam("phone") String phone, @RequestParam("code") String code, @RequestParam("time") Integer time) {
-        log.info("发送验证码: {}--{}--{}",  phone, code, time);
+    public R sendCode(@RequestParam("mobile") String mobile, @RequestParam("code") String code, @RequestParam("time") Integer time) {
+        log.info("发送验证码: {}--{}--{}",  mobile, code, time);
 
         String host = "https://gyytz.market.alicloudapi.com";
         String path = "/sms/smsSend";
@@ -31,7 +31,7 @@ public class SmsSendController {
         //最后在header中的格式(中间是英文空格)为Authorization:APPCODE 83359fd73fe94948385f570e3c139105
         headers.put("Authorization", "APPCODE " + appcode);
         Map<String, String> querys = new HashMap<>();
-        querys.put("mobile", phone);
+        querys.put("mobile", mobile);
         querys.put("param", "**code**:" + code + ",**minute**:" + time);
 
 //smsSignId（短信前缀）和templateId（短信模板），可登录国阳云控制台自助申请。参考文档：http://help.guoyangyun.com/Problem/Qm.html

@@ -7,8 +7,6 @@ import common.utils.PageUtils;
 import common.utils.R;
 import lombok.extern.slf4j.Slf4j;
 import member.entity.MemberEntity;
-import member.exception.EmailException;
-import member.exception.PhoneException;
 import member.exception.UsernameException;
 import member.service.MemberService;
 import member.vo.MemberUserLoginVo;
@@ -19,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
 import java.util.Map;
+import java.util.function.Supplier;
 
 
 
@@ -39,50 +38,69 @@ public class MemberController {
         this.memberService = memberService;
     }
 
+    /**
+     * 账号密码注册。只有账号和密码，手机号/邮箱不在这条链路里。
+     */
     @PostMapping(value = "/register")
     public R register(@RequestBody MemberUserRegisterVo vo) {
 
         try {
-            memberService.register(vo);
-        } catch (PhoneException e) {
-            return R.error(BaseCodeEnum.PHONE_EXIST_EXCEPTION.getCode(),BaseCodeEnum.PHONE_EXIST_EXCEPTION.getMsg());
+            memberService.accountRegister(vo);
         } catch (UsernameException e) {
             return R.error(BaseCodeEnum.USER_EXIST_EXCEPTION.getCode(),BaseCodeEnum.USER_EXIST_EXCEPTION.getMsg());
-        } catch (EmailException e) {
-            return R.error(BaseCodeEnum.EMAIL_EXIST_EXCEPTION.getCode(),BaseCodeEnum.EMAIL_EXIST_EXCEPTION.getMsg());
         }
 
         return R.ok();
     }
 
 
+    /**
+     * 账号密码登录。只按 username 查，不再把手机号当账号（{@code username = ? OR mobile = ?} 已去掉）。
+     */
     @PostMapping(value = "/login")
     public R login(@RequestBody MemberUserLoginVo vo) {
 
-        MemberEntity memberEntity = memberService.login(vo);
+        MemberEntity memberEntity = memberService.loginByUsername(vo.getUsername(), vo.getPassword());
 
         if (memberEntity != null) {
             return R.ok().setData(memberEntity);
         } else {
-            return R.error(BaseCodeEnum.LOGINACCT_PASSWORD_EXCEPTION.getCode(),BaseCodeEnum.LOGINACCT_PASSWORD_EXCEPTION.getMsg());
+            return R.error(BaseCodeEnum.USERNAME_PASSWORD_EXCEPTION.getCode(),BaseCodeEnum.USERNAME_PASSWORD_EXCEPTION.getMsg());
         }
     }
 
 
     /**
-     * 按邮箱查会员，给 auth 的「邮箱 + 验证码」登录用。
+     * 邮箱验证码登录。
      *
-     * <p>验证码是 auth 侧校验的（存在 Redis 里），所以这里不做任何校验，只按邮箱把人取出来。
-     * 查不到返回 15007，让前端提示"该邮箱尚未注册，请先注册"。</p>
+     * <p>验证码是 auth 侧校验的（存在 Redis 里），这里只负责按邮箱找人；
+     * 找不到就用 {@code username} 建一个新账号（自动注册），所以这个接口既是登录也是注册。
+     * 账号被占用时返回 15001。</p>
      */
     @PostMapping(value = "/email/login")
-    public R emailLogin(@RequestParam("email") String email) {
-        MemberEntity memberEntity = memberService.loginByEmail(email);
+    public R emailLogin(@RequestParam("username") String username,
+                        @RequestParam("email") String email) {
+        return loginOrRegister(() -> memberService.loginOrRegisterByEmail(username, email));
+    }
 
-        if (memberEntity == null) {
-            return R.error(BaseCodeEnum.EMAIL_NOT_REGISTER_EXCEPTION.getCode(),BaseCodeEnum.EMAIL_NOT_REGISTER_EXCEPTION.getMsg());
+
+    /**
+     * 手机验证码登录，语义同 {@link #emailLogin}，把邮箱换成手机号。
+     */
+    @PostMapping(value = "/mobile/login")
+    public R mobileLogin(@RequestParam("username") String username,
+                         @RequestParam("mobile") String mobile) {
+        return loginOrRegister(() -> memberService.loginOrRegisterByMobile(username, mobile));
+    }
+
+
+    /** 两条验证码链路共用的收尾：新建时账号撞了就转 15001，其余直接返回会员 */
+    private R loginOrRegister(Supplier<MemberEntity> action) {
+        try {
+            return R.ok().setData(action.get());
+        } catch (UsernameException e) {
+            return R.error(BaseCodeEnum.USER_EXIST_EXCEPTION.getCode(),BaseCodeEnum.USER_EXIST_EXCEPTION.getMsg());
         }
-        return R.ok().setData(memberEntity);
     }
 
 
@@ -94,7 +112,7 @@ public class MemberController {
         if (memberEntity != null) {
             return R.ok().setData(memberEntity);
         } else {
-            return R.error(BaseCodeEnum.LOGINACCT_PASSWORD_EXCEPTION.getCode(),BaseCodeEnum.LOGINACCT_PASSWORD_EXCEPTION.getMsg());
+            return R.error(BaseCodeEnum.USERNAME_PASSWORD_EXCEPTION.getCode(),BaseCodeEnum.USERNAME_PASSWORD_EXCEPTION.getMsg());
         }
     }
 
@@ -106,7 +124,7 @@ public class MemberController {
         if (memberEntity != null) {
             return R.ok().setData(memberEntity);
         } else {
-            return R.error(BaseCodeEnum.LOGINACCT_PASSWORD_EXCEPTION.getCode(),BaseCodeEnum.LOGINACCT_PASSWORD_EXCEPTION.getMsg());
+            return R.error(BaseCodeEnum.USERNAME_PASSWORD_EXCEPTION.getCode(),BaseCodeEnum.USERNAME_PASSWORD_EXCEPTION.getMsg());
         }
     }
 
@@ -122,7 +140,10 @@ public class MemberController {
 
 
     /**
-     * 信息
+     * 信息。
+     *
+     * <p>注意返回的键是 {@code member} 而不是 {@code data}（这是代码生成器留下的习惯），
+     * auth 的 UserController 取完整用户信息走的就是这个接口，别取错了键。</p>
      */
     @RequestMapping("/info/{id}")
     public R info(@PathVariable("id") Long id){

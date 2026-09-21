@@ -3,10 +3,7 @@ package member.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import common.utils.PageUtils;
 import member.entity.MemberEntity;
-import member.exception.EmailException;
-import member.exception.PhoneException;
 import member.exception.UsernameException;
-import member.vo.MemberUserLoginVo;
 import member.vo.MemberUserRegisterVo;
 import member.vo.QQUserInfo;
 import member.vo.SocialUser;
@@ -24,24 +21,37 @@ public interface MemberService extends IService<MemberEntity> {
 
     PageUtils queryPage(Map<String, Object> params);
 
-    void register(MemberUserRegisterVo vo);
+    /**
+     * 账号密码注册。
+     *
+     * @throws UsernameException 账号已被占用
+     */
+    void accountRegister(MemberUserRegisterVo vo);
 
-    void checkPhoneUnique(String phone) throws PhoneException;
+    /**
+     * 账号密码登录。账号不存在、没设过密码、密码不对，三种情况一律返回 null，
+     * 由调用方统一转成"账号或密码错误"（不区分是账号错还是密码错，避免账号枚举）。
+     */
+    MemberEntity loginByUsername(String username, String password);
 
-    void checkUserNameUnique(String userName) throws UsernameException;
+    /**
+     * 邮箱验证码登录：按邮箱找人，查不到就用 {@code username} 建一个新账号。
+     *
+     * <p>老用户的 {@code username} 会被忽略 —— 这条链路是用邮箱识别身份的，
+     * 用户填错账号也应该能登录。只有新建时才用得上它。</p>
+     *
+     * @throws UsernameException 新建时账号已被占用
+     */
+    MemberEntity loginOrRegisterByEmail(String username, String email);
 
-    void checkEmailUnique(String email) throws EmailException;
-
-    MemberEntity login(MemberUserLoginVo vo);
+    /**
+     * 手机验证码登录，语义同 {@link #loginOrRegisterByEmail}，把邮箱换成手机号。
+     *
+     * @throws UsernameException 新建时账号已被占用
+     */
+    MemberEntity loginOrRegisterByMobile(String username, String mobile);
 
     MemberEntity login(SocialUser socialUser) throws Exception;
 
     MemberEntity login(QQUserInfo qqUserInfo);
-
-    /**
-     * 按邮箱查会员，给「邮箱 + 验证码」登录用。
-     * 验证码由 auth 侧校验，这里只负责把人取出来；查不到返回 null。
-     */
-    MemberEntity loginByEmail(String email);
 }
-

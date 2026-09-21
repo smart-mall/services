@@ -14,11 +14,8 @@ import member.dao.MemberDao;
 import member.dao.MemberLevelDao;
 import member.entity.MemberEntity;
 import member.entity.MemberLevelEntity;
-import member.exception.EmailException;
-import member.exception.PhoneException;
 import member.exception.UsernameException;
 import member.service.MemberService;
-import member.vo.MemberUserLoginVo;
 import member.vo.MemberUserRegisterVo;
 import member.vo.QQUserInfo;
 import member.vo.SocialUser;
@@ -31,6 +28,7 @@ import org.springframework.stereotype.Service;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 
 
 @Service("memberService")
@@ -53,66 +51,93 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
     }
 
     @Override
-    public void register(MemberUserRegisterVo vo) {
+    public void accountRegister(MemberUserRegisterVo vo) {
+
+        //感知异常，异常机制：账号被占用就抛，由 controller 转成 15001
+        checkUsernameAvailable(vo.getUsername());
 
         MemberEntity memberEntity = new MemberEntity();
-
-        //设置默认等级
-        MemberLevelEntity levelEntity = memberLevelDao.getDefaultLevel();
-        memberEntity.setLevelId(levelEntity.getId());
-
-        //设置其它的默认信息
-        //检查唯一性。感知异常，异常机制
-        // 手机号和邮箱是二选一：短信注册只带 phone，邮箱注册只带 email。
-        // 所以必须判空再查，否则另一个流程会把 null 当成一个值去查库
-        if (StringUtils.isNotBlank(vo.getPhone())) {
-            checkPhoneUnique(vo.getPhone());
-        }
-        if (StringUtils.isNotBlank(vo.getEmail())) {
-            checkEmailUnique(vo.getEmail());
-        }
-        checkUserNameUnique(vo.getUserName());
-
-//        设置昵称
-        memberEntity.setNickname(vo.getUserName());
-        memberEntity.setUsername(vo.getUserName());
-        //密码进行MD5加密
-        BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
-        String encode = bCryptPasswordEncoder.encode(vo.getPassword());
-        memberEntity.setPassword(encode);
-        memberEntity.setMobile(vo.getPhone());
-        memberEntity.setEmail(vo.getEmail());
-        memberEntity.setGender(0);
-        memberEntity.setCreateTime(new Date());
+        fillDefaults(memberEntity, vo.getUsername());
+        //密码进行BCrypt加密
+        memberEntity.setPassword(new BCryptPasswordEncoder().encode(vo.getPassword()));
 
         //保存数据
         this.baseMapper.insert(memberEntity);
     }
 
-    /**
-     * 检查手机号唯一
-     * @param phone
-     * @throws PhoneException
-     */
     @Override
-    public void checkPhoneUnique(String phone) throws PhoneException {
+    public MemberEntity loginByUsername(String username, String password) {
 
-        Long phoneCount = this.baseMapper.selectCount(
-                new QueryWrapper<MemberEntity>().eq("mobile", phone));
+        MemberEntity memberEntity = this.baseMapper.selectOne(
+                new QueryWrapper<MemberEntity>().eq("username", username));
 
-        if (phoneCount > 0) {
-            throw new PhoneException();
+        if (memberEntity == null) {
+            //账号不存在
+            return null;
         }
 
+        String passwordDB = memberEntity.getPassword();
+        //没设过密码的账号（验证码链路建出来的）在这里一律登录失败。
+        //先判空是必要的：BCryptPasswordEncoder.matches 遇到 null 的密文虽然不会抛异常，
+        //但会打一条 "Empty encoded password" 的 warn 日志，正常业务不该刷这个日志。
+        if (StringUtils.isBlank(password) || passwordDB == null) {
+            return null;
+        }
+
+        //进行密码匹配
+        if (new BCryptPasswordEncoder().matches(password, passwordDB)) {
+            return memberEntity;
+        }
+
+        return null;
+    }
+
+    @Override
+    public MemberEntity loginOrRegisterByEmail(String username, String email) {
+        return loginOrRegister(username, new QueryWrapper<MemberEntity>().eq("email", email),
+                member -> member.setEmail(email));
+    }
+
+    @Override
+    public MemberEntity loginOrRegisterByMobile(String username, String mobile) {
+        return loginOrRegister(username, new QueryWrapper<MemberEntity>().eq("mobile", mobile),
+                member -> member.setMobile(mobile));
     }
 
     /**
-     * 检查用户名唯一
-     * @param userName
-     * @throws UsernameException
+     * 验证码链路的公共实现：先按联系方式找人，找不到就用 {@code username} 建一个。
+     *
+     * <p>「查不到才建」这一步本身就是唯一性检查，所以不需要再单独 check 邮箱/手机号是否重复；
+     * 但账号是用户填的、和联系方式无关，必须单独查一次。</p>
+     *
+     * <p>建出来的账号<b>没有密码</b>：它只能靠验证码登录。这是有意的 ——
+     * 验证码链路和账号密码链路是各自独立的两套，不互相授予登录能力。</p>
+     *
+     * @param byContact 按联系方式查询的条件
+     * @param bindContact 新建时把联系方式落到实体上
      */
-    @Override
-    public void checkUserNameUnique(String userName) throws UsernameException {
+    private MemberEntity loginOrRegister(String username, QueryWrapper<MemberEntity> byContact,
+                                         Consumer<MemberEntity> bindContact) {
+
+        MemberEntity memberEntity = this.baseMapper.selectOne(byContact);
+        if (memberEntity != null) {
+            //老用户：username 忽略，这条链路是按联系方式认人的
+            return memberEntity;
+        }
+
+        //新用户：账号是用户填的、全局唯一，撞了就抛给上层转 15001
+        checkUsernameAvailable(username);
+
+        MemberEntity register = new MemberEntity();
+        fillDefaults(register, username);
+        bindContact.accept(register);
+
+        this.baseMapper.insert(register);
+        return register;
+    }
+
+    /** 用户名是否已被占用，占用则抛 {@link UsernameException} */
+    private void checkUsernameAvailable(String userName) {
 
         Long usernameCount = this.baseMapper.selectCount(
                 new QueryWrapper<MemberEntity>().eq("username", userName));
@@ -122,63 +147,23 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
         }
     }
 
-    /**
-     * 检查邮箱唯一。
-     *
-     * <p>注意 {@code ums_member.email} 上<b>没有</b>唯一索引（建表语句里只有主键），
-     * 和 mobile 一样，唯一性只能靠这里查一次来保证。并发下理论上有漏洞，
-     * 但现有的 phone / username 也是同样做法，保持一致。</p>
-     */
-    @Override
-    public void checkEmailUnique(String email) throws EmailException {
+    /** 三条注册/自动注册链路共用的默认字段 */
+    private void fillDefaults(MemberEntity memberEntity, String userName) {
 
-        Long emailCount = this.baseMapper.selectCount(
-                new QueryWrapper<MemberEntity>().eq("email", email));
-
-        if (emailCount > 0) {
-            throw new EmailException();
-        }
-    }
-
-    /**
-     * 按邮箱查会员，给「邮箱 + 验证码」登录用。
-     * 验证码是 auth 侧校验的，这里只负责把人取出来；查不到返回 null。
-     */
-    @Override
-    public MemberEntity loginByEmail(String email) {
-
-        return this.baseMapper.selectOne(
-                new QueryWrapper<MemberEntity>().eq("email", email));
-    }
-
-    @Override
-    public MemberEntity login(MemberUserLoginVo vo) {
-
-        String loginacct = vo.getLoginacct();
-        String password = vo.getPassword();
-
-        //1、去数据库查询 SELECT * FROM ums_member WHERE username = ? OR mobile = ?
-        MemberEntity memberEntity = this.baseMapper.selectOne(new QueryWrapper<MemberEntity>()
-                .eq("username", loginacct)
-                .or()
-                .eq("mobile", loginacct));
-
-        if (memberEntity == null) {
-            //登录失败
-            return null;
+        //设置默认等级
+        MemberLevelEntity levelEntity = memberLevelDao.getDefaultLevel();
+        if (levelEntity != null) {
+            memberEntity.setLevelId(levelEntity.getId());
         } else {
-            //获取到数据库里的password
-            String passwordDB = memberEntity.getPassword();
-            BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-            //进行密码匹配
-            boolean matches = passwordEncoder.matches(password, passwordDB);
-            if (matches) {
-                //登录成功
-                return memberEntity;
-            }
+            //没有配默认等级不该让注册整个失败，落个 null 让后台能看出来
+            log.warn("没有查询到默认会员等级，levelId 将为空");
         }
 
-        return null;
+        //设置昵称
+        memberEntity.setNickname(userName);
+        memberEntity.setUsername(userName);
+        memberEntity.setGender(0);
+        memberEntity.setCreateTime(new Date());
     }
 
     @Override

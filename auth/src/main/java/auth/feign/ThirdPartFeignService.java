@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 public interface ThirdPartFeignService {
 
     @GetMapping(value = "/thirdParty/sms/sendCode")
-    R sendCode(@RequestParam("phone") String phone, @RequestParam("code") String code, @RequestParam("time") int time);
+    R sendCode(@RequestParam("mobile") String mobile, @RequestParam("code") String code, @RequestParam("time") int time);
 
     /**
      * 发邮箱验证码，third-party 那边用 Resend 发信。
