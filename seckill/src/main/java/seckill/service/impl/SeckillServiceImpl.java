@@ -8,6 +8,8 @@ import com.alibaba.csp.sentinel.slots.block.BlockException;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
+import common.exception.BaseCodeEnum;
+import common.exception.BaseException;
 import common.to.mq.SeckillOrderTo;
 import common.utils.R;
 import common.vo.MemberResponseVo;
@@ -30,6 +32,7 @@ import seckill.vo.SeckillSessionWithSkusVo;
 import seckill.vo.SkuInfoVo;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -189,6 +192,10 @@ public class SeckillServiceImpl implements SeckillService {
 
             //从Redis中查询到所有key以seckill:sessions开头的所有数据
             Set<String> keys = redisTemplate.keys(SESSION_CACHE_PREFIX + "*");
+            if (keys == null || keys.isEmpty()) {
+                log.debug("Redis 里没有任何秒杀场次，返回空集合");
+                return List.of();
+            }
             for (String key : keys) {
                 //seckill:sessions:1594396764000_1594453242000
                 String replace = key.replace(SESSION_CACHE_PREFIX, "");  //1594396764000_1594453242000
@@ -207,13 +214,14 @@ public class SeckillServiceImpl implements SeckillService {
 
 //                    批量获取数据
                     List<String> listValue = hasOps.multiGet(range);
-                    if (listValue != null && listValue.size() >= 0) {
-                        return listValue.stream().map(item -> {
-                            String items = (String) item;
-                            SeckillSkuRedisTo redisTo = JSON.parseObject(items, SeckillSkuRedisTo.class);
-                            // redisTo.setRandomCode(null);当前秒杀开始需要随机码
-                            return redisTo;
-                        }).collect(Collectors.toList());
+                    if (listValue != null) {
+                        // 场次列表里可能残留已经下架的 skuId（hash 里那份没了），multiGet 对应位置就是 null，
+                        // 直接 parse 会得到 null 元素，到了前端就是一堆空卡片。这里滤掉。
+                        return listValue.stream()
+                                .filter(Objects::nonNull)
+                                .map(item -> JSON.parseObject((String) item, SeckillSkuRedisTo.class))
+                                .filter(Objects::nonNull)
+                                .collect(Collectors.toList());
                     }
                     break;
                 }
@@ -222,7 +230,7 @@ public class SeckillServiceImpl implements SeckillService {
             log.error("资源被限流{}",e.getMessage());
         }
 
-        return null;
+        return List.of();
     }
 
     /**
@@ -233,12 +241,12 @@ public class SeckillServiceImpl implements SeckillService {
     public List<SeckillSkuRedisTo> blockHandler(BlockException e) {
 
         log.error("getCurrentSeckillSkusResource被限流了,{}",e.getMessage());
-        return null;
+        return List.of();
     }
 
 
     @Override
-    public SeckillSkuRedisTo getSkuSeckilInfo(Long skuId) {
+    public SeckillSkuRedisTo getSkuSeckillInfo(Long skuId) {
 
         //1、找到所有需要秒杀的商品的key信息---seckill:skus
         BoundHashOperations<String, String, String> hashOps = redisTemplate.boundHashOps(SECKILL_CACHE_PREFIX);
@@ -273,80 +281,101 @@ public class SeckillServiceImpl implements SeckillService {
     }
 
 
+    /**
+     * 当前登录会员 id。
+     *
+     * <p>正常不可达的空分支：{@code LoginUserInterceptor} 已经把 {@code /seckill/front/kill}
+     * 的匿名情况拦成 401 了。留着是因为这里依赖拦截器的路径配置，配置被改掉时要给出"没登录"而不是一个 NPE。</p>
+     */
+    private Long currentMemberId() {
+        MemberResponseVo user = LoginUserInterceptor.loginUser.get();
+        if (user == null || user.getId() == null) {
+            throw new BaseException(BaseCodeEnum.NOT_LOGIN_EXCEPTION);
+        }
+        return user.getId();
+    }
+
     @Override
     public String kill(String killId, String key, Integer num) throws InterruptedException {
 
-        long s1 = System.currentTimeMillis();
-        //获取当前用户的信息
-        MemberResponseVo user = LoginUserInterceptor.loginUser.get();
+        long start = System.currentTimeMillis();
+        Long memberId = currentMemberId();
 
-        //1、获取当前秒杀商品的详细信息从Redis中获取
+        //1、从 Redis 里取这次秒杀的商品信息。killId 就是那个 hash 的 field（场次id-skuId）
         BoundHashOperations<String, String, String> hashOps = redisTemplate.boundHashOps(SECKILL_CACHE_PREFIX);
         String skuInfoValue = hashOps.get(killId);
-        if (StringUtils.isEmpty(skuInfoValue)) {
-            return null;
+        if (!StringUtils.hasText(skuInfoValue)) {
+            // 场次已经过期被清理，或者前端拼了一个不存在的 killId
+            throw new BaseException(BaseCodeEnum.SECKILL_NOT_FOUND);
         }
-        //(合法性效验)
         SeckillSkuRedisTo redisTo = JSON.parseObject(skuInfoValue, SeckillSkuRedisTo.class);
         Long startTime = redisTo.getStartTime();
         Long endTime = redisTo.getEndTime();
         long currentTime = System.currentTimeMillis();
-        //判断当前这个秒杀请求是否在活动时间区间内(效验时间的合法性)
-        if (currentTime >= startTime && currentTime <= endTime) {
 
-            //2、效验随机码和商品id
-            String randomCode = redisTo.getRandomCode();
-            String skuId = redisTo.getPromotionSessionId() + "-" +redisTo.getSkuId();
-            if (randomCode.equals(key) && killId.equals(skuId)) {
-                //3、验证购物数量是否合理和库存量是否充足
-                Integer seckillLimit = redisTo.getSeckillLimit();
-
-                //获取信号量
-                String seckillCount = redisTemplate.opsForValue().get(SKU_STOCK_SEMAPHORE + randomCode);
-                Integer count = Integer.valueOf(seckillCount);
-                //判断信号量是否大于0,并且买的数量不能超过库存
-                if (count > 0 && num <= seckillLimit && count > num ) {
-                    //4、验证这个人是否已经买过了（幂等性处理）,如果秒杀成功，就去占位。userId-sessionId-skuId
-                    //SETNX 原子性处理
-                    String redisKey = user.getId() + "-" + skuId;
-                    //设置自动过期(活动结束时间-当前时间)
-                    Long ttl = endTime - currentTime;
-
-//                    如果没有买过则占位成功
-                    Boolean aBoolean = redisTemplate.opsForValue().setIfAbsent(redisKey, num.toString(), ttl, TimeUnit.MILLISECONDS);
-                    if (aBoolean) {
-                        //占位成功说明从来没有买过,分布式锁(获取信号量-1)
-                        RSemaphore semaphore = redissonClient.getSemaphore(SKU_STOCK_SEMAPHORE + randomCode);
-                        //TODO 秒杀成功，快速下单
-//                        无参方法tryAcquire（）的作用是尝试的获得1个许可，如果获取不到则返回false
-                        boolean semaphoreCount = semaphore.tryAcquire(num, 100, TimeUnit.MILLISECONDS);
-                        //保证Redis中还有商品库存
-                        if (semaphoreCount) {
-                            //创建订单号和订单信息发送给MQ
-                            // 秒杀成功 快速下单 发送消息到 MQ 整个操作时间在 10ms 左右
-                            String timeId = IdWorker.getTimeId();
-                            SeckillOrderTo orderTo = new SeckillOrderTo();
-                            orderTo.setOrderSn(timeId);
-                            orderTo.setMemberId(user.getId());
-                            orderTo.setNum(num);
-                            orderTo.setPromotionSessionId(redisTo.getPromotionSessionId());
-                            orderTo.setSkuId(redisTo.getSkuId());
-                            orderTo.setSeckillPrice(redisTo.getSeckillPrice());
-                            rabbitTemplate.convertAndSend(
-                                    "order-event-exchange",
-                                    "order.seckill.order",
-                                    orderTo);
-                            long s2 = System.currentTimeMillis();
-                            log.info("耗时..." + (s2 - s1));
-                            return timeId;
-                        }
-                    }
-                }
-            }
+        //2、时间合法性：活动区间之外一律不接
+        if (currentTime < startTime || currentTime > endTime) {
+            throw new BaseException(BaseCodeEnum.SECKILL_NOT_FOUND);
         }
-        long s3 = System.currentTimeMillis();
-        log.info("耗时..." + (s3 - s1));
-        return null;
+
+        //3、随机码 + killId 双重校验。随机码只有秒杀进行中才随详情下发，
+        //   所以它顺带挡住了"拿一个活动开始前存下来的页面来重放"。
+        String randomCode = redisTo.getRandomCode();
+        String skuId = redisTo.getPromotionSessionId() + "-" + redisTo.getSkuId();
+        if (randomCode == null || !randomCode.equals(key) || !killId.equals(skuId)) {
+            throw new BaseException(BaseCodeEnum.SECKILL_TOKEN_INVALID);
+        }
+
+        //4、限购
+        Integer seckillLimit = redisTo.getSeckillLimit();
+        if (seckillLimit != null && num > seckillLimit) {
+            throw new BaseException(BaseCodeEnum.SECKILL_LIMIT_EXCEEDED);
+        }
+
+        //5、库存：Redisson 信号量的当前值就是剩余可抢数量（它本身就存在这个 key 上，直接读）。
+        //   必须是 >= num：老代码写的是 count > num，等于最后 num 件永远卖不出去。
+        String seckillCount = redisTemplate.opsForValue().get(SKU_STOCK_SEMAPHORE + randomCode);
+        int count = seckillCount == null ? 0 : Integer.parseInt(seckillCount);
+        if (count < num) {
+            throw new BaseException(BaseCodeEnum.SECKILL_SOLD_OUT);
+        }
+
+        //6、幂等：一个人在同一场次里只能抢一次这个商品。SETNX 原子占位，挡住连点和并发重复下单。
+        String redisKey = memberId + "-" + skuId;
+        Long ttl = endTime - currentTime;
+        Boolean first = redisTemplate.opsForValue()
+                .setIfAbsent(redisKey, num.toString(), ttl, TimeUnit.MILLISECONDS);
+        if (!Boolean.TRUE.equals(first)) {
+            throw new BaseException(BaseCodeEnum.SECKILL_ALREADY_BOUGHT);
+        }
+
+        //7、扣信号量
+        RSemaphore semaphore = redissonClient.getSemaphore(SKU_STOCK_SEMAPHORE + randomCode);
+        if (!semaphore.tryAcquire(num, 100, TimeUnit.MILLISECONDS)) {
+            // 第 5 步读到的只是"读的那一刻"的值，并发下可能已经被别人抢走了。
+            // 这里要把第 6 步的占位撤掉，否则这个人本场次再也抢不了 —— 老代码就漏了这一句。
+            redisTemplate.delete(redisKey);
+            throw new BaseException(BaseCodeEnum.SECKILL_SOLD_OUT);
+        }
+
+        //8、抢到了：生成订单号并发 MQ，由 order 异步建单。
+        //   返回给前端的只是订单号，此刻订单还没落库，前端得轮询订单列表等它出现。
+        String orderSn = IdWorker.getTimeId();
+        SeckillOrderTo orderTo = new SeckillOrderTo();
+        orderTo.setOrderSn(orderSn);
+        orderTo.setMemberId(memberId);
+        orderTo.setNum(num);
+        orderTo.setPromotionSessionId(redisTo.getPromotionSessionId());
+        orderTo.setSkuId(redisTo.getSkuId());
+        orderTo.setSeckillPrice(redisTo.getSeckillPrice());
+        rabbitTemplate.convertAndSend(
+                "order-event-exchange",
+                "order.seckill.order",
+                orderTo);
+
+        log.info("秒杀成功，memberId={}，killId={}，num={}，orderSn={}，耗时={}ms",
+                memberId, killId, num, orderSn, System.currentTimeMillis() - start);
+        return orderSn;
     }
 
 }
