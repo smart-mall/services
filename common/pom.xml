@@ -127,10 +127,6 @@
 			<artifactId>commons-io</artifactId>
 			<version>2.6</version>
 		</dependency>
-		<dependency>
-			<groupId>org.springframework.session</groupId>
-			<artifactId>spring-session-data-redis</artifactId>
-		</dependency>
 
 		<!-- Brave 桥接器（用于 Zipkin） -->
 		<dependency>
