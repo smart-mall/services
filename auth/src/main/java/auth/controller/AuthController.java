@@ -141,16 +141,22 @@ public class AuthController {
             return fieldError("code", "验证码错误");
         }
 
-        //2、验证码通过，删掉它（令牌机制：一次性，用过即废）
-        stringRedisTemplate.delete(AuthServerConstant.SMS_CODE_CACHE_PREFIX + vo.getPhone());
-
-        //3、真正注册，调 member 服务
+        //2、真正注册，调 member 服务
         R register = memberFeignService.register(vo);
         if (register.getCode() != 0) {
             // member 那边用 15001/15002 区分是用户名重复还是手机号重复，msg 已经是给人看的中文，直接透传
+            //
+            // 这里故意【不】删验证码（原来 delete 写在这一步之前，会把验证码消耗掉）：
+            // 用户名/手机号撞了属于业务失败，用户改个名字就该能用同一个验证码重试，
+            // 不该被迫再发一次短信。不删还有个附带好处 —— 防刷是靠 sms:code:<phone> 这个 key
+            // 是否存在来判断的，保留它意味着失败的注册不会把 60 秒防刷窗口重置掉。
+            // 安全性没有变弱：能走到这一步说明调用方已经知道正确的验证码了。
             log.warn("注册失败: code={}, msg={}", register.getCode(), register.getMsg());
             return R.error(register.getCode(), register.getMsg());
         }
+
+        //3、注册成功才删掉验证码（令牌机制：一次性，用过即废）
+        stringRedisTemplate.delete(AuthServerConstant.SMS_CODE_CACHE_PREFIX + vo.getPhone());
 
         return R.ok();
     }

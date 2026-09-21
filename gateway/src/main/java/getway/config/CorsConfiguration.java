@@ -16,8 +16,9 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  * <p>注册社交登录回跳的前端地址（auth 的 {@code auth.front-url}）要在这个列表里，
  * 否则回跳页拿到了 token 也调不通接口。</p>
  *
- * <p>另一种做法是前端把 baseURL 改成相对路径 {@code /api} + vite 的 server.proxy 走同源，
- * 那样一条 CORS 配置都不需要。现在两种都留着。</p>
+ * <p>前端的 baseURL 用绝对地址是<b>刻意的设计</b>，不是待清理的临时代码，
+ * 所以上面这份白名单是必需的、不能删：前端一旦换端口，或者别人 clone 下来跑在别的端口，
+ * 都得同步往列表里加，否则浏览器会直接拦掉请求 —— 而报错是跨域，很容易误判成后端挂了。</p>
  */
 @Configuration
 public class CorsConfiguration implements WebMvcConfigurer {

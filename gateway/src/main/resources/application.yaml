@@ -62,6 +62,25 @@ spring:
                 - Path=/api/auth/**
               filters:
                 - RewritePath=/api/(?<segment>.*),/$\{segment}
+            # cart 和 seckill 之前也只有 Host 路由（cart.gulimall.com / seckill.gulimall.com）。
+            # Host 路由的前提是请求头里的 Host 就是那个域名，那是整页跳转才有的；
+            # SPA 是 fetch('http://localhost:53000/api/...')，Host 是 localhost:53000，
+            # 永远匹配不到 Host 路由，于是落到 admin-route 被 renren-fast 的 JWTFilter 拦成
+            # {"msg":"invalid token","code":401}（而且它是 HTTP 200，很难查）。
+            # 注意：这两条只是把请求送到正确的服务。cart 的 CartController 仍然是 @Controller、
+            # 返回视图名和 redirect，SPA 想拿到 JSON 还得另外改造它，加路由不等于能用。
+            - id: cart-api-route
+              uri: lb://cart
+              predicates:
+                - Path=/api/cart/**
+              filters:
+                - RewritePath=/api/(?<segment>.*),/$\{segment}
+            - id: seckill-api-route
+              uri: lb://seckill
+              predicates:
+                - Path=/api/seckill/**
+              filters:
+                - RewritePath=/api/(?<segment>.*),/$\{segment}
             - id: admin-route
               uri: lb://renren-fast
               predicates:
