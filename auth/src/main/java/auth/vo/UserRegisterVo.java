@@ -9,7 +9,7 @@ import org.hibernate.validator.constraints.Length;
 
 
 /**
- * 注册入参。前端以 JSON 提交（见 {@code AuthController#register}）。
+ * 注册入参。前端以 JSON 提交（见 {@code SmsAuthController#register}）。
  */
 @Data
 public class UserRegisterVo {
