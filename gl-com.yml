@@ -53,6 +53,23 @@ services:
     depends_on:
       - gl-gateway
 
+  # 商城用户端 SPA。
+  # 镜像**不由本仓库的 build-images.ps1 构建** —— 前端在独立仓库
+  # D:\Projects\project\gulimall\user-vue，要 cd 过去执行：
+  #   docker build -t grain-mall-user:latest .
+  # 与 gl-front-end 一样只是静态托管、不反代后端：浏览器直接打
+  # http://localhost:53000/api（见前端 src/tools/request.ts 的 baseURL）。
+  # 因此 56732 这个源必须在网关 CorsConfiguration 的放行列表里 —— 已经在里面了。
+  gl-user-front:
+    image: grain-mall-user:latest
+    container_name: gl-user-front
+    ports:
+      - "56732:80"     # 商城用户端（容器内 nginx 默认监听 80）
+    networks:
+      - GrainMall-network
+    depends_on:
+      - gl-gateway
+
   gl-nacos:
     image: nacos/nacos-server:latest
     container_name: gl-nacos
