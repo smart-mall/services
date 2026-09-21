@@ -84,7 +84,11 @@ public class OrderEntity implements Serializable {
 	 */
 	private Integer sourceType;
 	/**
-	 * 订单状态【0->待付款；1->待发货；2->已发货；3->已完成；4->已关闭；5->无效订单】
+	 * 订单状态，取值见 {@link order.enume.OrderStatusEnum}。
+	 *
+	 * ⚠️ 这条注释原来写的是另一套（0待付款 1待发货 2已发货 3已完成 4已关闭 5无效订单），
+	 * 和 OrderStatusEnum（0待付款 1已付款 2已发货 3已完成 4已取消 5售后中 6售后完成）
+	 * 在 1、4、5 三个码上含义都不一样。代码里用的是枚举，以枚举为准。
 	 */
 	private Integer status;
 	/**
@@ -194,5 +198,14 @@ public class OrderEntity implements Serializable {
 
 	@TableField(exist = false)
 	private List<OrderItemEntity> orderItemEntityList;
+
+	/**
+	 * 状态文案，给前端直接显示。
+	 *
+	 * <p>不落库（{@code exist = false}）：它就是 {@link order.enume.OrderStatusEnum} 的措辞，
+	 * 在数据库里再存一份等于多一个会和枚举漂移的副本。</p>
+	 */
+	@TableField(exist = false)
+	private String statusText;
 
 }

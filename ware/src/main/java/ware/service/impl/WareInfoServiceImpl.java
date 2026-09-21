@@ -65,11 +65,19 @@ public class WareInfoServiceImpl extends ServiceImpl<WareInfoDao, WareInfoEntity
 
         if (memberAddressVo != null) {
             String phone = memberAddressVo.getPhone();
-            //截取用户手机号码最后一位作为我们的运费计算
-//            1558022051
-            String fare = phone.substring(phone.length() - 10, phone.length()-8);
+            if (phone == null || phone.length() < 10) {
+                // 运费算法本身是 demo：取手机号倒数第 10~8 位当金额。
+                // 但手机号可能为空或长度不足（历史数据、测试数据），原来直接 substring 会
+                // StringIndexOutOfBoundsException —— 在 order 那边表现为一个没有 code 的 500，
+                // 整个结算页打不开。这里按 0 处理并留一条日志。
+                log.warn("收货地址 {} 的手机号无法用于计算运费，按 0 处理：{}", addrId, phone);
+                fareVo.setFare(BigDecimal.ZERO);
+            } else {
+                //截取用户手机号码最后一位作为我们的运费计算
+                String fare = phone.substring(phone.length() - 10, phone.length()-8);
+                fareVo.setFare(new BigDecimal(fare));
+            }
 
-            fareVo.setFare(new BigDecimal(fare));
             fareVo.setAddress(memberAddressVo);
 
             return fareVo;

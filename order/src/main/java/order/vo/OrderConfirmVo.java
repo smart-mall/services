@@ -1,76 +1,77 @@
 package order.vo;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
 /**
- * @Description: 订单确认页需要用的数据
- * @Created: with IntelliJ IDEA.
- * @author: 夏沫止水
- * @createTime: 2020-07-02 18:59
- **/
-
+ * 订单确认页需要用的数据。
+ *
+ * <p>三个金额字段都是**后端算好**的，前端只负责显示和原样回传：</p>
+ * <ul>
+ *   <li>{@code totalAmount} = 各购物项 price × count 之和</li>
+ *   <li>{@code freightAmount} = 默认收货地址的运费（换地址时调 {@code /order/front/fare} 重取）</li>
+ *   <li>{@code payAmount} = 前两者之和，也就是前端提交时要回传的 {@code payPrice}</li>
+ * </ul>
+ *
+ * <p>⚠️ 为什么要专门给 freighAmount：提交时 {@code submitOrder} 比对的是
+ * "商品总额 + 运费"，而确认页原本只有商品总额 —— 只要运费大于 0，提交必然被判成
+ * "价格已变动"。老页面是靠浏览器自己去 ware 拉运费、再用 JS 相加绕过去的，
+ * 那既绕过归属校验，又让前端用浮点数算钱。</p>
+ */
+@Data
 public class OrderConfirmVo {
 
-    @Getter @Setter
-    /** 会员收获地址列表 **/
-    List<MemberAddressVo> memberAddressVos;
+    /** 会员收货地址列表 */
+    private List<MemberAddressVo> addresses;
 
-    @Getter @Setter
-    /** 所有选中的购物项 **/
-    List<OrderItemVo> items;
+    /** 默认收货地址 id：优先 defaultStatus == 1，没有就取第一个；一个地址都没有时为 null */
+    private Long defaultAddrId;
 
-    /** 发票记录 **/
-    @Getter @Setter
-    /** 优惠券（会员积分） **/
-    private Integer integration;
-
-    /** 防止重复提交的令牌 **/
-    @Getter @Setter
-    private String orderToken;
-    @Getter @Setter
-    Map<Long,Boolean> stocks;
-
+    /** 购物车里所有已勾选的购物项 */
+    private List<OrderItemVo> items;
 
     /**
-     * 商品总件数
-     * @return
+     * 会员积分。
+     *
+     * ⚠️ 可能为 null —— 实测会员表里 integration 就是 null 的（没跑过积分逻辑），
+     * 前端要么不显示这一项，要么按 0 处理。
+     */
+    private Integer integration;
+
+    /** 防重令牌 */
+    private String orderToken;
+
+    /** skuId -> 是否有货。JSON 里 key 是字符串 */
+    private Map<Long, Boolean> stocks;
+
+    /** 商品总额（不含运费） */
+    private BigDecimal totalAmount;
+
+    /** 运费 */
+    private BigDecimal freightAmount;
+
+    /** 应付总额 = 商品总额 + 运费 */
+    private BigDecimal payAmount;
+
+    /**
+     * 商品总件数。
+     *
+     * <p>是计算属性不是字段（Lombok 不会为它生成 getter）。金额一律不用这种方式算 ——
+     * 金额必须有明确的、和提交校验用同一套逻辑的来源，件数没这个顾虑。</p>
      */
     public Integer getCount() {
-        Integer count = 0;
-        if (items != null && items.size() > 0) {
+        int count = 0;
+        if (items != null) {
             for (OrderItemVo item : items) {
-                count += item.getCount();
+                if (item.getCount() != null) {
+                    count += item.getCount();
+                }
             }
         }
         return count;
     }
 
-
-    /** 订单总额 **/
-    //BigDecimal total;
-    //计算订单总额
-    public BigDecimal getTotal() {
-        BigDecimal totalNum = BigDecimal.ZERO;
-        if (items != null && items.size() > 0) {
-            for (OrderItemVo item : items) {
-                //计算当前商品的总价格
-                BigDecimal itemPrice = item.getPrice().multiply(new BigDecimal(item.getCount().toString()));
-                //再计算全部商品的总价格
-                totalNum = totalNum.add(itemPrice);
-            }
-        }
-        return totalNum;
-    }
-
-
-    /** 应付价格 **/
-    //BigDecimal payPrice;
-    public BigDecimal getPayPrice() {
-        return getTotal();
-    }
 }

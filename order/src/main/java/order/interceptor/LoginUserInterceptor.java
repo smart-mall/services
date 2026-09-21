@@ -31,17 +31,23 @@ public class LoginUserInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         // 放行所有后台接口
         String origin = request.getHeader("origin");
-        log.debug("当前请求的uri:{}", origin);
+        log.debug("当前请求的 origin:{}", origin);
         if ("http://admin.gulimall.com".equalsIgnoreCase(origin)
                 || "http://localhost:56731".equalsIgnoreCase(origin)) {
             return true;
         }
 
+        // 白名单：这几类请求天然没有登录态，但必须能进来
         String uri = request.getRequestURI();
         AntPathMatcher antPathMatcher = new AntPathMatcher();
-        boolean match = antPathMatcher.match("/order/order/status/**", uri);
-        boolean match1 = antPathMatcher.match("/payed/notify", uri);
-        if (match || match1) {
+        // 1、ware 查订单状态。Feign 是从 MQ 监听线程发起的，没有请求上下文，
+        //    带不了 X-Member-Claims，所以这条只能放行（接口本身只返回 orderSn/status）
+        boolean internalOrderStatus = antPathMatcher.match("/order/order/status/**", uri);
+        // 2、第三方支付回调。⚠️ 微信那条原来漏了 —— 名单里只有 /payed/notify（支付宝），
+        //    微信的异步通知一直被拦成 401，而微信收不到 success 就会一直重推
+        boolean alipayNotify = antPathMatcher.match("/payed/notify", uri);
+        boolean wxpayNotify = antPathMatcher.match("/pay/notify", uri);
+        if (internalOrderStatus || alipayNotify || wxpayNotify) {
             return true;
         }
 
@@ -67,8 +73,8 @@ public class LoginUserInterceptor implements HandlerInterceptor {
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
         // Tomcat 的线程是复用的。上面有几个分支是"提前 return true"、根本没 set 的，
         // 如果同一个线程刚处理完 A 的请求、接着处理这种请求，loginUser.get() 会拿到 A。
-        // 现在没有可达的路径会读到它（queryPageWithItem 没有 controller 暴露，
-        // /order/order/status/** 也没有对应的 handler），但这是隐患，顺手清掉。
+        // 白名单那几条路径都没有业务代码读它（ware 的状态查询和两个支付回调都不碰
+        // LoginUserInterceptor.loginUser），但这是隐患，顺手清掉。
         loginUser.remove();
     }
 }

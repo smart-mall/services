@@ -20,6 +20,14 @@ public enum BaseCodeEnum {
     CART_ITEM_NOT_FOUND(16000,"购物车中没有该商品"),
     CART_SKU_NOT_FOUND(16001,"商品不存在或已下架"),
 
+    // 订单。归属校验失败和"订单真的不存在"合并成同一个码和文案：
+    // 区分开等于告诉调用方"这个订单号存在，只是不属于你"，那是个用户枚举点。
+    ORDER_NOT_FOUND(17000,"订单不存在"),
+    ORDER_TOKEN_INVALID(17001,"订单令牌已失效，请刷新页面重试"),
+    ORDER_PRICE_CHANGED(17002,"商品价格已变动，请重新确认"),
+    ORDER_STATUS_INVALID(17003,"订单当前状态不支持该操作"),
+    ADDRESS_NOT_FOUND(17004,"收货地址不存在"),
+
     // 下面两个配合 HTTP 401 一起用。前端 request.ts 是看 HTTP 状态码 401 去清 token 的，
     // 不看 body 里的 code，所以状态码必须是真 401，body 里的 code 只是给人看日志用的。
     NOT_LOGIN_EXCEPTION(15004,"请先登录"),
