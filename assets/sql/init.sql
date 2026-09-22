@@ -78,7 +78,7 @@ CREATE TABLE `pms_category` (
   `cat_level` int DEFAULT NULL COMMENT '层级',
   `show_status` tinyint DEFAULT NULL COMMENT '是否显示[0-不显示，1显示]',
   `sort` int DEFAULT NULL COMMENT '排序',
-  `icon` char(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '图标地址',
+  `icon` char(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT 'Element UI 图标类名，如 el-icon-goods',
   `product_unit` char(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '计量单位',
   `product_count` int DEFAULT NULL COMMENT '商品数量',
   PRIMARY KEY (`cat_id`) USING BTREE,

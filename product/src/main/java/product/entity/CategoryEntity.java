@@ -50,7 +50,7 @@ public class CategoryEntity implements Serializable {
 	 */
 	private Integer sort;
 	/**
-	 * 图标地址
+	 * Element UI 图标类名，如 el-icon-goods。只用于后台分类树的渲染，商城前台不用
 	 */
 	private String icon;
 	/**

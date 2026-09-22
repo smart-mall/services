@@ -34,7 +34,10 @@ public class CategoryVo implements Serializable {
     /** 分类名称 */
     private String name;
 
-    /** 图标地址，只有一级分类用得上 */
+    /**
+     * Element UI 图标类名，如 el-icon-goods —— 不是图片地址。
+     * 后台分类树三个层级都会渲染它；这个接口只是把值透传给商城前台，前台目前不使用。
+     */
     private String icon;
 
     /** 子分类，三级分类为空列表 */
