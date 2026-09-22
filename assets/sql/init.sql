@@ -1,4 +1,29 @@
 
+-- ============================================================================
+-- 谷粒商城 · 全库初始化脚本（幂等，可以重复执行）
+--
+-- 执行：
+--   docker exec -i gl-mysql mysql -uroot -proot --default-character-set=utf8mb4 \
+--     < assets/sql/init.sql
+--
+-- 【本文件不删任何已存在的表和数据】—— 所有建表语句都是 CREATE TABLE IF NOT EXISTS，
+-- 没有一句 DROP。所以随时重跑都安全，不会丢数据。
+--
+-- 代价是它**改不了已存在表的结构**，后续加表/改表要按下面的规矩来：
+--   · 新增表        → 直接加一段 CREATE TABLE IF NOT EXISTS
+--   · 改已有表结构  → 光改 CREATE TABLE 里的列定义对已有的库**没有任何效果**（表已存在，
+--                     整句被跳过），必须另外写 ALTER TABLE，参见 gulimall_oms.mq_message
+--                     上面那段注释里的例子
+--
+-- 需要"清库重建"时，取消下面 6 行的注释再执行（会丢数据，想清楚再用）：
+-- DROP DATABASE IF EXISTS `gulimall_pms`;
+-- DROP DATABASE IF EXISTS `gulimall_oms`;
+-- DROP DATABASE IF EXISTS `gulimall_sms`;
+-- DROP DATABASE IF EXISTS `gulimall_ums`;
+-- DROP DATABASE IF EXISTS `gulimall_wms`;
+-- DROP DATABASE IF EXISTS `third_party`;
+-- ============================================================================
+
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
@@ -13,10 +38,9 @@
 CREATE DATABASE /*!32312 IF NOT EXISTS*/ `gulimall_pms` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
 
 USE `gulimall_pms`;
-DROP TABLE IF EXISTS `pms_attr`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `pms_attr` (
+CREATE TABLE IF NOT EXISTS `pms_attr` (
   `attr_id` bigint NOT NULL AUTO_INCREMENT COMMENT '属性id',
   `attr_name` char(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '属性名',
   `value_type` tinyint DEFAULT NULL COMMENT '属性值类型[0-唯一，1-单选]',
@@ -30,10 +54,9 @@ CREATE TABLE `pms_attr` (
   PRIMARY KEY (`attr_id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='商品属性';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `pms_attr_attrgroup_relation`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `pms_attr_attrgroup_relation` (
+CREATE TABLE IF NOT EXISTS `pms_attr_attrgroup_relation` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `attr_id` bigint DEFAULT NULL COMMENT '属性id',
   `attr_group_id` bigint DEFAULT NULL COMMENT '属性分组id',
@@ -41,10 +64,9 @@ CREATE TABLE `pms_attr_attrgroup_relation` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='属性&属性分组关联';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `pms_attr_group`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `pms_attr_group` (
+CREATE TABLE IF NOT EXISTS `pms_attr_group` (
   `attr_group_id` bigint NOT NULL AUTO_INCREMENT COMMENT '分组id',
   `attr_group_name` char(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '组名',
   `sort` int DEFAULT NULL COMMENT '排序',
@@ -54,10 +76,9 @@ CREATE TABLE `pms_attr_group` (
   PRIMARY KEY (`attr_group_id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='属性分组';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `pms_brand`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `pms_brand` (
+CREATE TABLE IF NOT EXISTS `pms_brand` (
   `brand_id` bigint NOT NULL AUTO_INCREMENT COMMENT '品牌id',
   `name` char(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '品牌名',
   `logo` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '品牌logo地址',
@@ -68,10 +89,9 @@ CREATE TABLE `pms_brand` (
   PRIMARY KEY (`brand_id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='品牌';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `pms_category`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `pms_category` (
+CREATE TABLE IF NOT EXISTS `pms_category` (
   `cat_id` bigint NOT NULL AUTO_INCREMENT COMMENT '分类id',
   `name` char(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '分类名称',
   `parent_cid` bigint DEFAULT NULL COMMENT '父分类id',
@@ -85,10 +105,9 @@ CREATE TABLE `pms_category` (
   KEY `parent_cid` (`parent_cid`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=1441 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC COMMENT='商品三级分类';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `pms_category_brand_relation`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `pms_category_brand_relation` (
+CREATE TABLE IF NOT EXISTS `pms_category_brand_relation` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `brand_id` bigint DEFAULT NULL COMMENT '品牌id',
   `catalog_id` bigint DEFAULT NULL COMMENT '分类id',
@@ -97,20 +116,18 @@ CREATE TABLE `pms_category_brand_relation` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='品牌分类关联';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `pms_comment_replay`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `pms_comment_replay` (
+CREATE TABLE IF NOT EXISTS `pms_comment_replay` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `comment_id` bigint DEFAULT NULL COMMENT '评论id',
   `reply_id` bigint DEFAULT NULL COMMENT '回复id',
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='商品评价回复关系';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `pms_product_attr_value`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `pms_product_attr_value` (
+CREATE TABLE IF NOT EXISTS `pms_product_attr_value` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `spu_id` bigint DEFAULT NULL COMMENT '商品id',
   `attr_id` bigint DEFAULT NULL COMMENT '属性id',
@@ -121,10 +138,9 @@ CREATE TABLE `pms_product_attr_value` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=55 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='spu属性值';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `pms_sku_images`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `pms_sku_images` (
+CREATE TABLE IF NOT EXISTS `pms_sku_images` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `sku_id` bigint DEFAULT NULL COMMENT 'sku_id',
   `img_url` varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '图片地址',
@@ -133,10 +149,9 @@ CREATE TABLE `pms_sku_images` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=70 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='sku图片';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `pms_sku_info`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `pms_sku_info` (
+CREATE TABLE IF NOT EXISTS `pms_sku_info` (
   `sku_id` bigint NOT NULL AUTO_INCREMENT COMMENT 'skuId',
   `spu_id` bigint DEFAULT NULL COMMENT 'spuId',
   `sku_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'sku名称',
@@ -151,10 +166,9 @@ CREATE TABLE `pms_sku_info` (
   PRIMARY KEY (`sku_id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='sku信息';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `pms_sku_sale_attr_value`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `pms_sku_sale_attr_value` (
+CREATE TABLE IF NOT EXISTS `pms_sku_sale_attr_value` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `sku_id` bigint DEFAULT NULL COMMENT 'sku_id',
   `attr_id` bigint DEFAULT NULL COMMENT 'attr_id',
@@ -164,10 +178,9 @@ CREATE TABLE `pms_sku_sale_attr_value` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=27 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='sku销售属性&值';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `pms_spu_comment`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `pms_spu_comment` (
+CREATE TABLE IF NOT EXISTS `pms_spu_comment` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `sku_id` bigint DEFAULT NULL COMMENT 'sku_id',
   `spu_id` bigint DEFAULT NULL COMMENT 'spu_id',
@@ -187,10 +200,9 @@ CREATE TABLE `pms_spu_comment` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='商品评价';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `pms_spu_images`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `pms_spu_images` (
+CREATE TABLE IF NOT EXISTS `pms_spu_images` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `spu_id` bigint DEFAULT NULL COMMENT 'spu_id',
   `img_name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '图片名',
@@ -200,10 +212,9 @@ CREATE TABLE `pms_spu_images` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=29 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='spu图片';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `pms_spu_info`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `pms_spu_info` (
+CREATE TABLE IF NOT EXISTS `pms_spu_info` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '商品id',
   `spu_name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '商品名称',
   `spu_description` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '商品描述',
@@ -216,19 +227,17 @@ CREATE TABLE `pms_spu_info` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='spu信息';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `pms_spu_info_desc`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `pms_spu_info_desc` (
+CREATE TABLE IF NOT EXISTS `pms_spu_info_desc` (
   `spu_id` bigint NOT NULL COMMENT '商品id',
   `decript` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT '商品介绍',
   PRIMARY KEY (`spu_id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='spu信息介绍';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `undo_log`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `undo_log` (
+CREATE TABLE IF NOT EXISTS `undo_log` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `branch_id` bigint NOT NULL,
   `xid` varchar(100) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
@@ -242,28 +251,59 @@ CREATE TABLE `undo_log` (
   UNIQUE KEY `ux_undo_log` (`xid`,`branch_id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 ROW_FORMAT=DYNAMIC;
 /*!40101 SET character_set_client = @saved_cs_client */;
+-- 本地消息表（outbox）。
+-- 每个需要"可靠投递消息"的服务在自己库里各有一张，互相独立 —— outbox 必须和业务变更在
+-- 同一个库、同一个事务里，共用一张就必然跨库，也就失去了原子性。
+-- message_status: 0-待投递 1-broker已ack 2-被return或nack 3-已抵达(消费端回执，暂未使用)
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE IF NOT EXISTS `mq_message` (
+  `message_id` char(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci COMMENT 'JSON',
+  `to_exchange` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `routing_key` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `class_type` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `message_status` int DEFAULT '0' COMMENT '0-待投递 1-broker已ack 2-被return或nack 3-已抵达',
+  `create_time` datetime DEFAULT NULL,
+  `update_time` datetime DEFAULT NULL,
+  PRIMARY KEY (`message_id`) USING BTREE,
+  KEY `idx_status_create_time` (`message_status`,`create_time`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
 CREATE DATABASE /*!32312 IF NOT EXISTS*/ `gulimall_oms` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
 
 USE `gulimall_oms`;
-DROP TABLE IF EXISTS `mq_message`;
+-- 【注意】这张表在早期的 init.sql 里是另一份定义：只有 message_id / content / to_exchange /
+-- class_type / message_status / create_time / update_time，**缺 routing_key 和状态索引**。
+-- 下面这段 CREATE TABLE IF NOT EXISTS 对**已经存在**的表不会生效（整句被跳过），所以如果你的库
+-- 是那种情况，要手工补一次（只补一次；重复执行会报 duplicate column，可以先查一下再加）：
+--   ALTER TABLE `mq_message` ADD COLUMN `routing_key` varchar(255) DEFAULT NULL AFTER `to_exchange`;
+--   ALTER TABLE `mq_message` ADD INDEX `idx_status_create_time` (`message_status`, `create_time`);
+-- 本仓库当前部署的库已经补过了，不需要再执行。
+--
+-- 本地消息表（outbox）。
+-- 每个需要"可靠投递消息"的服务在自己库里各有一张，互相独立 —— outbox 必须和业务变更在
+-- 同一个库、同一个事务里，共用一张就必然跨库，也就失去了原子性。
+-- message_status: 0-待投递 1-broker已ack 2-被return或nack 3-已抵达(消费端回执，暂未使用)
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `mq_message` (
+CREATE TABLE IF NOT EXISTS `mq_message` (
   `message_id` char(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci COMMENT 'JSON',
   `to_exchange` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `routing_key` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `class_type` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `message_status` int DEFAULT '0' COMMENT '0-新建 1-已发送 2-错误抵达 3-已抵达',
+  `message_status` int DEFAULT '0' COMMENT '0-待投递 1-broker已ack 2-被return或nack 3-已抵达',
   `create_time` datetime DEFAULT NULL,
   `update_time` datetime DEFAULT NULL,
-  PRIMARY KEY (`message_id`) USING BTREE
+  PRIMARY KEY (`message_id`) USING BTREE,
+  KEY `idx_status_create_time` (`message_status`,`create_time`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC;
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `oms_order`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `oms_order` (
+CREATE TABLE IF NOT EXISTS `oms_order` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `member_id` bigint DEFAULT NULL COMMENT 'member_id',
   `order_sn` char(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '订单号',
@@ -310,10 +350,9 @@ CREATE TABLE `oms_order` (
   UNIQUE KEY `order_sn` (`order_sn`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='订单';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `oms_order_item`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `oms_order_item` (
+CREATE TABLE IF NOT EXISTS `oms_order_item` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `order_id` bigint DEFAULT NULL COMMENT 'order_id',
   `order_sn` char(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'order_sn',
@@ -337,10 +376,9 @@ CREATE TABLE `oms_order_item` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='订单项信息';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `oms_order_operate_history`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `oms_order_operate_history` (
+CREATE TABLE IF NOT EXISTS `oms_order_operate_history` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `order_id` bigint DEFAULT NULL COMMENT '订单id',
   `operate_man` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '操作人[用户；系统；后台管理员]',
@@ -350,10 +388,9 @@ CREATE TABLE `oms_order_operate_history` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='订单操作历史记录';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `oms_order_return_apply`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `oms_order_return_apply` (
+CREATE TABLE IF NOT EXISTS `oms_order_return_apply` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `order_id` bigint DEFAULT NULL COMMENT 'order_id',
   `sku_id` bigint DEFAULT NULL COMMENT '退货商品id',
@@ -385,10 +422,9 @@ CREATE TABLE `oms_order_return_apply` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='订单退货申请';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `oms_order_return_reason`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `oms_order_return_reason` (
+CREATE TABLE IF NOT EXISTS `oms_order_return_reason` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '退货原因名',
   `sort` int DEFAULT NULL COMMENT '排序',
@@ -397,10 +433,9 @@ CREATE TABLE `oms_order_return_reason` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='退货原因';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `oms_order_setting`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `oms_order_setting` (
+CREATE TABLE IF NOT EXISTS `oms_order_setting` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `flash_order_overtime` int DEFAULT NULL COMMENT '秒杀订单超时关闭时间(分)',
   `normal_order_overtime` int DEFAULT NULL COMMENT '正常订单超时时间(分)',
@@ -411,10 +446,9 @@ CREATE TABLE `oms_order_setting` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='订单配置信息';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `oms_payment_info`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `oms_payment_info` (
+CREATE TABLE IF NOT EXISTS `oms_payment_info` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `order_sn` char(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '订单号（对外业务号）',
   `order_id` bigint DEFAULT NULL COMMENT '订单id',
@@ -431,10 +465,9 @@ CREATE TABLE `oms_payment_info` (
   UNIQUE KEY `alipay_trade_no` (`alipay_trade_no`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='支付信息表';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `oms_refund_info`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `oms_refund_info` (
+CREATE TABLE IF NOT EXISTS `oms_refund_info` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `order_return_id` bigint DEFAULT NULL COMMENT '退款的订单',
   `refund` decimal(18,4) DEFAULT NULL COMMENT '退款金额',
@@ -445,10 +478,9 @@ CREATE TABLE `oms_refund_info` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='退款信息';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `undo_log`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `undo_log` (
+CREATE TABLE IF NOT EXISTS `undo_log` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `branch_id` bigint NOT NULL,
   `xid` varchar(100) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
@@ -466,10 +498,28 @@ CREATE TABLE `undo_log` (
 CREATE DATABASE /*!32312 IF NOT EXISTS*/ `gulimall_sms` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
 
 USE `gulimall_sms`;
-DROP TABLE IF EXISTS `sms_coupon`;
+-- 本地消息表（outbox）。
+-- 每个需要"可靠投递消息"的服务在自己库里各有一张，互相独立 —— outbox 必须和业务变更在
+-- 同一个库、同一个事务里，共用一张就必然跨库，也就失去了原子性。
+-- message_status: 0-待投递 1-broker已ack 2-被return或nack 3-已抵达(消费端回执，暂未使用)
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `sms_coupon` (
+CREATE TABLE IF NOT EXISTS `mq_message` (
+  `message_id` char(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci COMMENT 'JSON',
+  `to_exchange` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `routing_key` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `class_type` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `message_status` int DEFAULT '0' COMMENT '0-待投递 1-broker已ack 2-被return或nack 3-已抵达',
+  `create_time` datetime DEFAULT NULL,
+  `update_time` datetime DEFAULT NULL,
+  PRIMARY KEY (`message_id`) USING BTREE,
+  KEY `idx_status_create_time` (`message_status`,`create_time`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE IF NOT EXISTS `sms_coupon` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `coupon_type` tinyint(1) DEFAULT NULL COMMENT '优惠卷类型[0->全场赠券；1->会员赠券；2->购物赠券；3->注册赠券]',
   `coupon_img` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '优惠券图片',
@@ -493,10 +543,9 @@ CREATE TABLE `sms_coupon` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='优惠券信息';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `sms_coupon_history`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `sms_coupon_history` (
+CREATE TABLE IF NOT EXISTS `sms_coupon_history` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `coupon_id` bigint DEFAULT NULL COMMENT '优惠券id',
   `member_id` bigint DEFAULT NULL COMMENT '会员id',
@@ -510,10 +559,9 @@ CREATE TABLE `sms_coupon_history` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='优惠券领取历史记录';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `sms_coupon_spu_category_relation`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `sms_coupon_spu_category_relation` (
+CREATE TABLE IF NOT EXISTS `sms_coupon_spu_category_relation` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `coupon_id` bigint DEFAULT NULL COMMENT '优惠券id',
   `category_id` bigint DEFAULT NULL COMMENT '产品分类id',
@@ -521,10 +569,9 @@ CREATE TABLE `sms_coupon_spu_category_relation` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='优惠券分类关联';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `sms_coupon_spu_relation`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `sms_coupon_spu_relation` (
+CREATE TABLE IF NOT EXISTS `sms_coupon_spu_relation` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `coupon_id` bigint DEFAULT NULL COMMENT '优惠券id',
   `spu_id` bigint DEFAULT NULL COMMENT 'spu_id',
@@ -532,10 +579,9 @@ CREATE TABLE `sms_coupon_spu_relation` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='优惠券与产品关联';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `sms_home_adv`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `sms_home_adv` (
+CREATE TABLE IF NOT EXISTS `sms_home_adv` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '名字',
   `pic` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '图片地址',
@@ -551,10 +597,9 @@ CREATE TABLE `sms_home_adv` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='首页轮播广告';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `sms_home_subject`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `sms_home_subject` (
+CREATE TABLE IF NOT EXISTS `sms_home_subject` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '专题名字',
   `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '专题标题',
@@ -566,10 +611,9 @@ CREATE TABLE `sms_home_subject` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='首页专题表【jd首页下面很多专题，每个专题链接新的页面，展示专题商品信息】';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `sms_home_subject_spu`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `sms_home_subject_spu` (
+CREATE TABLE IF NOT EXISTS `sms_home_subject_spu` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '专题名字',
   `subject_id` bigint DEFAULT NULL COMMENT '专题id',
@@ -578,10 +622,9 @@ CREATE TABLE `sms_home_subject_spu` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='专题商品';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `sms_member_price`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `sms_member_price` (
+CREATE TABLE IF NOT EXISTS `sms_member_price` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `sku_id` bigint DEFAULT NULL COMMENT 'sku_id',
   `member_level_id` bigint DEFAULT NULL COMMENT '会员等级id',
@@ -591,10 +634,9 @@ CREATE TABLE `sms_member_price` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=39 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='商品会员价格';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `sms_seckill_promotion`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `sms_seckill_promotion` (
+CREATE TABLE IF NOT EXISTS `sms_seckill_promotion` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '活动标题',
   `start_time` datetime DEFAULT NULL COMMENT '开始日期',
@@ -605,10 +647,9 @@ CREATE TABLE `sms_seckill_promotion` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='秒杀活动';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `sms_seckill_session`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `sms_seckill_session` (
+CREATE TABLE IF NOT EXISTS `sms_seckill_session` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '场次名称',
   `start_time` datetime DEFAULT NULL COMMENT '每日开始时间',
@@ -618,10 +659,9 @@ CREATE TABLE `sms_seckill_session` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='秒杀活动场次';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `sms_seckill_sku_notice`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `sms_seckill_sku_notice` (
+CREATE TABLE IF NOT EXISTS `sms_seckill_sku_notice` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `member_id` bigint DEFAULT NULL COMMENT 'member_id',
   `sku_id` bigint DEFAULT NULL COMMENT 'sku_id',
@@ -632,10 +672,9 @@ CREATE TABLE `sms_seckill_sku_notice` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='秒杀商品通知订阅';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `sms_seckill_sku_relation`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `sms_seckill_sku_relation` (
+CREATE TABLE IF NOT EXISTS `sms_seckill_sku_relation` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `promotion_id` bigint DEFAULT NULL COMMENT '活动id',
   `promotion_session_id` bigint DEFAULT NULL COMMENT '活动场次id',
@@ -647,10 +686,9 @@ CREATE TABLE `sms_seckill_sku_relation` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='秒杀活动商品关联';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `sms_sku_full_reduction`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `sms_sku_full_reduction` (
+CREATE TABLE IF NOT EXISTS `sms_sku_full_reduction` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `sku_id` bigint DEFAULT NULL COMMENT 'spu_id',
   `full_price` decimal(18,4) DEFAULT NULL COMMENT '满多少',
@@ -659,10 +697,9 @@ CREATE TABLE `sms_sku_full_reduction` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='商品满减信息';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `sms_sku_ladder`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `sms_sku_ladder` (
+CREATE TABLE IF NOT EXISTS `sms_sku_ladder` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `sku_id` bigint DEFAULT NULL COMMENT 'spu_id',
   `full_count` int DEFAULT NULL COMMENT '满几件',
@@ -672,10 +709,9 @@ CREATE TABLE `sms_sku_ladder` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='商品阶梯价格';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `sms_spu_bounds`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `sms_spu_bounds` (
+CREATE TABLE IF NOT EXISTS `sms_spu_bounds` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `spu_id` bigint DEFAULT NULL,
   `grow_bounds` decimal(18,4) DEFAULT NULL COMMENT '成长积分',
@@ -684,10 +720,9 @@ CREATE TABLE `sms_spu_bounds` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='商品spu积分设置';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `undo_log`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `undo_log` (
+CREATE TABLE IF NOT EXISTS `undo_log` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `branch_id` bigint NOT NULL,
   `xid` varchar(100) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
@@ -705,10 +740,28 @@ CREATE TABLE `undo_log` (
 CREATE DATABASE /*!32312 IF NOT EXISTS*/ `gulimall_ums` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
 
 USE `gulimall_ums`;
-DROP TABLE IF EXISTS `ums_growth_change_history`;
+-- 本地消息表（outbox）。
+-- 每个需要"可靠投递消息"的服务在自己库里各有一张，互相独立 —— outbox 必须和业务变更在
+-- 同一个库、同一个事务里，共用一张就必然跨库，也就失去了原子性。
+-- message_status: 0-待投递 1-broker已ack 2-被return或nack 3-已抵达(消费端回执，暂未使用)
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `ums_growth_change_history` (
+CREATE TABLE IF NOT EXISTS `mq_message` (
+  `message_id` char(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci COMMENT 'JSON',
+  `to_exchange` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `routing_key` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `class_type` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `message_status` int DEFAULT '0' COMMENT '0-待投递 1-broker已ack 2-被return或nack 3-已抵达',
+  `create_time` datetime DEFAULT NULL,
+  `update_time` datetime DEFAULT NULL,
+  PRIMARY KEY (`message_id`) USING BTREE,
+  KEY `idx_status_create_time` (`message_status`,`create_time`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE IF NOT EXISTS `ums_growth_change_history` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `member_id` bigint DEFAULT NULL COMMENT 'member_id',
   `create_time` datetime DEFAULT NULL COMMENT 'create_time',
@@ -718,10 +771,9 @@ CREATE TABLE `ums_growth_change_history` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='成长值变化历史记录';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `ums_integration_change_history`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `ums_integration_change_history` (
+CREATE TABLE IF NOT EXISTS `ums_integration_change_history` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `member_id` bigint DEFAULT NULL COMMENT 'member_id',
   `create_time` datetime DEFAULT NULL COMMENT 'create_time',
@@ -731,10 +783,9 @@ CREATE TABLE `ums_integration_change_history` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='积分变化历史记录';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `ums_member`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `ums_member` (
+CREATE TABLE IF NOT EXISTS `ums_member` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `level_id` bigint DEFAULT NULL COMMENT '会员等级id',
   `username` char(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '用户名',
@@ -759,10 +810,9 @@ CREATE TABLE `ums_member` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='会员';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `ums_member_collect_spu`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `ums_member_collect_spu` (
+CREATE TABLE IF NOT EXISTS `ums_member_collect_spu` (
   `id` bigint NOT NULL COMMENT 'id',
   `member_id` bigint DEFAULT NULL COMMENT '会员id',
   `spu_id` bigint DEFAULT NULL COMMENT 'spu_id',
@@ -772,10 +822,9 @@ CREATE TABLE `ums_member_collect_spu` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='会员收藏的商品';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `ums_member_collect_subject`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `ums_member_collect_subject` (
+CREATE TABLE IF NOT EXISTS `ums_member_collect_subject` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `subject_id` bigint DEFAULT NULL COMMENT 'subject_id',
   `subject_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'subject_name',
@@ -784,10 +833,9 @@ CREATE TABLE `ums_member_collect_subject` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='会员收藏的专题活动';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `ums_member_level`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `ums_member_level` (
+CREATE TABLE IF NOT EXISTS `ums_member_level` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '等级名称',
   `growth_point` int DEFAULT NULL COMMENT '等级需要的成长值',
@@ -801,10 +849,9 @@ CREATE TABLE `ums_member_level` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='会员等级';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `ums_member_login_log`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `ums_member_login_log` (
+CREATE TABLE IF NOT EXISTS `ums_member_login_log` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `member_id` bigint DEFAULT NULL COMMENT 'member_id',
   `create_time` datetime DEFAULT NULL COMMENT '创建时间',
@@ -814,10 +861,9 @@ CREATE TABLE `ums_member_login_log` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='会员登录记录';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `ums_member_receive_address`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `ums_member_receive_address` (
+CREATE TABLE IF NOT EXISTS `ums_member_receive_address` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `member_id` bigint DEFAULT NULL COMMENT 'member_id',
   `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '收货人姓名',
@@ -832,10 +878,9 @@ CREATE TABLE `ums_member_receive_address` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='会员收货地址';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `ums_member_statistics_info`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `ums_member_statistics_info` (
+CREATE TABLE IF NOT EXISTS `ums_member_statistics_info` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `member_id` bigint DEFAULT NULL COMMENT '会员id',
   `consume_amount` decimal(18,4) DEFAULT NULL COMMENT '累计消费金额',
@@ -854,10 +899,9 @@ CREATE TABLE `ums_member_statistics_info` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='会员统计信息';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `undo_log`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `undo_log` (
+CREATE TABLE IF NOT EXISTS `undo_log` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `branch_id` bigint NOT NULL,
   `xid` varchar(100) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
@@ -875,10 +919,28 @@ CREATE TABLE `undo_log` (
 CREATE DATABASE /*!32312 IF NOT EXISTS*/ `gulimall_wms` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
 
 USE `gulimall_wms`;
-DROP TABLE IF EXISTS `undo_log`;
+-- 本地消息表（outbox）。
+-- 每个需要"可靠投递消息"的服务在自己库里各有一张，互相独立 —— outbox 必须和业务变更在
+-- 同一个库、同一个事务里，共用一张就必然跨库，也就失去了原子性。
+-- message_status: 0-待投递 1-broker已ack 2-被return或nack 3-已抵达(消费端回执，暂未使用)
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `undo_log` (
+CREATE TABLE IF NOT EXISTS `mq_message` (
+  `message_id` char(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci COMMENT 'JSON',
+  `to_exchange` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `routing_key` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `class_type` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `message_status` int DEFAULT '0' COMMENT '0-待投递 1-broker已ack 2-被return或nack 3-已抵达',
+  `create_time` datetime DEFAULT NULL,
+  `update_time` datetime DEFAULT NULL,
+  PRIMARY KEY (`message_id`) USING BTREE,
+  KEY `idx_status_create_time` (`message_status`,`create_time`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE IF NOT EXISTS `undo_log` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `branch_id` bigint NOT NULL,
   `xid` varchar(100) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
@@ -892,10 +954,9 @@ CREATE TABLE `undo_log` (
   UNIQUE KEY `ux_undo_log` (`xid`,`branch_id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 ROW_FORMAT=DYNAMIC;
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `wms_purchase`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `wms_purchase` (
+CREATE TABLE IF NOT EXISTS `wms_purchase` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `assignee_id` bigint DEFAULT NULL,
   `assignee_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
@@ -909,10 +970,9 @@ CREATE TABLE `wms_purchase` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC COMMENT='采购信息';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `wms_purchase_detail`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `wms_purchase_detail` (
+CREATE TABLE IF NOT EXISTS `wms_purchase_detail` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `purchase_id` bigint DEFAULT NULL COMMENT '采购单id',
   `sku_id` bigint DEFAULT NULL COMMENT '采购商品id',
@@ -923,10 +983,9 @@ CREATE TABLE `wms_purchase_detail` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC;
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `wms_ware_info`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `wms_ware_info` (
+CREATE TABLE IF NOT EXISTS `wms_ware_info` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '仓库名',
   `address` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '仓库地址',
@@ -934,10 +993,9 @@ CREATE TABLE `wms_ware_info` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC COMMENT='仓库信息';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `wms_ware_order_task`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `wms_ware_order_task` (
+CREATE TABLE IF NOT EXISTS `wms_ware_order_task` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `order_id` bigint DEFAULT NULL COMMENT 'order_id',
   `order_sn` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT 'order_sn',
@@ -955,10 +1013,9 @@ CREATE TABLE `wms_ware_order_task` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC COMMENT='库存工作单';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `wms_ware_order_task_detail`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `wms_ware_order_task_detail` (
+CREATE TABLE IF NOT EXISTS `wms_ware_order_task_detail` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `sku_id` bigint DEFAULT NULL COMMENT 'sku_id',
   `sku_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT 'sku_name',
@@ -969,10 +1026,9 @@ CREATE TABLE `wms_ware_order_task_detail` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC COMMENT='库存工作单';
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `wms_ware_sku`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `wms_ware_sku` (
+CREATE TABLE IF NOT EXISTS `wms_ware_sku` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
   `sku_id` bigint DEFAULT NULL COMMENT 'sku_id',
   `ware_id` bigint DEFAULT NULL COMMENT '仓库id',
@@ -988,10 +1044,28 @@ CREATE TABLE `wms_ware_sku` (
 CREATE DATABASE /*!32312 IF NOT EXISTS*/ `third_party` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
 
 USE `third_party`;
-DROP TABLE IF EXISTS `address`;
+-- 本地消息表（outbox）。
+-- 每个需要"可靠投递消息"的服务在自己库里各有一张，互相独立 —— outbox 必须和业务变更在
+-- 同一个库、同一个事务里，共用一张就必然跨库，也就失去了原子性。
+-- message_status: 0-待投递 1-broker已ack 2-被return或nack 3-已抵达(消费端回执，暂未使用)
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `address` (
+CREATE TABLE IF NOT EXISTS `mq_message` (
+  `message_id` char(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci COMMENT 'JSON',
+  `to_exchange` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `routing_key` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `class_type` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `message_status` int DEFAULT '0' COMMENT '0-待投递 1-broker已ack 2-被return或nack 3-已抵达',
+  `create_time` datetime DEFAULT NULL,
+  `update_time` datetime DEFAULT NULL,
+  PRIMARY KEY (`message_id`) USING BTREE,
+  KEY `idx_status_create_time` (`message_status`,`create_time`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE IF NOT EXISTS `address` (
   `NODE_CODE` varchar(15) NOT NULL DEFAULT '' COMMENT '地址编码',
   `NODE_NAME` varchar(100) NOT NULL COMMENT '地区名称',
   `NODE_SNAME` varchar(500) DEFAULT NULL COMMENT '地区全称',
