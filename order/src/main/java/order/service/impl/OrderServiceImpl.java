@@ -14,6 +14,7 @@ import com.lly835.bestpay.model.PayResponse;
 import com.lly835.bestpay.service.BestPayService;
 import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
+import common.exception.ValidationException;
 import common.to.OrderTo;
 import common.to.mq.SeckillOrderTo;
 import common.utils.PageUtils;
@@ -452,10 +453,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         try {
             value = Long.parseLong(raw.toString().trim());
         } catch (NumberFormatException e) {
-            throw new BaseException(BaseCodeEnum.VALID_EXCEPTION, name + " 参数类型不正确");
+            throw new ValidationException(name, name + " 参数类型不正确");
         }
         if (value < 1) {
-            throw new BaseException(BaseCodeEnum.VALID_EXCEPTION, name + " 必须大于 0");
+            throw new ValidationException(name, name + " 必须大于 0");
         }
         return value;
     }
@@ -536,7 +537,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
             return result;
         }
 
-        throw new BaseException(BaseCodeEnum.VALID_EXCEPTION, "不支持的支付方式：" + payType);
+        throw new ValidationException("payType", "不支持的支付方式：" + payType);
     }
 
     /** 组装支付宝下单参数。金额取库里的应付总额，不接受前端传 */

@@ -1,7 +1,6 @@
 package search.vo;
 
-import common.exception.BaseCodeEnum;
-import common.exception.BaseException;
+import common.exception.ValidationException;
 import lombok.Data;
 import search.constant.EsConstant;
 
@@ -141,13 +140,15 @@ public class SearchParam {
     }
 
     /**
-     * 补齐缺省值并校验，不合法直接抛 BaseException，由 GlobalExceptionHandler 统一转成 code=10001。
+     * 补齐缺省值并校验，不合法直接抛 {@link ValidationException}，产出和注解路径完全一样的
+     * {@code {code:10001, errors:{字段:消息}}}。
      *
      * <p>为什么不用 @Valid 注解：本类是从 URL 查询参数绑定的（@ModelAttribute 路径），校验失败时
      * Spring 抛的异常和 @RequestParam 上的约束（ConstraintViolationException）、@RequestBody 上的
-     * @Valid（MethodArgumentNotValidException）不是同一条链路，要额外接一个 handler 才拿得到 code。
-     * 手写校验既能和已有的 isValidSort 保持同一套写法，又能让校验规则和下面的解析逻辑待在一起，
-     * 不会出现"校验说合法、解析却按另一种方式理解"的漂移。</p>
+     * @Valid（MethodArgumentNotValidException）不是同一条链路。而且下面这几条规则注解也表达不了：
+     * from+size 是跨字段的，sort / skuPrice / attrs 是复合格式的。手写校验既能和已有的 isValidSort
+     * 保持同一套写法，又能让校验规则和下面的解析逻辑待在一起，不会出现"校验说合法、解析却按
+     * 另一种方式理解"的漂移。</p>
      *
      * <p>校验失败一律报错、不静默忽略：静默忽略会让前端以为筛选生效了、实际没生效，最难排查。</p>
      *
@@ -163,37 +164,43 @@ public class SearchParam {
         }
 
         if (pageNum < 1) {
-            throw invalid("页码必须大于 0：" + pageNum);
+            throw invalid("pageNum", "页码必须大于 0：" + pageNum);
         }
         if (pageSize < 1 || pageSize > EsConstant.MAX_PAGE_SIZE) {
-            throw invalid("每页条数必须在 1~" + EsConstant.MAX_PAGE_SIZE + " 之间：" + pageSize);
+            throw invalid("pageSize", "每页条数必须在 1~" + EsConstant.MAX_PAGE_SIZE + " 之间：" + pageSize);
         }
-        // ES 的 from + size 不能超过 index.max_result_window，超了返回的是没有 code 的 500。
-        // 这里提前拦成 10001，给前端一句看得懂的话。
+        // 跨字段规则（from + size 超限），没有单一归属字段，挂到 pageNum 上
         if ((long) pageNum * pageSize > EsConstant.MAX_RESULT_WINDOW) {
-            throw invalid("翻页过深，最多只能查询前 " + EsConstant.MAX_RESULT_WINDOW + " 条数据");
+            throw invalid("pageNum", "翻页过深，最多只能查询前 " + EsConstant.MAX_RESULT_WINDOW + " 条数据");
         }
         if (hasStock != null && hasStock != 0 && hasStock != 1) {
-            throw invalid("是否有货只能是 0 或 1：" + hasStock);
+            throw invalid("hasStock", "是否有货只能是 0 或 1：" + hasStock);
         }
         if (!isValidSort(sort)) {
-            throw invalid("排序参数不合法：" + sort
+            throw invalid("sort", "排序参数不合法：" + sort
                     + "，格式应为 skuPrice/saleCount/hotScore 加 _asc 或 _desc");
         }
         if (!isValidSkuPrice(skuPrice)) {
-            throw invalid("价格区间不合法（" + skuPrice
+            throw invalid("skuPrice", "价格区间不合法（" + skuPrice
                     + "），格式应为 最低价_最高价，或 _最高价 / 最低价_");
         }
         if (attrs != null) {
             for (String attr : attrs) {
                 if (parseAttr(attr) == null) {
-                    throw invalid("属性筛选参数不合法（" + attr + "），格式应为 <属性id>_<属性值>");
+                    throw invalid("attrs", "属性筛选参数不合法（" + attr + "），格式应为 <属性id>_<属性值>");
                 }
             }
         }
     }
 
-    private static BaseException invalid(String message) {
-        return new BaseException(BaseCodeEnum.VALID_EXCEPTION, message);
+    /**
+     * 复杂规则手写校验的统一出口。
+     *
+     * <p>字段名不是随便给的 —— 它要和调用方那边的字段名一致（前端 el-form-item 的 prop、
+     * 查询参数名），否则错误挂不到对应控件上。整体性的规则（比如"翻页过深"）挂到最相关的
+     * 那个字段，也不要退回成不带字段的 msg：那会让调用方多一种形状要处理。</p>
+     */
+    private static ValidationException invalid(String field, String message) {
+        return new ValidationException(field, message);
     }
 }
