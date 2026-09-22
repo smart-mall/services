@@ -117,4 +117,20 @@ public class SkuFullReductionServiceImpl extends ServiceImpl<SkuFullReductionDao
         }
     }
 
+    @Override
+    @Transactional
+    public void deleteBySkuIds(List<Long> skuIds) {
+        if (skuIds == null || skuIds.isEmpty()) {
+            return;
+        }
+        // 发布商品时 saveSkuReduction 一次写入这三张表，删除也一次清掉，
+        // 和写入路径对称。少删一张，skuId 被新商品复用时就会带上别人的优惠。
+        skuLadderDao.delete(new LambdaQueryWrapper<SkuLadderEntity>()
+                .in(SkuLadderEntity::getSkuId, skuIds));
+        baseMapper.delete(new LambdaQueryWrapper<SkuFullReductionEntity>()
+                .in(SkuFullReductionEntity::getSkuId, skuIds));
+        memberPriceDao.delete(new LambdaQueryWrapper<MemberPriceEntity>()
+                .in(MemberPriceEntity::getSkuId, skuIds));
+    }
+
 }

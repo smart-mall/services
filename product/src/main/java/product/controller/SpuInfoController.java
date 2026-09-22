@@ -118,11 +118,16 @@ public class SpuInfoController {
     }
 
     /**
-     * 删除
+     * 删除。
+     *
+     * <p>同步删掉的是商品自己的 7 张表，并落一条 {@code product.deleted} 消息；
+     * coupon 里的积分/满减/打折/会员价和 MinIO 里的图片由消费方异步清掉
+     * （本地消息表 + 定时重投保证最终一定会清）。已上架的商品不允许删除，需要先下架。</p>
      */
-    @RequestMapping("/delete")
+    @PostMapping("/delete")
     public R delete(@RequestBody Long[] ids){
-		spuInfoService.removeByIds(Arrays.asList(ids));
+        log.info("删除spu：{}", JSON.toJSONString(ids, SerializerFeature.PrettyFormat));
+		spuInfoService.removeSpuInfo(ids == null ? List.of() : Arrays.asList(ids));
 
         return R.ok();
     }

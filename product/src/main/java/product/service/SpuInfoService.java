@@ -32,5 +32,17 @@ public interface SpuInfoService extends IService<SpuInfoEntity> {
 
     List<SpuSelectVO> getSpuSelect();
 
+    /**
+     * 级联删除 spu。
+     *
+     * <p>本方法<b>只在本地事务里</b>删商品自己的 7 张表（spu、spu 描述、spu 图集、规格参数、
+     * sku、sku 图集、sku 销售属性），同时往本地消息表落一条 {@code product.deleted} 事件。
+     * coupon 的积分/满减/打折/会员价、MinIO 里的图片由消费方异步清理 —— 远程删除是不可回滚的
+     * 副作用，塞进这个事务里无论怎么排顺序都会留下不一致。</p>
+     *
+     * <p>已上架的商品不允许删除（11001），需要先下架。</p>
+     */
+    void removeSpuInfo(List<Long> spuIds);
+
 }
 

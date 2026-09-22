@@ -8,6 +8,11 @@ public enum BaseCodeEnum {
     VALID_EXCEPTION(10001, "参数格式校验失败"),
     JSON_EXCEPTION(10002, "JSON格式化异常"),
     PRODUCT_UP_EXCEPTION(11000, "商品上架异常"),
+    // 上架中的商品不允许删除：它的 sku 还在 ES 里，删了库搜索结果里就会留下
+    // 点进去打不开的商品。等"下架"接口补上之后，先下架再删。
+    // 和 ORDER_STATUS_INVALID(17003) 一样，这是"状态不允许"而不是"参数格式不对"，
+    // 所以给独立码，不走 10001 那套 errors 结构。
+    PRODUCT_UP_SHELVED_CANNOT_DELETE(11001, "商品已上架，请先下架再删除"),
     TO_MANY_REQUEST(10003, "请求流量过大，请稍后再试"),
 
     SMS_CODE_EXCEPTION(10004,"验证码获取频率太高，请稍后再试"),

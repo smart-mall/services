@@ -14,6 +14,7 @@ import coupon.fegin.ProductFeignService;
 import coupon.service.SpuBoundsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
@@ -70,6 +71,15 @@ public class SpuBoundsServiceImpl extends ServiceImpl<SpuBoundsDao, SpuBoundsEnt
         PageUtils pageUtils = new PageUtils(page);
         pageUtils.setList(collect);
         return pageUtils;
+    }
+
+    @Override
+    @Transactional
+    public void deleteBySpuIds(List<Long> spuIds) {
+        if (spuIds == null || spuIds.isEmpty()) {
+            return;
+        }
+        this.remove(new LambdaQueryWrapper<SpuBoundsEntity>().in(SpuBoundsEntity::getSpuId, spuIds));
     }
 
 }
