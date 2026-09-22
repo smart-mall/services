@@ -20,6 +20,8 @@ redis:
 minio:
   clientPoint: http://localhost:59000
   serverPoint: http://localhost:59000
+  bucket: gulimall
+  max-size: 10MB
   access-key: minioadmin  # 访问密钥（默认 minioadmin）
   secret-key: minioadmin  # 密钥
 

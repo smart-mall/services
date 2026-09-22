@@ -6,6 +6,14 @@ spring:
       - optional:classpath:application-common.yaml
   datasource:
     name: third_party
+  servlet:
+    multipart:
+      # 这一层先把超大请求挡在解析之前，业务层的 minio.max-size 只是兜底文案。
+      # 两个值要一起改。
+      max-file-size: 10MB
+      # 批量上传是"一次请求多个文件"，所以整请求上限要比单文件大。
+      # max-request-size 管不住文件个数，单批数量由调用方（前端）控制。
+      max-request-size: 50MB
 server:
   port: 52600
 

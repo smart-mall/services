@@ -18,8 +18,15 @@ redis:
   password: 123456
 
 minio:
+  # clientPoint 是拼给前端的 URL 前缀，必须是浏览器能访问到的地址。
+  # serverPoint 是后端 SDK 连 MinIO 用的地址，容器名形态，浏览器解析不了。
+  # 预签名 URL 的 host 取自 SDK 的 endpoint，所以这两个值接错线时表现为
+  # "后端签出来的地址前端连不上"，而不是一个报错。
   clientPoint: http://localhost:59000
   serverPoint: http://gl-minio:9000
+  bucket: gulimall
+  # 单文件大小上限，和 third-party 的 spring.servlet.multipart.max-file-size 保持一致
+  max-size: 10MB
   access-key: minioadmin  # 访问密钥（默认 minioadmin）
   secret-key: minioadmin  # 密钥
 

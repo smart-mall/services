@@ -39,6 +39,16 @@ public enum BaseCodeEnum {
     SECKILL_LIMIT_EXCEEDED(18003,"数量超出每人限购"),
     SECKILL_ALREADY_BOUGHT(18004,"您已参与过本次秒杀，把机会留给别人吧"),
 
+    // 文件/媒体。改造前所有失败都走 R.error(e.getMessage())，把 MinIO 的 endpoint、
+    // bucket 名和原始 S3 错误文本一起回给了调用方——既泄露内网信息，又让前端无法区分
+    // "我把参数传错了"和"存储挂了"。这里按调用方能采取的动作分开给码：
+    // 前四个是"改参数"，最后一个是"重试"。
+    MEDIA_FILE_EMPTY(19000,"上传文件不能为空"),
+    MEDIA_FILE_TYPE_NOT_SUPPORTED(19001,"只支持 jpg/png/gif/webp 格式的图片"),
+    MEDIA_FILE_TOO_LARGE(19002,"图片大小超出限制"),
+    MEDIA_URL_INVALID(19003,"文件地址不合法"),
+    MEDIA_STORAGE_ERROR(19004,"文件存储失败，请稍后重试"),
+
     // 下面两个配合 HTTP 401 一起用。前端 request.ts 是看 HTTP 状态码 401 去清 token 的，
     // 不看 body 里的 code，所以状态码必须是真 401，body 里的 code 只是给人看日志用的。
     NOT_LOGIN_EXCEPTION(15004,"请先登录"),
