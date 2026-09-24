@@ -5,6 +5,7 @@ import com.alibaba.fastjson.serializer.SerializerFeature;
 import common.utils.R;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.web.bind.annotation.*;
 import product.entity.CategoryEntity;
 import product.service.CategoryService;
@@ -51,11 +52,14 @@ public class CategoryController {
     }
 
     /**
-     * 保存
+     * 保存。不传"是否显示"时默认显示。
      */
     @RequestMapping("/save")
+    @CacheEvict(value = "category", allEntries = true)
     public R save(@RequestBody CategoryEntity category){
-        category.setShowStatus(1);
+        if (category.getShowStatus() == null) {
+            category.setShowStatus(1);
+        }
         log.info("保存分类数据{}", category);
 		categoryService.save(category);
 
@@ -66,6 +70,7 @@ public class CategoryController {
      * 修改
      */
     @RequestMapping("/update")
+    @CacheEvict(value = "category", allEntries = true)
     public R update(@RequestBody CategoryEntity category){
         log.info("修改分类数据{}", category);
 		categoryService.updateDetail(category);
@@ -77,6 +82,7 @@ public class CategoryController {
      * @description 批量修改菜单
      */
     @RequestMapping("/update/sort")
+    @CacheEvict(value = "category", allEntries = true)
     public R updateSort(@RequestBody CategoryEntity[] category){
         log.info("批量修改菜单{}", JSON.toJSONString(category, SerializerFeature.PrettyFormat));
         categoryService.updateBatchById(Arrays.asList(category));
@@ -85,9 +91,10 @@ public class CategoryController {
 
 
     /**
-     * 删除
+     * 删除分类及其子分类；子树下还挂着商品、属性组、属性或品牌关联时整批拒绝。
      */
     @RequestMapping("/delete")
+    @CacheEvict(value = "category", allEntries = true)
     public R delete(@RequestBody Long[] catIds){
         log.info("删除分类数据{}",JSON.toJSONString(catIds, SerializerFeature.PrettyFormat));
 		categoryService.removeMenuByIds(Arrays.asList(catIds));

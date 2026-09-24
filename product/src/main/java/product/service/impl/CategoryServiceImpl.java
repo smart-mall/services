@@ -1,16 +1,28 @@
 package product.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import common.exception.BaseCodeEnum;
+import common.exception.BaseException;
 import common.utils.PageUtils;
 import common.utils.Query;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import product.dao.AttrDao;
+import product.dao.AttrGroupDao;
+import product.dao.CategoryBrandRelationDao;
 import product.dao.CategoryDao;
+import product.dao.SpuInfoDao;
+import product.entity.AttrEntity;
+import product.entity.AttrGroupEntity;
+import product.entity.CategoryBrandRelationEntity;
 import product.entity.CategoryEntity;
+import product.entity.SpuInfoEntity;
 import product.service.CategoryBrandRelationService;
 import product.service.CategoryService;
 import product.vo.CategoryVo;
@@ -23,8 +35,22 @@ import java.util.stream.Collectors;
 public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity> implements CategoryService {
     private final CategoryBrandRelationService categoryBrandRelationService;
 
-    public CategoryServiceImpl(CategoryBrandRelationService categoryBrandRelationService) {
+    // 注入 DAO 而不是对应的 Service：那三个 Service 都依赖 CategoryService，会构造器循环
+    private final SpuInfoDao spuInfoDao;
+    private final AttrDao attrDao;
+    private final AttrGroupDao attrGroupDao;
+    private final CategoryBrandRelationDao categoryBrandRelationDao;
+
+    public CategoryServiceImpl(CategoryBrandRelationService categoryBrandRelationService,
+                               SpuInfoDao spuInfoDao,
+                               AttrDao attrDao,
+                               AttrGroupDao attrGroupDao,
+                               CategoryBrandRelationDao categoryBrandRelationDao) {
         this.categoryBrandRelationService = categoryBrandRelationService;
+        this.spuInfoDao = spuInfoDao;
+        this.attrDao = attrDao;
+        this.attrGroupDao = attrGroupDao;
+        this.categoryBrandRelationDao = categoryBrandRelationDao;
     }
 
     @Override
@@ -85,9 +111,96 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
         }
     }
 
+    /**
+     * 删除分类，连同子分类一起物理删除；子树下还挂着商品、属性组、属性或品牌关联时整批拒绝。
+     */
     @Override
+    @Transactional
+    @CacheEvict(value = "category", allEntries = true)
     public void removeMenuByIds(List<Long> list) {
-        baseMapper.deleteByIds(list);
+        List<Long> rootIds = list == null ? List.of()
+                : list.stream().filter(Objects::nonNull).distinct().toList();
+        if (rootIds.isEmpty()) {
+            return;
+        }
+
+        // 不带 show_status 过滤：隐藏的分类也要能删
+        Map<Long, CategoryEntity> allById = baseMapper.selectList(null).stream()
+                .collect(Collectors.toMap(CategoryEntity::getCatId, category -> category));
+
+        // 查不到的 id 直接跳过，删除是幂等的
+        List<Long> realRootIds = rootIds.stream().filter(allById::containsKey).toList();
+        if (realRootIds.isEmpty()) {
+            return;
+        }
+
+        List<Long> subtreeIds = collectSubtree(realRootIds, allById).stream()
+                .map(CategoryEntity::getCatId).toList();
+
+        ensureNoReference(realRootIds, subtreeIds, allById);
+
+        baseMapper.deleteByIds(subtreeIds);
+        log.info("级联删除分类完成：根节点={}，含子分类共 {} 个，ids={}",
+                realRootIds, subtreeIds.size(), subtreeIds);
+    }
+
+    /**
+     * 收集这些分类及其全部后代的实体。引用分类的数据都挂在叶子上，所以校验要覆盖整棵子树。
+     * 用队列而非递归：parent_cid 没有外键约束，成环时递归会栈溢出；visited 兼做去重。
+     */
+    private List<CategoryEntity> collectSubtree(List<Long> rootIds, Map<Long, CategoryEntity> allById) {
+        // groupingBy 不接受 null key，parent_cid 为空的脏行先剔掉
+        Map<Long, List<CategoryEntity>> childrenByParentCid = allById.values().stream()
+                .filter(category -> category.getParentCid() != null)
+                .collect(Collectors.groupingBy(CategoryEntity::getParentCid));
+
+        List<CategoryEntity> result = new ArrayList<>();
+        Set<Long> visited = new HashSet<>();
+        Deque<Long> pending = new ArrayDeque<>(rootIds);
+        while (!pending.isEmpty()) {
+            Long catId = pending.poll();
+            if (!visited.add(catId)) {
+                continue;
+            }
+            result.add(allById.get(catId));
+            childrenByParentCid.getOrDefault(catId, List.of())
+                    .forEach(child -> pending.add(child.getCatId()));
+        }
+        return result;
+    }
+
+    /**
+     * 分类下挂着商品、属性组、属性或品牌关联时拒绝删除。子分类不在这里管，它跟着一起删。
+     */
+    private void ensureNoReference(List<Long> rootIds, List<Long> subtreeIds,
+                                   Map<Long, CategoryEntity> allById) {
+        List<String> blockers = new ArrayList<>();
+
+        addBlocker(blockers, "个商品", spuInfoDao.selectCount(
+                new LambdaQueryWrapper<SpuInfoEntity>().in(SpuInfoEntity::getCatalogId, subtreeIds)));
+        addBlocker(blockers, "个属性组", attrGroupDao.selectCount(
+                new LambdaQueryWrapper<AttrGroupEntity>().in(AttrGroupEntity::getCatalogId, subtreeIds)));
+        addBlocker(blockers, "个属性", attrDao.selectCount(
+                new LambdaQueryWrapper<AttrEntity>().in(AttrEntity::getCatalogId, subtreeIds)));
+        addBlocker(blockers, "条品牌关联（到品牌页「关联分类」里移除）", categoryBrandRelationDao.selectCount(
+                new LambdaQueryWrapper<CategoryBrandRelationEntity>()
+                        .in(CategoryBrandRelationEntity::getCatalogId, subtreeIds)));
+
+        if (blockers.isEmpty()) {
+            return;
+        }
+
+        String names = rootIds.stream()
+                .map(id -> allById.get(id).getName())
+                .collect(Collectors.joining("、"));
+        throw new BaseException(BaseCodeEnum.CATEGORY_IN_USE,
+                "分类【" + names + "】及其子分类下还有 " + String.join("、", blockers) + "，请先处理后再删除");
+    }
+
+    private static void addBlocker(List<String> blockers, String unit, Long count) {
+        if (count != null && count > 0) {
+            blockers.add(count + " " + unit);
+        }
     }
 
     @Override
@@ -108,18 +221,18 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
     }
 
     /**
-     * 前台首页/全局导航使用的完整三级分类树。
-     *
-     * 一次 selectList(null) 把分类全捞出来（show_status 由 CategoryEntity 上的 @TableLogic 自动过滤），
-     * 后续组树全部在内存里完成，不再按层级反复查库，也不会出现 N+1。
+     * 前台首页/全局导航的分类树，只含 show_status = 1 的分类。
      */
     @Cacheable(value = "category", key = "#root.method.name", sync = true)
     @Override
     public List<CategoryVo> getCatalogTree() {
-        List<CategoryEntity> selectList = this.baseMapper.selectList(null);
+        List<CategoryEntity> selectList = this.baseMapper.selectList(
+                new LambdaQueryWrapper<CategoryEntity>().eq(CategoryEntity::getShowStatus, 1));
 
-        // 按 parentCid 分组，一次遍历代替每层都 stream().filter() 扫一遍全表
+        // 按 parentCid 分组，一次遍历代替每层都 stream().filter() 扫一遍全表。
+        // groupingBy 不接受 null key，parent_cid 为空的脏行先剔掉
         Map<Long, List<CategoryEntity>> childrenByParentCid = selectList.stream()
+                .filter(category -> category.getParentCid() != null)
                 .collect(Collectors.groupingBy(CategoryEntity::getParentCid));
 
         return buildTree(childrenByParentCid, 0L);
