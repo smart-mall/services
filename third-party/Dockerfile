@@ -6,22 +6,21 @@
 FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /build
 
-# 1) 公共模块 common：这两步在所有服务的 Dockerfile 里完全一致，
-#    Docker 层缓存可跨镜像复用，实际只有第一个镜像会真正下载依赖。
+# 依赖仓库挂在 BuildKit 缓存上（id=maven-repo，所有镜像共用）。
+# 它不在层里，所以 common 改动导致层失效时依赖不会重新下载。
 COPY .mvn/settings.xml settings.xml
+
+# 1) 公共模块 common
 COPY common/pom.xml common/pom.xml
-RUN mvn -B -s settings.xml -f common/pom.xml dependency:go-offline
-
 COPY common/src common/src
-RUN mvn -B -s settings.xml -f common/pom.xml clean install -Dmaven.test.skip=true
+RUN --mount=type=cache,id=maven-repo,target=/root/.m2 \
+    mvn -B -s settings.xml -f common/pom.xml clean install -Dmaven.test.skip=true
 
-# 2) 本模块依赖下载（此时 common 已在本地仓库），单独成层以便复用
+# 2) 本模块
 COPY third-party/pom.xml third-party/pom.xml
-RUN mvn -B -s settings.xml -f third-party/pom.xml dependency:go-offline
-
-# 3) 编译打包（jar 已被 spring-boot-maven-plugin 重打包为可执行包）
 COPY third-party/src third-party/src
-RUN mvn -B -s settings.xml -f third-party/pom.xml clean package -Dmaven.test.skip=true
+RUN --mount=type=cache,id=maven-repo,target=/root/.m2 \
+    mvn -B -s settings.xml -f third-party/pom.xml clean package -Dmaven.test.skip=true
 
 # ── 运行阶段 ──
 FROM eclipse-temurin:21-jre

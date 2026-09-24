@@ -7,15 +7,13 @@
 FROM maven:3.9-eclipse-temurin-8 AS build
 WORKDIR /build
 
-# 1) 只拷贝 pom，依赖下载单独成层，改源码时可复用缓存
-#    注意：ojdbc6 / sqljdbc4 不在 central 上，依赖 .mvn/settings.xml 里的 aliyun-spring 仓库
+# 依赖仓库挂在 BuildKit 缓存上（id=maven-repo，所有镜像共用）。
+# 注意：ojdbc6 / sqljdbc4 不在 central 上，依赖 .mvn/settings.xml 里的 aliyun-spring 仓库
 COPY .mvn/settings.xml settings.xml
 COPY renren-fast/pom.xml renren-fast/pom.xml
-RUN mvn -B -s settings.xml -f renren-fast/pom.xml dependency:go-offline
-
-# 2) 编译打包（pom 里 finalName=renren-fast，产物为 target/renren-fast.jar）
 COPY renren-fast/src renren-fast/src
-RUN mvn -B -s settings.xml -f renren-fast/pom.xml clean package -Dmaven.test.skip=true
+RUN --mount=type=cache,id=maven-repo,target=/root/.m2 \
+    mvn -B -s settings.xml -f renren-fast/pom.xml clean package -Dmaven.test.skip=true
 
 # ── 运行阶段 ──
 FROM eclipse-temurin:8-jre
