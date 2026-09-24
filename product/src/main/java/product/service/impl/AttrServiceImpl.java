@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.constant.ProductConstant;
+import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
 import common.utils.PageUtils;
 import common.utils.Query;
@@ -19,6 +20,8 @@ import product.dao.AttrAttrgroupRelationDao;
 import product.dao.AttrDao;
 import product.dao.AttrGroupDao;
 import product.dao.CategoryDao;
+import product.dao.ProductAttrValueDao;
+import product.dao.SkuSaleAttrValueDao;
 import product.entity.*;
 import product.feign.ThirdPartyFeignService;
 import product.service.AttrService;
@@ -29,7 +32,9 @@ import product.vo.AttrVO;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 
 @Service("attrService")
@@ -45,12 +50,18 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
 
     private final ThirdPartyFeignService thirdPartyFeignService;
 
-    public AttrServiceImpl(AttrAttrgroupRelationDao relationDao, AttrGroupDao attrGroupDao, CategoryDao categoryDao, CategoryService categoryService, ThirdPartyFeignService thirdPartyFeignService) {
+    private final ProductAttrValueDao productAttrValueDao;
+
+    private final SkuSaleAttrValueDao skuSaleAttrValueDao;
+
+    public AttrServiceImpl(AttrAttrgroupRelationDao relationDao, AttrGroupDao attrGroupDao, CategoryDao categoryDao, CategoryService categoryService, ThirdPartyFeignService thirdPartyFeignService, ProductAttrValueDao productAttrValueDao, SkuSaleAttrValueDao skuSaleAttrValueDao) {
         this.relationDao = relationDao;
         this.attrGroupDao = attrGroupDao;
         this.categoryDao = categoryDao;
         this.categoryService = categoryService;
         this.thirdPartyFeignService = thirdPartyFeignService;
+        this.productAttrValueDao = productAttrValueDao;
+        this.skuSaleAttrValueDao = skuSaleAttrValueDao;
     }
 
     @Override
@@ -262,15 +273,65 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
         return this.baseMapper.selectSearchAttrs(attrIds);
     }
 
+    /**
+     * 删除属性。属性还被商品规格参数或 sku 销售属性引用时整批拒绝；
+     * 属性组关联跟着一起删 —— 那只是归属关系，属性行本身才承载值。
+     */
     @Override
+    @Transactional
     public void deleteByIds(List<Long> list) {
-        List<AttrEntity> attrEntities = baseMapper.selectByIds(list);
+        List<Long> attrIds = list == null ? List.of()
+                : list.stream().filter(Objects::nonNull).distinct().toList();
+        if (attrIds.isEmpty()) {
+            return;
+        }
+
+        List<AttrEntity> attrEntities = baseMapper.selectByIds(attrIds);
+        if (attrEntities.isEmpty()) {
+            return;
+        }
+        List<Long> existingIds = attrEntities.stream().map(AttrEntity::getAttrId).toList();
+
+        // 先校验，后删文件：文件删了行却留下的话，icon 就指向一个 404
+        ensureNoReference(attrEntities, existingIds);
+
+        relationDao.delete(new LambdaQueryWrapper<AttrAttrgroupRelationEntity>()
+                .in(AttrAttrgroupRelationEntity::getAttrId, existingIds));
+
         List<String> objectNames = attrEntities.stream().map(AttrEntity::getIcon).toList();
         R r = thirdPartyFeignService.deleteFile(objectNames);
         if (r.getCode() != 0) {
             throw new BaseException("删除失败" + r.getMsg());
         }
-        this.removeByIds(list);
+        this.removeByIds(existingIds);
+    }
+
+    /**
+     * 属性还被商品引用时拒绝删除。两张值表都查，不按 attr_type 分开 —— 成本一样，
+     * 但省得历史数据里 attr_type 被改过的行漏网。
+     */
+    private void ensureNoReference(List<AttrEntity> attrs, List<Long> attrIds) {
+        List<String> blockers = new ArrayList<>();
+
+        Long spuValueCount = productAttrValueDao.selectCount(
+                new LambdaQueryWrapper<ProductAttrValueEntity>().in(ProductAttrValueEntity::getAttrId, attrIds));
+        if (spuValueCount != null && spuValueCount > 0) {
+            blockers.add(spuValueCount + " 处商品规格参数（已上架的商品要先下架才能改规格）");
+        }
+
+        Long skuValueCount = skuSaleAttrValueDao.selectCount(
+                new LambdaQueryWrapper<SkuSaleAttrValueEntity>().in(SkuSaleAttrValueEntity::getAttrId, attrIds));
+        if (skuValueCount != null && skuValueCount > 0) {
+            blockers.add(skuValueCount + " 处 sku 销售属性");
+        }
+
+        if (blockers.isEmpty()) {
+            return;
+        }
+
+        String names = attrs.stream().map(AttrEntity::getAttrName).collect(Collectors.joining("、"));
+        throw new BaseException(BaseCodeEnum.ATTR_IN_USE,
+                "属性【" + names + "】还被 " + String.join("、", blockers) + " 引用，请先处理后再删除");
     }
 
 }

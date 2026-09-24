@@ -76,6 +76,15 @@ public class CategoryBrandRelationServiceImpl extends ServiceImpl<CategoryBrandR
     }
 
     @Override
+    public void deleteByBrandIds(List<Long> brandIds) {
+        if (brandIds == null || brandIds.isEmpty()) {
+            return;
+        }
+        this.remove(new LambdaQueryWrapper<CategoryBrandRelationEntity>()
+                .in(CategoryBrandRelationEntity::getBrandId, brandIds));
+    }
+
+    @Override
     public List<BrandEntity> getBrandByCatId(Long catId) {
         List<CategoryBrandRelationEntity> list = this.list(new LambdaQueryWrapper<>(CategoryBrandRelationEntity.class).eq(CategoryBrandRelationEntity::getCatalogId, catId));
         if (list == null || list.isEmpty()) {

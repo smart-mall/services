@@ -10,6 +10,7 @@ import common.utils.Query;
 import common.utils.R;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import product.dao.AttrAttrgroupRelationDao;
 import product.dao.AttrGroupDao;
@@ -28,6 +29,7 @@ import product.vo.SpuItemAttrGroupVo;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 
 @Service("attrGroupService")
@@ -87,14 +89,21 @@ public class AttrGroupServiceImpl extends ServiceImpl<AttrGroupDao, AttrGroupEnt
         return pageUtils;
     }
 
+    /**
+     * 移除属性组与属性的关联。每条单独建 wrapper —— 复用同一个的话条件会累积成
+     * attr_id=a1 AND attr_group_id=g1 AND attr_id=a2 AND ...，第 2 条之后永远匹配不到行。
+     */
     @Override
+    @Transactional
     public void deleteRelation(AttrGroupRelationVO[] vos) {
-        LambdaQueryWrapper<AttrAttrgroupRelationEntity> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+        if (vos == null) {
+            return;
+        }
 
         for (AttrGroupRelationVO vo : vos) {
-            lambdaQueryWrapper.eq(AttrAttrgroupRelationEntity::getAttrId, vo.getAttrId())
-                    .eq(AttrAttrgroupRelationEntity::getAttrGroupId, vo.getAttrGroupId());
-            relationDao.delete(lambdaQueryWrapper);
+            relationDao.delete(new LambdaQueryWrapper<AttrAttrgroupRelationEntity>()
+                    .eq(AttrAttrgroupRelationEntity::getAttrId, vo.getAttrId())
+                    .eq(AttrAttrgroupRelationEntity::getAttrGroupId, vo.getAttrGroupId()));
         }
     }
 
@@ -121,15 +130,34 @@ public class AttrGroupServiceImpl extends ServiceImpl<AttrGroupDao, AttrGroupEnt
         return vos;
     }
 
+    /**
+     * 删除属性组。属性组与属性的关联行跟着一起删 —— 组没了，这层归属关系本身就没有意义了，
+     * 属性行不受影响。没有别的数据引用属性组，所以这里不需要拦截。
+     */
     @Override
+    @Transactional
     public void deleteByIds(List<Long> list) {
-        List<AttrGroupEntity> attrGroupEntities = baseMapper.selectByIds(list);
+        List<Long> groupIds = list == null ? List.of()
+                : list.stream().filter(Objects::nonNull).distinct().toList();
+        if (groupIds.isEmpty()) {
+            return;
+        }
+
+        List<AttrGroupEntity> attrGroupEntities = baseMapper.selectByIds(groupIds);
+        if (attrGroupEntities.isEmpty()) {
+            return;
+        }
+        List<Long> existingIds = attrGroupEntities.stream().map(AttrGroupEntity::getAttrGroupId).toList();
+
+        relationDao.delete(new LambdaQueryWrapper<AttrAttrgroupRelationEntity>()
+                .in(AttrAttrgroupRelationEntity::getAttrGroupId, existingIds));
+
         List<String> objectNames = attrGroupEntities.stream().map(AttrGroupEntity::getIcon).toList();
         R r = thirdPartyFeignService.deleteFile(objectNames);
         if (r.getCode() != 0) {
             throw new BaseException("删除失败" + r.getMsg());
         }
-        this.removeByIds(list);
+        this.removeByIds(existingIds);
     }
 
     @Override

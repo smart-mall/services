@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import product.dao.AttrDao;
 import product.dao.AttrGroupDao;
-import product.dao.CategoryBrandRelationDao;
 import product.dao.CategoryDao;
 import product.dao.SpuInfoDao;
 import product.entity.AttrEntity;
@@ -39,18 +38,15 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
     private final SpuInfoDao spuInfoDao;
     private final AttrDao attrDao;
     private final AttrGroupDao attrGroupDao;
-    private final CategoryBrandRelationDao categoryBrandRelationDao;
 
     public CategoryServiceImpl(CategoryBrandRelationService categoryBrandRelationService,
                                SpuInfoDao spuInfoDao,
                                AttrDao attrDao,
-                               AttrGroupDao attrGroupDao,
-                               CategoryBrandRelationDao categoryBrandRelationDao) {
+                               AttrGroupDao attrGroupDao) {
         this.categoryBrandRelationService = categoryBrandRelationService;
         this.spuInfoDao = spuInfoDao;
         this.attrDao = attrDao;
         this.attrGroupDao = attrGroupDao;
-        this.categoryBrandRelationDao = categoryBrandRelationDao;
     }
 
     @Override
@@ -112,7 +108,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
     }
 
     /**
-     * 删除分类，连同子分类一起物理删除；子树下还挂着商品、属性组、属性或品牌关联时整批拒绝。
+     * 删除分类，连同子分类一起物理删除；子树下还挂着品牌关联、商品、属性组或属性时整批拒绝。
      */
     @Override
     @Transactional
@@ -170,21 +166,26 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
     }
 
     /**
-     * 分类下挂着商品、属性组、属性或品牌关联时拒绝删除。子分类不在这里管，它跟着一起删。
+     * 分类下挂着品牌关联、商品、属性组或属性时拒绝删除。
+     *
+     * <p>品牌关联也拦而不是清：那些品牌还活着，静默清掉就等于让它们悄悄丢掉"归属哪个分类"，
+     * 之后建商品时选不出来，而这中间没有任何人被告知。</p>
+     *
+     * <p>子分类是唯一的例外，它是这个分类自己的组合子记录，跟着一起删。</p>
      */
     private void ensureNoReference(List<Long> rootIds, List<Long> subtreeIds,
                                    Map<Long, CategoryEntity> allById) {
         List<String> blockers = new ArrayList<>();
 
+        addBlocker(blockers, "条品牌关联（到品牌页「关联分类」里移除）", categoryBrandRelationService.count(
+                new LambdaQueryWrapper<CategoryBrandRelationEntity>()
+                        .in(CategoryBrandRelationEntity::getCatalogId, subtreeIds)));
         addBlocker(blockers, "个商品", spuInfoDao.selectCount(
                 new LambdaQueryWrapper<SpuInfoEntity>().in(SpuInfoEntity::getCatalogId, subtreeIds)));
         addBlocker(blockers, "个属性组", attrGroupDao.selectCount(
                 new LambdaQueryWrapper<AttrGroupEntity>().in(AttrGroupEntity::getCatalogId, subtreeIds)));
         addBlocker(blockers, "个属性", attrDao.selectCount(
                 new LambdaQueryWrapper<AttrEntity>().in(AttrEntity::getCatalogId, subtreeIds)));
-        addBlocker(blockers, "条品牌关联（到品牌页「关联分类」里移除）", categoryBrandRelationDao.selectCount(
-                new LambdaQueryWrapper<CategoryBrandRelationEntity>()
-                        .in(CategoryBrandRelationEntity::getCatalogId, subtreeIds)));
 
         if (blockers.isEmpty()) {
             return;
