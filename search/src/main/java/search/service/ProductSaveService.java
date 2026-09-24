@@ -6,4 +6,6 @@ import java.util.List;
 
 public interface ProductSaveService {
     public boolean productStatusUp(List<SkuEsModel> skuEsModels);
+
+    boolean productStatusDown(List<Long> spuIds);
 }

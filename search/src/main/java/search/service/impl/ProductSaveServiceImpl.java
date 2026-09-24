@@ -1,11 +1,16 @@
 package search.service.impl;
 
+import co.elastic.clients.elasticsearch._types.FieldValue;
+import co.elastic.clients.elasticsearch._types.query_dsl.TermsQuery;
 import es.SkuEsModel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.elasticsearch.client.elc.ElasticsearchTemplate;
+import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.core.IndexedObjectInformation;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
+import org.springframework.data.elasticsearch.core.query.ByQueryResponse;
+import org.springframework.data.elasticsearch.core.query.DeleteQuery;
 import org.springframework.data.elasticsearch.core.query.IndexQuery;
 import org.springframework.stereotype.Service;
 import search.constant.EsConstant;
@@ -56,5 +61,36 @@ public class ProductSaveServiceImpl implements ProductSaveService {
             log.error("批量插入失败，返回结果为空");
             return false;
         }
+    }
+
+    @Override
+    public boolean productStatusDown(List<Long> spuIds) {
+        if (spuIds == null || spuIds.isEmpty()) {
+            return true;
+        }
+
+        // spuId 在索引里可能是 keyword 也可能是 long，传字符串值两种 mapping 都能命中
+        List<FieldValue> values = spuIds.stream()
+                .map(id -> FieldValue.of(String.valueOf(id)))
+                .toList();
+
+        NativeQuery query = NativeQuery.builder()
+                .withQuery(new TermsQuery.Builder()
+                        .field("spuId")
+                        .terms(t -> t.value(values))
+                        .build()
+                        ._toQuery())
+                .build();
+
+        // 删除立刻对后续检索可见，否则要等默认的 1 秒刷新
+        DeleteQuery deleteQuery = DeleteQuery.builder(query)
+                .withRefresh(true)
+                .build();
+
+        ByQueryResponse response = elasticsearchTemplate.delete(
+                deleteQuery, SkuEsModel.class, IndexCoordinates.of(EsConstant.PRODUCT_INDEX));
+
+        log.info("下架商品已从 ES 清除 {} 条：spuIds={}", response.getDeleted(), spuIds);
+        return true;
     }
 }

@@ -73,6 +73,17 @@ public class SpuInfoController {
     }
 
     /**
+     * 商品下架
+     */
+    @PostMapping("/{spuId}/down")
+    public R down(@PathVariable("spuId") Long spuId) {
+        log.info("商品下架：{}", spuId);
+        spuInfoService.down(spuId);
+
+        return R.ok();
+    }
+
+    /**
      * 列表
      */
     @RequestMapping("/list")

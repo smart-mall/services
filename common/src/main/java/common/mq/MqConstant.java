@@ -21,6 +21,7 @@ public final class MqConstant {
         public static final String PRODUCT_EVENT = "product-event-exchange";
         public static final String COUPON_PRODUCT_DELETED_DLX = "coupon.product.deleted.dlx";
         public static final String THIRDPARTY_PRODUCT_DELETED_DLX = "thirdparty.product.deleted.dlx";
+        public static final String SEARCH_PRODUCT_DOWN_DLX = "search.product.down.dlx";
     }
 
     public static final class RoutingKeys {
@@ -48,8 +49,10 @@ public final class MqConstant {
         public static final String STOCK_RELEASE_PATTERN = "stock.release.#";
 
         public static final String PRODUCT_DELETED = "product.deleted";
+        public static final String PRODUCT_DOWN = "product.down";
         public static final String COUPON_PRODUCT_DELETED_RETRY = "coupon.product.deleted.retry";
         public static final String THIRDPARTY_PRODUCT_DELETED_RETRY = "thirdparty.product.deleted.retry";
+        public static final String SEARCH_PRODUCT_DOWN_RETRY = "search.product.down.retry";
     }
 
     public static final class Queues {
@@ -76,6 +79,12 @@ public final class MqConstant {
 
         /** 无消费者，等人工处理 */
         public static final String THIRDPARTY_PRODUCT_DELETED_DLQ = "thirdparty.product.deleted.dlq";
+
+        public static final String SEARCH_PRODUCT_DOWN = "search.product.down.queue";
+        public static final String SEARCH_PRODUCT_DOWN_RETRY = "search.product.down.retry.queue";
+
+        /** 无消费者，等人工处理 */
+        public static final String SEARCH_PRODUCT_DOWN_DLQ = "search.product.down.dlq";
     }
 
     /** 延迟 / 重试时长（毫秒），是队列参数的一部分 */
@@ -87,5 +96,6 @@ public final class MqConstant {
         public static final int ORDER_CLOSE = 60_000;
         public static final int STOCK_LOCK_RELEASE = 120_000;
         public static final int PRODUCT_DELETED_RETRY = 60_000;
+        public static final int PRODUCT_DOWN_RETRY = 60_000;
     }
 }

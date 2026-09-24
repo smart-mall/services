@@ -26,6 +26,11 @@ public interface SpuInfoService extends IService<SpuInfoEntity> {
 
     void up(Long spuId);
 
+    /**
+     * 下架 spu：本地只改状态并落一条 {@code product.down} 事件，ES 里的文档由 search 异步清掉。
+     */
+    void down(Long spuId);
+
     SpuInfoEntity getSpuInfoBySkuId(Long skuId);
 
     Map<Long, String> getUserNames(List<Long> list);

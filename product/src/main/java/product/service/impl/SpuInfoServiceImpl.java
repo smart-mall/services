@@ -15,6 +15,7 @@ import common.mq.outbox.ReliableMqPublisher;
 import common.to.SkuReductionTo;
 import common.to.SpuBoundTo;
 import common.to.mq.ProductDeletedTo;
+import common.to.mq.ProductDownTo;
 import es.SkuEsModel;
 import lombok.extern.slf4j.Slf4j;
 import common.utils.PageUtils;
@@ -466,6 +467,24 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
         if (r.getCode() == 0) {
             this.baseMapper.updateSpuStatus(spuId, ProductConstant.ProductStatusEnum.UP.getCode());
         }
+    }
+
+    @Override
+    @Transactional
+    public void down(Long spuId) {
+        if (spuId == null || this.getById(spuId) == null) {
+            throw new ValidationException("spuId", "商品不存在");
+        }
+
+        // 幂等：已经是下架状态也照样发一遍，等于顺手修掉"库说下架、搜索还能搜到"
+        spuInfoDao.updateSpuStatus(spuId, ProductConstant.ProductStatusEnum.DOWN.getCode());
+
+        reliableMqPublisher.publish(
+                MqConstant.Exchanges.PRODUCT_EVENT,
+                MqConstant.RoutingKeys.PRODUCT_DOWN,
+                new ProductDownTo(List.of(spuId)));
+
+        log.info("商品下架完成：spuId=" + spuId);
     }
 
     @Override
