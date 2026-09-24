@@ -11,7 +11,6 @@ import ware.service.WareSkuService;
 import ware.vo.SkuHasStockVo;
 import ware.vo.WareSkuLockVo;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -100,34 +99,6 @@ public class WareSkuController {
         return R.ok().put("wareSku", wareSku);
     }
 
-    /**
-     * 保存
-     */
-    @RequestMapping("/save")
-    public R save(@RequestBody WareSkuEntity wareSku){
-		wareSkuService.save(wareSku);
-
-        return R.ok();
-    }
-
-    /**
-     * 修改
-     */
-    @RequestMapping("/update")
-    public R update(@RequestBody WareSkuEntity wareSku){
-		wareSkuService.updateById(wareSku);
-
-        return R.ok();
-    }
-
-    /**
-     * 删除
-     */
-    @RequestMapping("/delete")
-    public R delete(@RequestBody Long[] ids){
-		wareSkuService.removeByIds(Arrays.asList(ids));
-
-        return R.ok();
-    }
-
+    // 没有 save / update / delete：库存行只由"采购完成"创建、stock 只由采购增加、
+    // stock_locked 只由订单增减，没有一条合法路径需要人工写，所以这个接口是只读的
 }

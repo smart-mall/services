@@ -8,6 +8,7 @@ import lombok.Data;
 import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * 
@@ -56,5 +57,9 @@ public class PurchaseDetailEntity implements Serializable {
 
 	@TableField(exist = false)
 	private String wareName = "";
+
+	/** 当前状态下允许的操作（edit/delete/merge/unassign），由列表接口填充，前端按钮据此显示 */
+	@TableField(exist = false)
+	private List<String> allowedActions;
 
 }

@@ -10,6 +10,7 @@ import ware.service.WareInfoService;
 import ware.vo.FareVo;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 
@@ -84,7 +85,7 @@ public class WareInfoController {
      */
     @RequestMapping("/delete")
     public R delete(@RequestBody Long[] ids){
-		wareInfoService.removeByIds(Arrays.asList(ids));
+		wareInfoService.deleteByIds(ids == null ? List.of() : Arrays.asList(ids));
 
         return R.ok();
     }

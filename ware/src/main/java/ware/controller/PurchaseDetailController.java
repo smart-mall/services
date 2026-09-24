@@ -11,6 +11,7 @@ import ware.feign.ProductFeignService;
 import ware.service.PurchaseDetailService;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 
@@ -51,41 +52,41 @@ public class PurchaseDetailController {
      */
     @RequestMapping("/info/{id}")
     public R info(@PathVariable("id") Long id){
-        log.info("采购单信息: {}", id);
+        log.info("采购需求单信息: {}", id);
 		PurchaseDetailEntity purchaseDetail = purchaseDetailService.getById(id);
 
         return R.ok().put("purchaseDetail", purchaseDetail);
     }
 
     /**
-     * 保存
+     * 保存。状态和归属由服务端定，前端传的 status / purchaseId 会被忽略
      */
     @RequestMapping("/save")
     public R save(@RequestBody PurchaseDetailEntity purchaseDetail){
-        log.info("保存采购单: {}", JSON.toJSONString(purchaseDetail, SerializerFeature.PrettyFormat));
-        purchaseDetailService.save(purchaseDetail);
+        log.info("保存采购需求单: {}", JSON.toJSONString(purchaseDetail, SerializerFeature.PrettyFormat));
+        purchaseDetailService.saveDetail(purchaseDetail);
 
         return R.ok();
     }
 
     /**
-     * 修改
+     * 修改。只在"新建"状态允许，并入采购单之后要先取消分配
      */
     @RequestMapping("/update")
     public R update(@RequestBody PurchaseDetailEntity purchaseDetail){
-        log.info("修改采购单: {}", JSON.toJSONString(purchaseDetail, SerializerFeature.PrettyFormat));
-		purchaseDetailService.updateById(purchaseDetail);
+        log.info("修改采购需求单: {}", JSON.toJSONString(purchaseDetail, SerializerFeature.PrettyFormat));
+        purchaseDetailService.updateDetail(purchaseDetail);
 
         return R.ok();
     }
 
     /**
-     * 删除
+     * 删除。同样只在"新建"状态允许
      */
     @RequestMapping("/delete")
     public R delete(@RequestBody Long[] ids){
-        log.info("删除采购单: {}", JSON.toJSONString(ids, SerializerFeature.PrettyFormat));
-		purchaseDetailService.removeByIds(Arrays.asList(ids));
+        log.info("删除采购需求单: {}", JSON.toJSONString(ids, SerializerFeature.PrettyFormat));
+        purchaseDetailService.removeDetails(ids == null ? List.of() : Arrays.asList(ids));
 
         return R.ok();
     }

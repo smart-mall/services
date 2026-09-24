@@ -15,6 +15,17 @@ public enum BaseCodeEnum {
     PRODUCT_UP_SHELVED_CANNOT_DELETE(11001, "商品已上架，请先下架再删除"),
     // 规格参数在上架时被快照进 ES，改完 ES 不会跟着变：详情页读库、搜索的筛选面板读 ES，两边会分叉
     PRODUCT_UP_SHELVED_CANNOT_UPDATE(11002, "商品已上架，请先下架再修改规格"),
+
+    // 仓库/采购。状态流转失败要和"参数格式不对"分开，否则前端只能笼统提示"操作失败"，
+    // 用户不知道是这张单已经被领取了、还是需求单已经并到别的单里了。
+    PURCHASE_NOT_FOUND(11100, "采购单不存在"),
+    PURCHASE_STATUS_INVALID(11101, "采购单当前状态不支持该操作"),
+    PURCHASE_DETAIL_NOT_FOUND(11102, "采购需求单不存在"),
+    PURCHASE_DETAIL_STATUS_INVALID(11103, "采购需求单当前状态不支持该操作"),
+    WARE_NOT_FOUND(11104, "仓库不存在"),
+    WARE_IN_USE(11105, "仓库还有库存或关联单据，不能删除"),
+    PURCHASE_HAS_DETAIL(11106, "采购单下还有采购需求，不能删除"),
+    PURCHASE_DETAIL_EMPTY(11107, "采购单下没有采购需求，不能领取"),
     TO_MANY_REQUEST(10003, "请求流量过大，请稍后再试"),
 
     SMS_CODE_EXCEPTION(10004,"验证码获取频率太高，请稍后再试"),

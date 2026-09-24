@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import ware.entity.PurchaseEntity;
 import ware.service.PurchaseService;
 import ware.vo.MergeVO;
+import ware.vo.PurchaseAssignVO;
 import ware.vo.PurchaseDoneVO;
 
 import java.util.Arrays;
@@ -42,6 +43,7 @@ public class PurchaseController {
         purchaseService.done(purchaseDoneVO);
         return R.ok();
     }
+
     /**
      * 接受采购单
      */
@@ -53,7 +55,6 @@ public class PurchaseController {
         return R.ok();
     }
 
-
     /**
      * 合并采购单
      */
@@ -61,6 +62,28 @@ public class PurchaseController {
     public R merge(@RequestBody MergeVO mergeVO){
         log.info("合并采购单: {}", mergeVO);
         purchaseService.merge(mergeVO);
+
+        return R.ok();
+    }
+
+    /**
+     * 分配采购人员
+     */
+    @PostMapping("/assign")
+    public R assign(@RequestBody PurchaseAssignVO assignVO){
+        log.info("分配采购单: {}", assignVO);
+        purchaseService.assign(assignVO);
+
+        return R.ok();
+    }
+
+    /**
+     * 取消分配：把需求单从采购单里摘出来，退回"新建"
+     */
+    @PostMapping("/unassign")
+    public R unassign(@RequestBody List<Long> itemIds){
+        log.info("取消分配采购需求单: {}", itemIds);
+        purchaseService.unassign(itemIds);
 
         return R.ok();
     }
@@ -100,34 +123,14 @@ public class PurchaseController {
     }
 
     /**
-     * 保存
-     */
-    @RequestMapping("/save")
-    public R save(@RequestBody PurchaseEntity purchase){
-        log.info("保存采购单: {}", purchase);
-		purchaseService.save(purchase);
-
-        return R.ok();
-    }
-
-    /**
-     * 修改
-     */
-    @RequestMapping("/update")
-    public R update(@RequestBody PurchaseEntity purchase){
-        log.info("修改采购单: {}", purchase);
-		purchaseService.updateById(purchase);
-
-        return R.ok();
-    }
-
-    /**
-     * 删除
+     * 删除。只允许删"还没领取、且没有明细"的空单。
+     *
+     * <p>没有 save / update：采购单由合并需求单时自动生成，唯一的人工写操作是"分配采购人员"。</p>
      */
     @RequestMapping("/delete")
     public R delete(@RequestBody Long[] ids){
         log.info("删除采购单: {}", JSON.toJSONString(ids, SerializerFeature.PrettyFormat));
-		purchaseService.removeByIds(Arrays.asList(ids));
+		purchaseService.removePurchase(ids == null ? List.of() : Arrays.asList(ids));
 
         return R.ok();
     }

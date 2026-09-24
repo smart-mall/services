@@ -9,6 +9,7 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.List;
 
 /**
  * 采购信息
@@ -66,4 +67,8 @@ public class PurchaseEntity implements Serializable {
 
 	@TableField (exist = false)
 	private String wareName;
+
+	/** 当前状态下允许的操作（assign/receive/done/delete），由列表接口填充，前端按钮据此显示 */
+	@TableField(exist = false)
+	private List<String> allowedActions;
 }

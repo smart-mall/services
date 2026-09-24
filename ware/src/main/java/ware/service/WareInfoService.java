@@ -5,6 +5,7 @@ import common.utils.PageUtils;
 import ware.entity.WareInfoEntity;
 import ware.vo.FareVo;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -19,5 +20,7 @@ public interface WareInfoService extends IService<WareInfoEntity> {
     PageUtils queryPage(Map<String, Object> params);
 
     FareVo getFare(Long addrId);
+
+    void deleteByIds(List<Long> ids);
 }
 

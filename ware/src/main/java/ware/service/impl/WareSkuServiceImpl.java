@@ -3,10 +3,10 @@ package ware.service.impl;
 import com.alibaba.fastjson.TypeReference;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.exception.NoStockException;
+import common.exception.ValidationException;
 import common.mq.MqConstant;
 import common.mq.MqPublisher;
 import common.to.OrderTo;
@@ -82,9 +82,12 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
                 queryWrapper
         );
 
-        page.getRecords().forEach(wareSkuEntity -> {
-            wareSkuEntity.setWareName(wareInfoEntities.stream().filter(wareInfoEntity -> wareInfoEntity.getId().equals(wareSkuEntity.getWareId())).findFirst().get().getName());
-        });
+        // 仓库被删过的话这里找不到（历史脏数据），用 orElse 兜住，别让只读的库存页 500
+        page.getRecords().forEach(wareSkuEntity -> wareSkuEntity.setWareName(wareInfoEntities.stream()
+                .filter(wareInfoEntity -> wareInfoEntity.getId().equals(wareSkuEntity.getWareId()))
+                .findFirst()
+                .map(WareInfoEntity::getName)
+                .orElse(null)));
 
         return new PageUtils(page);
     }
@@ -92,38 +95,40 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
     @Override
     @Transactional
     public void addStock(Long skuId, Long wareId, Integer skuNum) {
-        WareSkuEntity wareSkuEntity = new WareSkuEntity();
-        wareSkuEntity.setSkuId(skuId);
-        wareSkuEntity.setWareId(wareId);
-        wareSkuEntity.setStock(skuNum);
-        wareSkuEntity.setStockLocked(0);
-        try {
-            R info = productFeignService.getProduct(skuId);
-
-            @SuppressWarnings("unchecked")
-            Map<String, Object> skuInfo =  (Map<String, Object>) info.get("skuInfo");
-
-            if (info.getCode() == 0) {
-                wareSkuEntity.setSkuName((String) skuInfo.get("skuName"));
-            }
-        } catch (Exception ignored) {}
-
+        if (skuId == null || wareId == null || skuNum == null || skuNum <= 0) {
+            throw new ValidationException("skuNum", "入库的 sku、仓库和数量都不能为空，且数量要大于 0");
+        }
 
         LambdaQueryWrapper<WareSkuEntity> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(WareSkuEntity::getSkuId, skuId)
                 .eq(WareSkuEntity::getWareId, wareId);
 
-        List<WareSkuEntity> wareSkuEntities = baseMapper.selectList(queryWrapper);
-        if (wareSkuEntities == null || wareSkuEntities.isEmpty()) {
+        if (baseMapper.selectCount(queryWrapper) == 0) {
+            // 这个仓库还没有这个 sku 的库存行，先建一行（数量为 0），增量交给下面的语句
+            WareSkuEntity wareSkuEntity = new WareSkuEntity();
+            wareSkuEntity.setSkuId(skuId);
+            wareSkuEntity.setWareId(wareId);
+            wareSkuEntity.setStock(0);
+            wareSkuEntity.setStockLocked(0);
+            try {
+                R info = productFeignService.getProduct(skuId);
+
+                @SuppressWarnings("unchecked")
+                Map<String, Object> skuInfo =  (Map<String, Object>) info.get("skuInfo");
+
+                if (info.getCode() == 0) {
+                    wareSkuEntity.setSkuName((String) skuInfo.get("skuName"));
+                }
+            } catch (Exception ignored) {
+                // 拿不到名字不影响入库，只是列表里少个显示名
+            }
             baseMapper.insert(wareSkuEntity);
-        } else {
-            LambdaUpdateWrapper<WareSkuEntity> updateWrapper = new LambdaUpdateWrapper<>();
-            updateWrapper.eq(WareSkuEntity::getSkuId, skuId)
-                    .eq(WareSkuEntity::getWareId, wareId)
-                    .set(WareSkuEntity::getStock, wareSkuEntity.getStock() + skuNum);
-            baseMapper.update(wareSkuEntity, updateWrapper);
         }
 
+        // 增量走 SQL 的 stock = stock + #{skuNum}。先查再算会丢并发更新，而且原来那句
+        // set(stock, wareSkuEntity.getStock() + skuNum) 里的 getStock() 刚被赋成 skuNum，
+        // 算出来是 2 倍采购量，不是"原库存 + 采购量"
+        wareSkuDao.addStock(skuId, wareId, skuNum);
     }
 
     @Override

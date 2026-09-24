@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import common.utils.PageUtils;
 import ware.entity.PurchaseEntity;
 import ware.vo.MergeVO;
+import ware.vo.PurchaseAssignVO;
 import ware.vo.PurchaseDoneVO;
 
 import java.util.List;
@@ -23,6 +24,12 @@ public interface PurchaseService extends IService<PurchaseEntity> {
     PageUtils queryPageUnreceive(Map<String, Object> params);
 
     void merge(MergeVO mergeVO);
+
+    void assign(PurchaseAssignVO assignVO);
+
+    void unassign(List<Long> itemIds);
+
+    void removePurchase(List<Long> ids);
 
     void receive(List<Long> ids);
 
