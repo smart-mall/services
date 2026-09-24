@@ -9,3 +9,8 @@ spring:
 server:
   port: 52400
 
+gl:
+  mq:
+    outbox:
+      enabled: true
+

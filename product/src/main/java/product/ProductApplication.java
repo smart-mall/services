@@ -7,7 +7,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @EnableFeignClients
-// 本地消息表的重投与清理任务需要它（MqMessageResendTask）
+// 本地消息表的重投与清理任务需要它（OutboxResendTask）
 @EnableScheduling
 public class ProductApplication {
 

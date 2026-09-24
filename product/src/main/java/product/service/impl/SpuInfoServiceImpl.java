@@ -11,6 +11,7 @@ import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
 import common.exception.ValidationException;
 import common.mq.MqConstant;
+import common.mq.outbox.ReliableMqPublisher;
 import common.to.SkuReductionTo;
 import common.to.SpuBoundTo;
 import common.to.mq.ProductDeletedTo;
@@ -22,15 +23,12 @@ import common.utils.R;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 import product.dao.*;
 import product.entity.*;
 import product.feign.CouponFeignService;
 import product.feign.SearchFeignService;
 import product.feign.WareFeignService;
-import product.mq.MqMessageSender;
 import product.service.*;
 import product.vo.SkuHasStockVo;
 import product.vo.SpuSelectVO;
@@ -64,11 +62,10 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
     private final AttrService attrService;
     private final WareFeignService wareFeignService;
     private final SearchFeignService searchFeignService;
-    private final MqMessageService mqMessageService;
-    private final MqMessageSender mqMessageSender;
+    private final ReliableMqPublisher reliableMqPublisher;
     private final ObjectMapper objectMapper;
 
-    public SpuInfoServiceImpl(SpuInfoDao spuInfoDao, SpuInfoDescDao spuInfoDescDao, SpuImagesDao spuImagesDao, ProductAttrValueDao productAttrValueDao, ProductAttrValueService productAttrValueService, AttrDao attrDao, SkuInfoDao skuInfoDao, SkuImagesDao skuImagesDao, SkuSaleAttrValueDao skuSaleAttrValueDao, CouponFeignService couponFeignService, SkuInfoServiceImpl skuInfoService, BrandService brandService, CategoryService categoryService, AttrService attrService, WareFeignService wareFeignService, SearchFeignService searchFeignService, MqMessageService mqMessageService, MqMessageSender mqMessageSender, ObjectMapper objectMapper) {
+    public SpuInfoServiceImpl(SpuInfoDao spuInfoDao, SpuInfoDescDao spuInfoDescDao, SpuImagesDao spuImagesDao, ProductAttrValueDao productAttrValueDao, ProductAttrValueService productAttrValueService, AttrDao attrDao, SkuInfoDao skuInfoDao, SkuImagesDao skuImagesDao, SkuSaleAttrValueDao skuSaleAttrValueDao, CouponFeignService couponFeignService, SkuInfoServiceImpl skuInfoService, BrandService brandService, CategoryService categoryService, AttrService attrService, WareFeignService wareFeignService, SearchFeignService searchFeignService, ReliableMqPublisher reliableMqPublisher, ObjectMapper objectMapper) {
         this.spuInfoDao = spuInfoDao;
         this.spuInfoDescDao = spuInfoDescDao;
         this.spuImagesDao = spuImagesDao;
@@ -85,8 +82,7 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
         this.attrService = attrService;
         this.wareFeignService = wareFeignService;
         this.searchFeignService = searchFeignService;
-        this.mqMessageService = mqMessageService;
-        this.mqMessageSender = mqMessageSender;
+        this.reliableMqPublisher = reliableMqPublisher;
         this.objectMapper = objectMapper;
     }
 
@@ -292,31 +288,14 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
                 .in(ProductAttrValueEntity::getSpuId, existingSpuIds));
         this.removeByIds(existingSpuIds);
 
-        // 跨服务的清理（coupon 的积分/满减/打折/会员价、MinIO 里的图片）不在这个事务里直接做，
-        // 而是落一条本地消息，提交后再投出去 —— 见 MqMessageSender 和 MqMessageResendTask。
-        //
-        // 为什么不直接调：远程删除是不可回滚的副作用，塞进本地事务只有两种结局，都是坏的 ——
-        // 先删远程，本地一回滚就留下"商品还在、配置没了"；先提交再远程，远程失败就留下
-        // 永远没人清理的孤儿。落消息是唯一让两边都有据可依的做法：
-        // 这条 insert 和上面 7 张表的删除在同一个事务里，所以提交成功 == 商品没了 + 一定有一条待投递消息。
-        String messageId = mqMessageService.savePending(
+        // 跨服务的清理（coupon 的优惠数据、MinIO 图片）落一条本地消息，与上面 7 张表的删除同事务，
+        // 提交后才投出去。远程删除不可回滚，不能直接调
+        reliableMqPublisher.publish(
                 MqConstant.Exchanges.PRODUCT_EVENT,
                 MqConstant.RoutingKeys.PRODUCT_DELETED,
                 new ProductDeletedTo(existingSpuIds, skuIds, imageUrls));
 
-        // 提交之后再投。放进事务里发，一旦回滚消息已经出去了，消费方会去清理一个还活着的商品
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    mqMessageSender.send(messageId);
-                }
-            });
-        } else {
-            mqMessageSender.send(messageId);
-        }
-
-        log.info("级联删除商品完成：spuIds=" + existingSpuIds + "，skuIds=" + skuIds + "，messageId=" + messageId);
+        log.info("级联删除商品完成：spuIds=" + existingSpuIds + "，skuIds=" + skuIds);
     }
 
     /**

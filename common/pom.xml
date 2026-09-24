@@ -121,6 +121,11 @@
 			<artifactId>httpclient</artifactId>
 			<version>4.5.14</version>
 		</dependency>
+		<!--jackson：outbox 用 ObjectMapper 序列化消息体-->
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+		</dependency>
 		<!--commons-io-->
 		<dependency>
 			<groupId>commons-io</groupId>
