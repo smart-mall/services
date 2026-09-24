@@ -13,6 +13,8 @@ public enum BaseCodeEnum {
     // 和 ORDER_STATUS_INVALID(17003) 一样，这是"状态不允许"而不是"参数格式不对"，
     // 所以给独立码，不走 10001 那套 errors 结构。
     PRODUCT_UP_SHELVED_CANNOT_DELETE(11001, "商品已上架，请先下架再删除"),
+    // 规格参数在上架时被快照进 ES，改完 ES 不会跟着变：详情页读库、搜索的筛选面板读 ES，两边会分叉
+    PRODUCT_UP_SHELVED_CANNOT_UPDATE(11002, "商品已上架，请先下架再修改规格"),
     TO_MANY_REQUEST(10003, "请求流量过大，请稍后再试"),
 
     SMS_CODE_EXCEPTION(10004,"验证码获取频率太高，请稍后再试"),
