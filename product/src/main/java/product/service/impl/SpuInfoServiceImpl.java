@@ -12,6 +12,7 @@ import common.exception.BaseException;
 import common.exception.ValidationException;
 import common.mq.MqConstant;
 import common.mq.outbox.ReliableMqPublisher;
+import common.to.SkuDeleteBlockerTo;
 import common.to.SkuReductionTo;
 import common.to.SpuBoundTo;
 import common.to.mq.ProductDeletedTo;
@@ -46,6 +47,9 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
 
     /** 已上架商品的错误信息里最多列几个商品名，列多了前端 toast 显示不下 */
     private static final int MAX_UP_SHELVED_IN_MESSAGE = 3;
+
+    /** 仓库阻塞信息里最多列几个 sku，同上 */
+    private static final int MAX_WARE_BLOCKERS_IN_MESSAGE = 3;
 
     private final SpuInfoDescDao spuInfoDescDao;
     private final SpuInfoDao spuInfoDao;
@@ -267,6 +271,10 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
                 .in(SkuInfoEntity::getSpuId, existingSpuIds));
         List<Long> skuIds = skus.stream().map(SkuInfoEntity::getSkuId).toList();
 
+        // 仓库侧还有库存或没走完的采购需求就不许删：那是真实的货和在途单据，
+        // 商品先没了它们就成无主数据
+        assertWareCanDelete(skuIds);
+
         // 这些地址指向 MinIO 里的对象，必须在删行之前收集 —— 行一删就再也找不到它们了。
         List<String> imageUrls = collectImageUrls(existingSpuIds, skus);
 
@@ -297,6 +305,71 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
                 new ProductDeletedTo(existingSpuIds, skuIds, imageUrls));
 
         log.info("级联删除商品完成：spuIds=" + existingSpuIds + "，skuIds=" + skuIds);
+    }
+
+    /**
+     * 问仓库这些 sku 能不能删。
+     *
+     * <p>读不到 ware 时按"不能删"处理：放过去可能删掉还有库存的商品，那是不可逆的；
+     * 拦下来最坏只是暂时删不掉。所以用独立的错误码，不和"确实有引用"混成一个 ——
+     * 混了用户会去清数据，而实际上什么都不用清。</p>
+     */
+    private void assertWareCanDelete(List<Long> skuIds) {
+        if (skuIds.isEmpty()) {
+            return;
+        }
+
+        List<SkuDeleteBlockerTo> blockers = new ArrayList<>();
+        try {
+            R r = wareFeignService.canDelete(skuIds);
+            if (r == null || r.getCode() == null || r.getCode() != 0) {
+                throw new IllegalStateException("ware 返回了非成功响应：" + (r == null ? "null" : r.getMsg()));
+            }
+            Object data = r.get("data");
+            if (data instanceof List<?>) {
+                blockers = objectMapper.convertValue(data, new TypeReference<>() {
+                });
+            }
+        } catch (Exception e) {
+            log.error("询问仓库能否删除商品失败，按不能删处理：skuIds={}", skuIds, e);
+            throw new BaseException(BaseCodeEnum.PRODUCT_WARE_UNAVAILABLE);
+        }
+
+        if (blockers.isEmpty()) {
+            return;
+        }
+        throw new BaseException(BaseCodeEnum.PRODUCT_WARE_IN_USE, describeWareBlockers(blockers));
+    }
+
+    /** 把仓库返回的阻塞清单拼成一句人能读的话。列多了前端 toast 显示不下，所以截断 */
+    private static String describeWareBlockers(List<SkuDeleteBlockerTo> blockers) {
+        List<String> parts = new ArrayList<>();
+        for (SkuDeleteBlockerTo blocker : blockers.stream().limit(MAX_WARE_BLOCKERS_IN_MESSAGE).toList()) {
+            StringBuilder part = new StringBuilder("sku " + blocker.getSkuId());
+
+            List<SkuDeleteBlockerTo.StockBlocker> stockBlockers = blocker.getStockBlockers();
+            boolean hasStock = stockBlockers != null && !stockBlockers.isEmpty();
+            if (hasStock) {
+                part.append("：").append(stockBlockers.stream().map(stock -> {
+                    String ware = StringUtils.hasText(stock.getWareName())
+                            ? stock.getWareName() : ("仓库" + stock.getWareId());
+                    return ware + " 还有 " + stock.getStock() + " 件（其中锁定 " + stock.getStockLocked() + " 件）";
+                }).collect(Collectors.joining("、")));
+            }
+
+            Integer purchaseCount = blocker.getPurchaseBlockerCount();
+            if (purchaseCount != null && purchaseCount > 0) {
+                part.append(hasStock ? "，" : "：")
+                        .append("有 ").append(purchaseCount).append(" 条未完成的采购需求");
+            }
+            parts.add(part.toString());
+        }
+
+        String detail = String.join("；", parts);
+        if (blockers.size() > MAX_WARE_BLOCKERS_IN_MESSAGE) {
+            detail = detail + " 等 " + blockers.size() + " 个 sku";
+        }
+        return "商品在仓库还有库存或未完成的采购需求（" + detail + "），请先处理后再删除";
     }
 
     /**

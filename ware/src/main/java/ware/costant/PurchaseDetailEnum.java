@@ -43,6 +43,16 @@ public enum PurchaseDetailEnum {
         return code != null && (code == FINISH.code || code == HASERROR.code);
     }
 
+    /**
+     * 还没走完：null（生成器建的行没写 status）/ 新建 / 已分配 / 正在采购。
+     *
+     * <p>商品删除时只要还有这种需求就不能删 —— 货还在路上，商品先没了的话，
+     * 到货入库会落在一个不存在的商品上。</p>
+     */
+    public static boolean isOpen(Integer code) {
+        return !isFinal(code);
+    }
+
     /** 这个状态下允许的操作，列表接口按行返回，前端据此决定按钮显不显示 */
     public static List<String> allowedActions(Integer code) {
         List<String> actions = new ArrayList<>();

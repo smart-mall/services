@@ -21,6 +21,7 @@ public final class MqConstant {
         public static final String PRODUCT_EVENT = "product-event-exchange";
         public static final String COUPON_PRODUCT_DELETED_DLX = "coupon.product.deleted.dlx";
         public static final String THIRDPARTY_PRODUCT_DELETED_DLX = "thirdparty.product.deleted.dlx";
+        public static final String WARE_PRODUCT_DELETED_DLX = "ware.product.deleted.dlx";
         public static final String SEARCH_PRODUCT_DOWN_DLX = "search.product.down.dlx";
     }
 
@@ -52,6 +53,7 @@ public final class MqConstant {
         public static final String PRODUCT_DOWN = "product.down";
         public static final String COUPON_PRODUCT_DELETED_RETRY = "coupon.product.deleted.retry";
         public static final String THIRDPARTY_PRODUCT_DELETED_RETRY = "thirdparty.product.deleted.retry";
+        public static final String WARE_PRODUCT_DELETED_RETRY = "ware.product.deleted.retry";
         public static final String SEARCH_PRODUCT_DOWN_RETRY = "search.product.down.retry";
     }
 
@@ -79,6 +81,12 @@ public final class MqConstant {
 
         /** 无消费者，等人工处理 */
         public static final String THIRDPARTY_PRODUCT_DELETED_DLQ = "thirdparty.product.deleted.dlq";
+
+        public static final String WARE_PRODUCT_DELETED = "ware.product.deleted.queue";
+        public static final String WARE_PRODUCT_DELETED_RETRY = "ware.product.deleted.retry.queue";
+
+        /** 无消费者，等人工处理 */
+        public static final String WARE_PRODUCT_DELETED_DLQ = "ware.product.deleted.dlq";
 
         public static final String SEARCH_PRODUCT_DOWN = "search.product.down.queue";
         public static final String SEARCH_PRODUCT_DOWN_RETRY = "search.product.down.retry.queue";

@@ -192,6 +192,27 @@ public class PurchaseDetailServiceImpl extends ServiceImpl<PurchaseDetailDao, Pu
         if (wareInfoService.getById(detail.getWareId()) == null) {
             throw new BaseException(BaseCodeEnum.WARE_NOT_FOUND);
         }
+        assertSkuExists(detail.getSkuId());
+    }
+
+    /**
+     * 商品必须还在。
+     *
+     * <p>删商品那侧保证的是"有在途采购需求就不许删"，这里补的是反方向：商品已经删了，
+     * 就不该再给它建需求单 —— 否则采购完成时 {@code addStock} 会把这个 sku 的库存行重新建出来，
+     * 商品没了库存却回来了。</p>
+     */
+    private void assertSkuExists(Long skuId) {
+        R r;
+        try {
+            r = productFeignService.getProduct(skuId);
+        } catch (Exception e) {
+            // 读不到商品服务时不许建单：宁可建不了，也不要建出一条指向不存在商品的需求
+            throw new BaseException("商品服务暂时不可用，无法确认商品是否存在，请稍后重试");
+        }
+        if (r == null || r.getCode() == null || r.getCode() != 0 || r.get("skuInfo") == null) {
+            throw new ValidationException("skuId", "商品不存在");
+        }
     }
 
 }

@@ -11,4 +11,10 @@ import java.util.List;
 public interface WareFeignService {
     @PostMapping("/ware/waresku/hasstock")
     public R getSkusHasStock(@RequestBody List<Long> skuIds);
+
+    /**
+     * 这些 sku 在仓库侧还能不能删。返回的 data 是阻塞清单，空集合表示都能删。
+     */
+    @PostMapping("/ware/waresku/canDelete")
+    R canDelete(@RequestBody List<Long> skuIds);
 }

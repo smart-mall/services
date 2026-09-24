@@ -10,16 +10,21 @@ import common.exception.ValidationException;
 import common.mq.MqConstant;
 import common.mq.MqPublisher;
 import common.to.OrderTo;
+import common.to.SkuDeleteBlockerTo;
 import common.to.mq.StockDetailTo;
 import common.to.mq.StockLockedTo;
 import common.utils.PageUtils;
 import common.utils.Query;
 import common.utils.R;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ware.costant.PurchaseDetailEnum;
+import ware.dao.PurchaseDetailDao;
 import ware.dao.WareSkuDao;
+import ware.entity.PurchaseDetailEntity;
 import ware.entity.WareInfoEntity;
 import ware.entity.WareOrderTaskDetailEntity;
 import ware.entity.WareOrderTaskEntity;
@@ -36,10 +41,16 @@ import ware.vo.SkuHasStockVo;
 import ware.vo.WareSkuLockVo;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 
+@Slf4j
 @Service("wareSkuService")
 public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> implements WareSkuService {
 
@@ -50,8 +61,9 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
     private final WareOrderTaskDetailService wareOrderTaskDetailService;
     private final OrderFeignService orderFeignService;
     private final WareInfoService wareInfoService;
+    private final PurchaseDetailDao purchaseDetailDao;
 
-    public WareSkuServiceImpl(WareSkuDao wareSkuDao, ProductFeignService productFeignService, MqPublisher mqPublisher, WareOrderTaskService wareOrderTaskService, WareOrderTaskDetailService wareOrderTaskDetailService, OrderFeignService orderFeignService, WareInfoService wareInfoService) {
+    public WareSkuServiceImpl(WareSkuDao wareSkuDao, ProductFeignService productFeignService, MqPublisher mqPublisher, WareOrderTaskService wareOrderTaskService, WareOrderTaskDetailService wareOrderTaskDetailService, OrderFeignService orderFeignService, WareInfoService wareInfoService, PurchaseDetailDao purchaseDetailDao) {
         this.wareSkuDao = wareSkuDao;
         this.productFeignService = productFeignService;
         this.mqPublisher = mqPublisher;
@@ -59,6 +71,7 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
         this.wareOrderTaskDetailService = wareOrderTaskDetailService;
         this.orderFeignService = orderFeignService;
         this.wareInfoService = wareInfoService;
+        this.purchaseDetailDao = purchaseDetailDao;
     }
 
     @Override
@@ -312,6 +325,101 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
 
     }
 
+
+    @Override
+    public List<SkuDeleteBlockerTo> canDelete(List<Long> skuIds) {
+        List<Long> ids = skuIds == null ? List.of()
+                : skuIds.stream().filter(Objects::nonNull).distinct().toList();
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+
+        // 有量才算占用：stock 为 0 的行只是"这个仓库曾经放过这个 sku"，删商品时顺手清掉就行
+        Map<Long, List<WareSkuEntity>> stockBySku = wareSkuDao.selectList(
+                        new LambdaQueryWrapper<WareSkuEntity>()
+                                .in(WareSkuEntity::getSkuId, ids)
+                                .and(w -> w.gt(WareSkuEntity::getStock, 0)
+                                        .or().gt(WareSkuEntity::getStockLocked, 0)))
+                .stream()
+                .collect(Collectors.groupingBy(WareSkuEntity::getSkuId));
+
+        // 只算没走完的：已完成和采购失败都不拦 —— 前者货已入库、库存那条会拦，
+        // 后者没产生库存。status 可能是 null（生成器建的行没写），按没走完算
+        Map<Long, Long> purchaseCountBySku = purchaseDetailDao.selectList(
+                        new LambdaQueryWrapper<PurchaseDetailEntity>()
+                                .in(PurchaseDetailEntity::getSkuId, ids)
+                                .and(w -> w.isNull(PurchaseDetailEntity::getStatus)
+                                        .or().notIn(PurchaseDetailEntity::getStatus,
+                                                PurchaseDetailEnum.FINISH.getCode(),
+                                                PurchaseDetailEnum.HASERROR.getCode())))
+                .stream()
+                .collect(Collectors.groupingBy(PurchaseDetailEntity::getSkuId, Collectors.counting()));
+
+        Set<Long> blockedSkuIds = new LinkedHashSet<>(stockBySku.keySet());
+        blockedSkuIds.addAll(purchaseCountBySku.keySet());
+        if (blockedSkuIds.isEmpty()) {
+            return List.of();
+        }
+
+        Map<Long, String> wareNames = wareNamesOf(stockBySku.values().stream()
+                .flatMap(List::stream)
+                .map(WareSkuEntity::getWareId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList());
+
+        return blockedSkuIds.stream().map(skuId -> {
+            SkuDeleteBlockerTo vo = new SkuDeleteBlockerTo();
+            vo.setSkuId(skuId);
+            vo.setStockBlockers(stockBySku.getOrDefault(skuId, List.of()).stream().map(row -> {
+                SkuDeleteBlockerTo.StockBlocker blocker = new SkuDeleteBlockerTo.StockBlocker();
+                blocker.setWareId(row.getWareId());
+                blocker.setWareName(wareNames.get(row.getWareId()));
+                blocker.setStock(row.getStock());
+                blocker.setStockLocked(row.getStockLocked());
+                return blocker;
+            }).toList());
+            vo.setPurchaseBlockerCount(purchaseCountBySku.getOrDefault(skuId, 0L).intValue());
+            return vo;
+        }).toList();
+    }
+
+    /** 手工装 map 而不是 Collectors.toMap：后者遇到 null 的 value 会直接抛 NPE */
+    private Map<Long, String> wareNamesOf(List<Long> wareIds) {
+        Map<Long, String> names = new HashMap<>();
+        if (wareIds.isEmpty()) {
+            return names;
+        }
+        for (WareInfoEntity ware : wareInfoService.listByIds(wareIds)) {
+            names.put(ware.getId(), ware.getName());
+        }
+        return names;
+    }
+
+    @Override
+    @Transactional
+    public int deleteZeroStock(List<Long> skuIds) {
+        List<Long> ids = skuIds == null ? List.of()
+                : skuIds.stream().filter(Objects::nonNull).distinct().toList();
+        if (ids.isEmpty()) {
+            return 0;
+        }
+
+        // 有量的一律不动：宁可留一行脏数据，也不能删掉真实的货。
+        // 正常流程走不到这里 —— 判断会把有量的 sku 先拦掉；真查到了说明判断和删除之间出了岔子
+        Long kept = wareSkuDao.selectCount(new LambdaQueryWrapper<WareSkuEntity>()
+                .in(WareSkuEntity::getSkuId, ids)
+                .and(w -> w.gt(WareSkuEntity::getStock, 0).or().gt(WareSkuEntity::getStockLocked, 0)));
+        if (kept != null && kept > 0) {
+            log.warn("清库存行时跳过了 {} 行有库存的记录，skuIds={}", kept, ids);
+        }
+
+        // 删除条件正好是上面拦截条件的取反，两边都不漏。stock 和 stock_locked 都可能为 null
+        return wareSkuDao.delete(new LambdaQueryWrapper<WareSkuEntity>()
+                .in(WareSkuEntity::getSkuId, ids)
+                .nested(w -> w.isNull(WareSkuEntity::getStock).or().le(WareSkuEntity::getStock, 0))
+                .nested(w -> w.isNull(WareSkuEntity::getStockLocked).or().le(WareSkuEntity::getStockLocked, 0)));
+    }
 
     @Data
     static

@@ -11,7 +11,6 @@ import product.service.SkuInfoService;
 import product.vo.SkuSelectVO;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -111,14 +110,7 @@ public class SkuInfoController {
         return R.ok();
     }
 
-    /**
-     * 删除
-     */
-    @RequestMapping("/delete")
-    public R delete(@RequestBody Long[] skuIds){
-		skuInfoService.removeByIds(Arrays.asList(skuIds));
-
-        return R.ok();
-    }
-
+    // 没有 /delete：直接 removeByIds 会绕过 SpuInfoServiceImpl.removeSpuInfo 的整套守卫
+    //（不删子表、不查仓库库存与在途采购），等于给"删商品"开了个后门。前端也没有入口调它。
+    // sku 的生命周期由 spu 管理，要删就走商品的删除接口。
 }

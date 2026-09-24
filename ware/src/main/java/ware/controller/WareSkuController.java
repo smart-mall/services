@@ -79,6 +79,18 @@ public class WareSkuController {
     }
 
     /**
+     * 这些 sku 在仓库侧还能不能删（product 删商品前的守卫）。
+     *
+     * <p>返回的 data 是阻塞清单：空集合表示都能删；非空时每一项说明这个 sku
+     * 在哪个仓还有多少件、还有几条没走完的采购需求。文案由调用方拼。</p>
+     */
+    @PostMapping("/canDelete")
+    public R canDelete(@RequestBody List<Long> skuIds) {
+        log.info("判断商品能否从仓库删除：{}", skuIds);
+        return R.ok().setData(wareSkuService.canDelete(skuIds));
+    }
+
+    /**
      * 列表
      */
     @RequestMapping("/list")
@@ -100,5 +112,6 @@ public class WareSkuController {
     }
 
     // 没有 save / update / delete：库存行只由"采购完成"创建、stock 只由采购增加、
-    // stock_locked 只由订单增减，没有一条合法路径需要人工写，所以这个接口是只读的
+    // stock_locked 只由订单增减，没有一条合法路径需要人工写。唯一会删库存行的是
+    // 商品删除后那条 MQ 消息（只清零行），走的是监听器不是这个 controller
 }

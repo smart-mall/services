@@ -2,6 +2,7 @@ package ware.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import common.to.OrderTo;
+import common.to.SkuDeleteBlockerTo;
 import common.to.mq.StockLockedTo;
 import common.utils.PageUtils;
 import ware.entity.WareSkuEntity;
@@ -31,5 +32,20 @@ public interface WareSkuService extends IService<WareSkuEntity> {
     void unlockStock(StockLockedTo to);
 
     void unlockStock(OrderTo orderTo);
+
+    /**
+     * 这些 sku 在仓库侧还有没有删不掉的东西：有量的库存行、没走完的采购需求。
+     *
+     * @return 每个有阻塞的 sku 一条；返回空集合表示都能删
+     */
+    List<SkuDeleteBlockerTo> canDelete(List<Long> skuIds);
+
+    /**
+     * 商品删除后清掉这些 sku 的库存行。只删零行（stock 和 stock_locked 都不为正），
+     * 有量的一律不动。
+     *
+     * @return 实际删掉的行数
+     */
+    int deleteZeroStock(List<Long> skuIds);
 }
 
