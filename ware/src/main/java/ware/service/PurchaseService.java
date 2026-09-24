@@ -6,6 +6,7 @@ import ware.entity.PurchaseEntity;
 import ware.vo.MergeVO;
 import ware.vo.PurchaseAssignVO;
 import ware.vo.PurchaseDoneVO;
+import ware.vo.PurchaseReceiveVO;
 
 import java.util.List;
 import java.util.Map;
@@ -31,7 +32,7 @@ public interface PurchaseService extends IService<PurchaseEntity> {
 
     void removePurchase(List<Long> ids);
 
-    void receive(List<Long> ids);
+    void receive(PurchaseReceiveVO receiveVO);
 
     void done(PurchaseDoneVO purchaseDoneVO);
 }

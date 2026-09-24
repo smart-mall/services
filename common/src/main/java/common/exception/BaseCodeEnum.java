@@ -24,8 +24,9 @@ public enum BaseCodeEnum {
     PURCHASE_DETAIL_STATUS_INVALID(11103, "采购需求单当前状态不支持该操作"),
     WARE_NOT_FOUND(11104, "仓库不存在"),
     WARE_IN_USE(11105, "仓库还有库存或关联单据，不能删除"),
-    PURCHASE_HAS_DETAIL(11106, "采购单下还有采购需求，不能删除"),
     PURCHASE_DETAIL_EMPTY(11107, "采购单下没有采购需求，不能领取"),
+    PURCHASE_WARE_MISMATCH(11108, "采购单只能包含同一个仓库的采购需求"),
+    PURCHASE_NOT_ASSIGNEE(11109, "这张采购单不是分配给当前登录用户的"),
     TO_MANY_REQUEST(10003, "请求流量过大，请稍后再试"),
 
     SMS_CODE_EXCEPTION(10004,"验证码获取频率太高，请稍后再试"),

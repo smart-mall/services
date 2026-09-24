@@ -15,13 +15,17 @@ import common.utils.R;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ware.costant.PurchaseDetailEnum;
+import ware.costant.PurchaseStatusEnum;
 import ware.dao.PurchaseDao;
+import ware.dao.PurchaseDetailDao;
 import ware.dao.WareInfoDao;
-import ware.dao.WareOrderTaskDao;
+import ware.dao.WareOrderTaskDetailDao;
 import ware.dao.WareSkuDao;
+import ware.entity.PurchaseDetailEntity;
 import ware.entity.PurchaseEntity;
 import ware.entity.WareInfoEntity;
-import ware.entity.WareOrderTaskEntity;
+import ware.entity.WareOrderTaskDetailEntity;
 import ware.entity.WareSkuEntity;
 import ware.feign.MemberFeignService;
 import ware.service.WareInfoService;
@@ -29,9 +33,11 @@ import ware.vo.FareVo;
 import ware.vo.MemberAddressVo;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service("wareInfoService")
@@ -40,14 +46,17 @@ public class WareInfoServiceImpl extends ServiceImpl<WareInfoDao, WareInfoEntity
 
     private final WareSkuDao wareSkuDao;
     private final PurchaseDao purchaseDao;
-    private final WareOrderTaskDao wareOrderTaskDao;
+    private final PurchaseDetailDao purchaseDetailDao;
+    private final WareOrderTaskDetailDao wareOrderTaskDetailDao;
 
     public WareInfoServiceImpl(MemberFeignService memberFeignService, WareSkuDao wareSkuDao,
-                               PurchaseDao purchaseDao, WareOrderTaskDao wareOrderTaskDao) {
+                               PurchaseDao purchaseDao, PurchaseDetailDao purchaseDetailDao,
+                               WareOrderTaskDetailDao wareOrderTaskDetailDao) {
         this.memberFeignService = memberFeignService;
         this.wareSkuDao = wareSkuDao;
         this.purchaseDao = purchaseDao;
-        this.wareOrderTaskDao = wareOrderTaskDao;
+        this.purchaseDetailDao = purchaseDetailDao;
+        this.wareOrderTaskDetailDao = wareOrderTaskDetailDao;
     }
 
     @Override
@@ -73,11 +82,17 @@ public class WareInfoServiceImpl extends ServiceImpl<WareInfoDao, WareInfoEntity
     }
 
     /**
-     * 删除仓库。有库存行或关联单据的仓库不能删。
+     * 删除仓库。三条都满足才允许：
      *
-     * <p>库里没有外键，删掉之后 {@code wms_ware_sku} / {@code wms_purchase} /
-     * {@code wms_ware_order_task} 里的 {@code ware_id} 就变成悬空引用 —— 商品库存页那边
-     * 按 ware_id 找不到仓库名，会直接 500。</p>
+     * <ol>
+     *   <li>库存全为 0，<b>含锁定库存</b> —— 还有订单锁着货的仓库不能删</li>
+     *   <li>关联的采购需求和采购单都在终态（已完成 / 采购失败 / 有异常），没有在途采购</li>
+     *   <li>没有"已锁定未解锁"的库存工作单明细 —— 删了仓库，订单解锁时按 detailId 找不到凭证，
+     *       消息被正常 ack，{@code stock_locked} 就永远减不回去了</li>
+     * </ol>
+     *
+     * <p>都通过之后，把该仓库的库存行、采购需求、采购单一并删掉 —— 它们都是空壳或终态记录，
+     * 留着只会让 {@code ware_id} 悬空，而悬空的仓库引用没有任何意义。</p>
      */
     @Override
     @Transactional
@@ -95,19 +110,70 @@ public class WareInfoServiceImpl extends ServiceImpl<WareInfoDao, WareInfoEntity
         }
 
         for (WareInfoEntity ware : wares) {
-            Long stockCount = wareSkuDao.selectCount(new LambdaQueryWrapper<WareSkuEntity>()
-                    .eq(WareSkuEntity::getWareId, ware.getId()));
-            Long purchaseCount = purchaseDao.selectCount(new LambdaQueryWrapper<PurchaseEntity>()
-                    .eq(PurchaseEntity::getWareId, ware.getId()));
-            Long taskCount = wareOrderTaskDao.selectCount(new LambdaQueryWrapper<WareOrderTaskEntity>()
-                    .eq(WareOrderTaskEntity::getWareId, ware.getId()));
+            Long wareId = ware.getId();
 
-            if (stockCount > 0 || purchaseCount > 0 || taskCount > 0) {
+            // 1、库存必须清空
+            List<WareSkuEntity> stocks = wareSkuDao.selectList(new LambdaQueryWrapper<WareSkuEntity>()
+                    .eq(WareSkuEntity::getWareId, wareId));
+            boolean hasStock = stocks.stream().anyMatch(stock ->
+                    (stock.getStock() != null && stock.getStock() != 0)
+                            || (stock.getStockLocked() != null && stock.getStockLocked() != 0));
+            if (hasStock) {
                 throw new BaseException(BaseCodeEnum.WARE_IN_USE,
-                        "仓库「" + ware.getName() + "」还有库存 " + stockCount
-                                + " 条、采购单 " + purchaseCount
-                                + " 张、库存工作单 " + taskCount + " 张，不能删除");
+                        "仓库「" + ware.getName() + "」还有库存（或被订单锁定的库存），不能删除");
             }
+
+            // 2、采购需求必须在终态
+            List<PurchaseDetailEntity> details = purchaseDetailDao.selectList(
+                    new LambdaQueryWrapper<PurchaseDetailEntity>()
+                            .eq(PurchaseDetailEntity::getWareId, wareId));
+            if (details.stream().anyMatch(detail -> !PurchaseDetailEnum.isFinal(detail.getStatus()))) {
+                throw new BaseException(BaseCodeEnum.WARE_IN_USE,
+                        "仓库「" + ware.getName() + "」还有没走完的采购需求，不能删除");
+            }
+
+            // 3、采购单必须在终态（ware_id 直接指向这个仓库的也一起算上）
+            List<Long> purchaseIds = details.stream()
+                    .map(PurchaseDetailEntity::getPurchaseId)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .collect(Collectors.toCollection(ArrayList::new));
+            purchaseDao.selectList(new LambdaQueryWrapper<PurchaseEntity>()
+                            .eq(PurchaseEntity::getWareId, wareId))
+                    .forEach(purchase -> {
+                        if (!purchaseIds.contains(purchase.getId())) {
+                            purchaseIds.add(purchase.getId());
+                        }
+                    });
+            if (!purchaseIds.isEmpty()) {
+                List<PurchaseEntity> purchases = purchaseDao.selectByIds(purchaseIds);
+                if (purchases.stream().anyMatch(purchase -> !PurchaseStatusEnum.isFinal(purchase.getStatus()))) {
+                    throw new BaseException(BaseCodeEnum.WARE_IN_USE,
+                            "仓库「" + ware.getName() + "」还有没走完的采购单，不能删除");
+                }
+            }
+
+            // 4、不能有已锁定未解锁的库存工作单明细
+            Long lockedTasks = wareOrderTaskDetailDao.selectCount(new LambdaQueryWrapper<WareOrderTaskDetailEntity>()
+                    .eq(WareOrderTaskDetailEntity::getWareId, wareId)
+                    .eq(WareOrderTaskDetailEntity::getLockStatus, 1));
+            if (lockedTasks > 0) {
+                throw new BaseException(BaseCodeEnum.WARE_IN_USE,
+                        "仓库「" + ware.getName() + "」还有 " + lockedTasks
+                                + " 条已锁定未解锁的库存工作单，不能删除");
+            }
+
+            // 都过了：库存行、采购需求、采购单一起删
+            wareSkuDao.delete(new LambdaQueryWrapper<WareSkuEntity>()
+                    .eq(WareSkuEntity::getWareId, wareId));
+            purchaseDetailDao.delete(new LambdaQueryWrapper<PurchaseDetailEntity>()
+                    .eq(PurchaseDetailEntity::getWareId, wareId));
+            if (!purchaseIds.isEmpty()) {
+                purchaseDao.deleteByIds(purchaseIds);
+            }
+
+            log.info("删除仓库「{}」并清掉它的 {} 条库存、{} 条采购需求、{} 张采购单",
+                    ware.getName(), stocks.size(), details.size(), purchaseIds.size());
         }
 
         this.removeByIds(distinctIds);

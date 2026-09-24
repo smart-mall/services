@@ -25,7 +25,9 @@ import ware.service.WareSkuService;
 import ware.vo.MergeVO;
 import ware.vo.PurchaseAssignVO;
 import ware.vo.PurchaseDoneVO;
+import ware.vo.PurchaseReceiveVO;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -37,6 +39,9 @@ import java.util.stream.Collectors;
 
 @Service("purchaseService")
 public class PurchaseServiceImpl extends ServiceImpl<PurchaseDao, PurchaseEntity> implements PurchaseService {
+
+    /** 没传优先级时新建采购单的默认值 */
+    private static final int DEFAULT_PRIORITY = 1;
 
     private final PurchaseDetailDao purchaseDetailDao;
     private final WareSkuService wareSkuService;
@@ -99,8 +104,8 @@ public class PurchaseServiceImpl extends ServiceImpl<PurchaseDao, PurchaseEntity
     /**
      * 合并采购需求单：没指定采购单就新建一张，指定了就并进去。
      *
-     * <p>两边都要卡状态 —— 采购单必须还没被领取，需求单必须还没并入任何单。
-     * 否则可以把已经并到别的单里、甚至已经在采购的需求单再并一次，等于把它从原单里偷走。</p>
+     * <p>三边都要卡：采购单必须还没被领取、需求单必须还没并入任何单，
+     * 并且<b>所有需求单必须是同一个仓库</b>（一张采购单只对应一个仓库，它的 wareId 就是从这个来的）。</p>
      */
     @Override
     @Transactional
@@ -110,25 +115,6 @@ public class PurchaseServiceImpl extends ServiceImpl<PurchaseDao, PurchaseEntity
                 : mergeVO.getItems().stream().filter(Objects::nonNull).distinct().toList();
         if (items.isEmpty()) {
             throw new ValidationException("items", "请先选择要合并的采购需求单");
-        }
-
-        Long purchaseId = mergeVO.getPurchaseId();
-        if (purchaseId == null) {
-            PurchaseEntity purchaseEntity = new PurchaseEntity();
-            Date now = new Date();
-            purchaseEntity.setStatus(PurchaseStatusEnum.CREATED.getCode());
-            purchaseEntity.setCreateTime(now);
-            purchaseEntity.setUpdateTime(now);
-            baseMapper.insert(purchaseEntity);
-            purchaseId = purchaseEntity.getId();
-        } else {
-            PurchaseEntity purchaseEntity = baseMapper.selectById(purchaseId);
-            if (purchaseEntity == null) {
-                throw new BaseException(BaseCodeEnum.PURCHASE_NOT_FOUND);
-            }
-            if (!PurchaseStatusEnum.isOpen(purchaseEntity.getStatus())) {
-                throw new BaseException(BaseCodeEnum.PURCHASE_STATUS_INVALID);
-            }
         }
 
         List<PurchaseDetailEntity> details = purchaseDetailDao.selectByIds(items);
@@ -142,11 +128,66 @@ public class PurchaseServiceImpl extends ServiceImpl<PurchaseDao, PurchaseEntity
             throw new BaseException(BaseCodeEnum.PURCHASE_DETAIL_STATUS_INVALID);
         }
 
+        // 一张采购单只对应一个仓库，所以选中的需求单必须同仓库
+        Set<Long> wareIds = details.stream()
+                .map(PurchaseDetailEntity::getWareId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (wareIds.size() != 1) {
+            throw new BaseException(BaseCodeEnum.PURCHASE_WARE_MISMATCH);
+        }
+        Long wareId = wareIds.iterator().next();
+
+        Integer priority = mergeVO.getPriority();
+        if (priority != null && priority < 1) {
+            throw new ValidationException("priority", "优先级要大于 0");
+        }
+
+        Long purchaseId = mergeVO.getPurchaseId();
+        if (purchaseId == null) {
+            PurchaseEntity purchaseEntity = new PurchaseEntity();
+            Date now = new Date();
+            purchaseEntity.setStatus(PurchaseStatusEnum.CREATED.getCode());
+            purchaseEntity.setWareId(wareId);
+            purchaseEntity.setPriority(priority == null ? DEFAULT_PRIORITY : priority);
+            purchaseEntity.setAmount(BigDecimal.ZERO);
+            purchaseEntity.setCreateTime(now);
+            purchaseEntity.setUpdateTime(now);
+            baseMapper.insert(purchaseEntity);
+            purchaseId = purchaseEntity.getId();
+        } else {
+            PurchaseEntity purchaseEntity = baseMapper.selectById(purchaseId);
+            if (purchaseEntity == null) {
+                throw new BaseException(BaseCodeEnum.PURCHASE_NOT_FOUND);
+            }
+            if (!PurchaseStatusEnum.isOpen(purchaseEntity.getStatus())) {
+                throw new BaseException(BaseCodeEnum.PURCHASE_STATUS_INVALID);
+            }
+            // 单上已有的明细也必须是同一个仓库，否则并进来就破坏了"一张单一个仓库"
+            List<PurchaseDetailEntity> existing = purchaseDetailDao.selectList(
+                    new LambdaQueryWrapper<PurchaseDetailEntity>()
+                            .eq(PurchaseDetailEntity::getPurchaseId, purchaseId));
+            boolean sameWare = existing.stream().allMatch(detail -> Objects.equals(detail.getWareId(), wareId));
+            if (!sameWare) {
+                throw new BaseException(BaseCodeEnum.PURCHASE_WARE_MISMATCH);
+            }
+            // 传了优先级就顺手改掉，不传保持原样
+            if (priority != null) {
+                LambdaUpdateWrapper<PurchaseEntity> priorityWrapper = new LambdaUpdateWrapper<>(PurchaseEntity.class);
+                priorityWrapper.eq(PurchaseEntity::getId, purchaseId)
+                        .set(PurchaseEntity::getPriority, priority)
+                        .set(PurchaseEntity::getUpdateTime, new Date());
+                baseMapper.update(priorityWrapper);
+            }
+        }
+
         LambdaUpdateWrapper<PurchaseDetailEntity> updateChainWrapper = new LambdaUpdateWrapper<>(PurchaseDetailEntity.class);
         updateChainWrapper.set(PurchaseDetailEntity::getStatus, PurchaseDetailEnum.ASSIGNED.getCode())
                 .set(PurchaseDetailEntity::getPurchaseId, purchaseId)
                 .in(PurchaseDetailEntity::getId, items);
         purchaseDetailDao.update(updateChainWrapper);
+
+        refreshPurchaseTotal(purchaseId);
     }
 
     /**
@@ -190,6 +231,8 @@ public class PurchaseServiceImpl extends ServiceImpl<PurchaseDao, PurchaseEntity
                 .setSql("purchase_id = null")
                 .in(PurchaseDetailEntity::getId, distinctIds);
         purchaseDetailDao.update(updateWrapper);
+
+        purchaseIds.forEach(this::refreshPurchaseTotal);
     }
 
     /**
@@ -227,10 +270,17 @@ public class PurchaseServiceImpl extends ServiceImpl<PurchaseDao, PurchaseEntity
     }
 
     /**
-     * 删除采购单：只有"还没领取、且没有明细"的空单能删。
+     * 删除采购单。三种状态分开处理：
      *
-     * <p>有明细的单删掉之后，明细的 purchase_id 会悬空、状态还停在"已分配"，
-     * 而合并要求 purchase_id 为空 —— 这些需求单就再也合并不了了。</p>
+     * <ul>
+     *   <li><b>新建 / 已分配</b>：能删，单下的需求退回"新建" —— 这些东西还是要买的，
+     *       只是这张单不要了，不能把需求也一起删了</li>
+     *   <li><b>已完成 / 有异常</b>：能删，单下的需求一起删掉 —— 已经是历史了</li>
+     *   <li><b>已领取</b>：不能删 —— 采购员正照着它在买，删了他手上的单就凭空消失了</li>
+     * </ul>
+     *
+     * <p>注意删采购单<b>不会回滚库存</b>：终态单的货已经通过"完成采购"入到
+     * {@code wms_ware_sku} 了，删的是单据，不是那批货。</p>
      */
     @Override
     @Transactional
@@ -247,34 +297,79 @@ public class PurchaseServiceImpl extends ServiceImpl<PurchaseDao, PurchaseEntity
             throw new BaseException(BaseCodeEnum.PURCHASE_NOT_FOUND);
         }
 
-        boolean allOpen = purchases.stream().allMatch(purchase -> PurchaseStatusEnum.isOpen(purchase.getStatus()));
-        if (!allOpen) {
+        // 已领取的是在途，不能删
+        List<Long> receiving = purchases.stream()
+                .filter(purchase -> Objects.equals(purchase.getStatus(), PurchaseStatusEnum.RECEIVE.getCode()))
+                .map(PurchaseEntity::getId)
+                .toList();
+        if (!receiving.isEmpty()) {
+            throw new BaseException(BaseCodeEnum.PURCHASE_STATUS_INVALID,
+                    "采购单[" + receiving.stream().map(String::valueOf).collect(Collectors.joining(","))
+                            + "]已被领取，正在采购中，不能删除");
+        }
+
+        boolean statusOk = purchases.stream().allMatch(purchase ->
+                PurchaseStatusEnum.isOpen(purchase.getStatus()) || PurchaseStatusEnum.isFinal(purchase.getStatus()));
+        if (!statusOk) {
             throw new BaseException(BaseCodeEnum.PURCHASE_STATUS_INVALID);
         }
 
-        Long detailCount = purchaseDetailDao.selectCount(new LambdaQueryWrapper<PurchaseDetailEntity>()
-                .in(PurchaseDetailEntity::getPurchaseId, distinctIds));
-        if (detailCount > 0) {
-            throw new BaseException(BaseCodeEnum.PURCHASE_HAS_DETAIL);
+        List<PurchaseDetailEntity> details = purchaseDetailDao.selectList(
+                new LambdaQueryWrapper<PurchaseDetailEntity>()
+                        .in(PurchaseDetailEntity::getPurchaseId, distinctIds));
+
+        // 终态的单：它下面的需求必须也走完了，然后跟着一起删
+        List<Long> finalPurchaseIds = purchases.stream()
+                .filter(purchase -> PurchaseStatusEnum.isFinal(purchase.getStatus()))
+                .map(PurchaseEntity::getId)
+                .toList();
+        List<PurchaseDetailEntity> detailsOfFinal = details.stream()
+                .filter(detail -> finalPurchaseIds.contains(detail.getPurchaseId()))
+                .toList();
+        if (detailsOfFinal.stream().anyMatch(detail -> !PurchaseDetailEnum.isFinal(detail.getStatus()))) {
+            throw new BaseException(BaseCodeEnum.PURCHASE_DETAIL_STATUS_INVALID,
+                    "采购单已经是终态，但它下面还有没走完的采购需求，不能删除");
+        }
+
+        // 还没开始采购的单：需求退回"新建"（purchase_id 显式置 null，所以用 setSql）
+        List<Long> openPurchaseIds = purchases.stream()
+                .filter(purchase -> PurchaseStatusEnum.isOpen(purchase.getStatus()))
+                .map(PurchaseEntity::getId)
+                .toList();
+        if (!openPurchaseIds.isEmpty()) {
+            LambdaUpdateWrapper<PurchaseDetailEntity> backToNew = new LambdaUpdateWrapper<>(PurchaseDetailEntity.class);
+            backToNew.set(PurchaseDetailEntity::getStatus, PurchaseDetailEnum.CREATED.getCode())
+                    .setSql("purchase_id = null")
+                    .in(PurchaseDetailEntity::getPurchaseId, openPurchaseIds);
+            purchaseDetailDao.update(backToNew);
+        }
+
+        // 终态单的需求跟着单一起删
+        if (!detailsOfFinal.isEmpty()) {
+            purchaseDetailDao.deleteByIds(detailsOfFinal.stream().map(PurchaseDetailEntity::getId).toList());
         }
 
         this.removeByIds(distinctIds);
     }
 
     /**
-     * 领取采购单：单从"新建/已分配"变成"已领取"，单下明细一起进入"正在采购"。
+     * 领取采购单：单从"已分配"变成"已领取"，单下明细一起进入"正在采购"。
      *
-     * <p>明细只动还是"已分配"的那些，避免把已经完成或失败的明细又拉回采购中；
-     * 一张没有明细的空单也不许领取，否则会卡在"已领取"且永远完不成。</p>
+     * <p>三条卡口：必须已经分配采购员（新建的单直接领走等于跳过分配）、
+     * 领取人必须是这张单分配的采购员、单下至少要有 1 条明细（否则会卡在"已领取"且永远完不成）。
+     * 明细只动还是"已分配"的那些，避免把已经完成或失败的明细又拉回采购中。</p>
      */
     @Override
     @Transactional
-    public void receive(List<Long> ids) {
-        List<Long> distinctIds = ids == null
+    public void receive(PurchaseReceiveVO receiveVO) {
+        List<Long> distinctIds = receiveVO.getIds() == null
                 ? List.of()
-                : ids.stream().filter(Objects::nonNull).distinct().toList();
+                : receiveVO.getIds().stream().filter(Objects::nonNull).distinct().toList();
         if (distinctIds.isEmpty()) {
             throw new ValidationException("ids", "请先选择要领取的采购单");
+        }
+        if (receiveVO.getAssigneeId() == null) {
+            throw new ValidationException("assigneeId", "拿不到当前登录用户，请重新登录后再试");
         }
 
         List<PurchaseEntity> purchases = baseMapper.selectByIds(distinctIds);
@@ -282,32 +377,44 @@ public class PurchaseServiceImpl extends ServiceImpl<PurchaseDao, PurchaseEntity
             throw new BaseException(BaseCodeEnum.PURCHASE_NOT_FOUND);
         }
 
-        List<Long> receivable = purchases.stream()
-                .filter(purchase -> PurchaseStatusEnum.isOpen(purchase.getStatus()))
-                .map(PurchaseEntity::getId)
+        List<PurchaseEntity> receivable = purchases.stream()
+                .filter(purchase -> PurchaseStatusEnum.canReceive(purchase.getStatus()))
                 .toList();
         if (receivable.isEmpty()) {
             throw new BaseException(BaseCodeEnum.PURCHASE_STATUS_INVALID);
         }
 
+        // 分配给谁就该谁领：别人（包括分配的人自己）不能替他把单领走
+        List<Long> notMine = receivable.stream()
+                .filter(purchase -> !Objects.equals(purchase.getAssigneeId(), receiveVO.getAssigneeId()))
+                .map(PurchaseEntity::getId)
+                .toList();
+        if (!notMine.isEmpty()) {
+            throw new BaseException(BaseCodeEnum.PURCHASE_NOT_ASSIGNEE,
+                    "采购单[" + notMine.stream().map(String::valueOf).collect(Collectors.joining(","))
+                            + "]不是分配给当前登录用户的，不能领取");
+        }
+
+        List<Long> ids = receivable.stream().map(PurchaseEntity::getId).toList();
+
         List<PurchaseDetailEntity> details = purchaseDetailDao.selectList(new LambdaQueryWrapper<PurchaseDetailEntity>()
-                .in(PurchaseDetailEntity::getPurchaseId, receivable));
+                .in(PurchaseDetailEntity::getPurchaseId, ids));
         Set<Long> purchaseIdsWithDetail = details.stream()
                 .map(PurchaseDetailEntity::getPurchaseId)
                 .collect(Collectors.toSet());
-        if (!purchaseIdsWithDetail.containsAll(receivable)) {
+        if (!purchaseIdsWithDetail.containsAll(ids)) {
             throw new BaseException(BaseCodeEnum.PURCHASE_DETAIL_EMPTY);
         }
 
         LambdaUpdateWrapper<PurchaseEntity> updateChainWrapper = new LambdaUpdateWrapper<>(PurchaseEntity.class);
         updateChainWrapper.set(PurchaseEntity::getStatus, PurchaseStatusEnum.RECEIVE.getCode())
                 .set(PurchaseEntity::getUpdateTime, new Date())
-                .in(PurchaseEntity::getId, receivable);
+                .in(PurchaseEntity::getId, ids);
         baseMapper.update(updateChainWrapper);
 
         LambdaUpdateWrapper<PurchaseDetailEntity> updateWrapper = new LambdaUpdateWrapper<>(PurchaseDetailEntity.class);
         updateWrapper.set(PurchaseDetailEntity::getStatus, PurchaseDetailEnum.BUYING.getCode())
-                .in(PurchaseDetailEntity::getPurchaseId, receivable)
+                .in(PurchaseDetailEntity::getPurchaseId, ids)
                 .in(PurchaseDetailEntity::getStatus, PurchaseDetailEnum.ASSIGNED.getCode());
         purchaseDetailDao.update(updateWrapper);
     }
@@ -363,7 +470,7 @@ public class PurchaseServiceImpl extends ServiceImpl<PurchaseDao, PurchaseEntity
         List<PurchaseDetailEntity> finishedDetails = new ArrayList<>();
         for (PurchaseDoneVO.PurchaseItemVO item : items) {
             // 只接受"已完成"和"采购失败"两种结果，别的一律不认
-            if (!PurchaseDetailEnum.isFinalResult(item.getStatus())) {
+            if (!PurchaseDetailEnum.isFinal(item.getStatus())) {
                 throw new BaseException(BaseCodeEnum.PURCHASE_DETAIL_STATUS_INVALID);
             }
 
@@ -387,6 +494,34 @@ public class PurchaseServiceImpl extends ServiceImpl<PurchaseDao, PurchaseEntity
         // 只有采购成功的行才入库。原来这里筛的是 HASERROR，等于"失败才加库存"，正好反了
         finishedDetails.forEach(detail ->
                 wareSkuService.addStock(detail.getSkuId(), detail.getWareId(), detail.getSkuNum()));
+    }
+
+    /**
+     * 明细变了（合并进来 / 取消分配摘出去）就重算采购单的总金额和仓库。
+     *
+     * <p>总金额 = 明细的 {@code sku_price} 之和 —— 那个字段是"这条需求的采购金额（总额）"，
+     * 不是单价。明细被摘空时把仓库也清掉，免得留一个指向不存在明细的仓库。</p>
+     */
+    private void refreshPurchaseTotal(Long purchaseId) {
+        List<PurchaseDetailEntity> details = purchaseDetailDao.selectList(
+                new LambdaQueryWrapper<PurchaseDetailEntity>()
+                        .eq(PurchaseDetailEntity::getPurchaseId, purchaseId));
+
+        BigDecimal amount = details.stream()
+                .map(PurchaseDetailEntity::getSkuPrice)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        LambdaUpdateWrapper<PurchaseEntity> updateWrapper = new LambdaUpdateWrapper<>(PurchaseEntity.class);
+        updateWrapper.eq(PurchaseEntity::getId, purchaseId)
+                .set(PurchaseEntity::getAmount, amount)
+                .set(PurchaseEntity::getUpdateTime, new Date());
+        if (details.isEmpty()) {
+            updateWrapper.setSql("ware_id = null");
+        } else {
+            updateWrapper.set(PurchaseEntity::getWareId, details.get(0).getWareId());
+        }
+        baseMapper.update(updateWrapper);
     }
 
 }

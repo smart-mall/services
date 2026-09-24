@@ -12,6 +12,7 @@ import ware.service.PurchaseService;
 import ware.vo.MergeVO;
 import ware.vo.PurchaseAssignVO;
 import ware.vo.PurchaseDoneVO;
+import ware.vo.PurchaseReceiveVO;
 
 import java.util.Arrays;
 import java.util.List;
@@ -48,9 +49,9 @@ public class PurchaseController {
      * 接受采购单
      */
     @PostMapping("/receive")
-    public R receive(@RequestBody List<Long> ids){
-        log.info("接受采购单: {}", ids);
-        purchaseService.receive(ids);
+    public R receive(@RequestBody PurchaseReceiveVO receiveVO){
+        log.info("接受采购单: {}", receiveVO);
+        purchaseService.receive(receiveVO);
 
         return R.ok();
     }

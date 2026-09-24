@@ -20,6 +20,7 @@ import ware.feign.ProductFeignService;
 import ware.service.PurchaseDetailService;
 import ware.service.WareInfoService;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -182,6 +183,10 @@ public class PurchaseDetailServiceImpl extends ServiceImpl<PurchaseDetailDao, Pu
         }
         if (detail.getWareId() == null) {
             throw new ValidationException("wareId", "请选择仓库");
+        }
+        // skuPrice 是"这条需求的采购金额"（总额），不是单价 —— 采购单的总金额是它求和
+        if (detail.getSkuPrice() == null || detail.getSkuPrice().compareTo(BigDecimal.ZERO) < 0) {
+            throw new ValidationException("skuPrice", "请填写采购金额");
         }
         // 仓库不存在的话，采购完成会入库到一个不存在的仓库
         if (wareInfoService.getById(detail.getWareId()) == null) {

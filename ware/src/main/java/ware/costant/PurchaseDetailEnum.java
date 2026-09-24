@@ -35,8 +35,11 @@ public enum PurchaseDetailEnum {
         return code != null && code == ASSIGNED.code;
     }
 
-    /** 完成采购时每一条只接受这两个结果 */
-    public static boolean isFinalResult(Integer code) {
+    /**
+     * 终态：已完成 / 采购失败。完成采购时每条只接受这两个结果，
+     * 也是"这条需求可以随仓库一起删掉"的前提。
+     */
+    public static boolean isFinal(Integer code) {
         return code != null && (code == FINISH.code || code == HASERROR.code);
     }
 

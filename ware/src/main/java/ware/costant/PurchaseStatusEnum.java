@@ -37,6 +37,16 @@ public enum PurchaseStatusEnum {
         return code != null && code == RECEIVE.code;
     }
 
+    /** 领取：必须先分配采购员。新建的单直接领走等于跳过了"分配"这一步 */
+    public static boolean canReceive(Integer code) {
+        return code != null && code == ASSIGNED.code;
+    }
+
+    /** 终态：已完成 / 有异常。终态的单不再参与流程，可以随仓库一起删掉 */
+    public static boolean isFinal(Integer code) {
+        return code != null && (code == FINISH.code || code == HASERROR.code);
+    }
+
     /** isOpen 的状态码集合，给"查所有还没领取的单"这种查询条件用，免得在 SQL 条件里再抄一遍规则 */
     public static List<Integer> openCodes() {
         return Arrays.stream(values()).filter(status -> isOpen(status.code)).map(status -> status.code).toList();
@@ -45,10 +55,17 @@ public enum PurchaseStatusEnum {
     /** 这个状态下允许的操作，列表接口按行返回，前端据此决定按钮显不显示 */
     public static List<String> allowedActions(Integer code) {
         List<String> actions = new ArrayList<>();
+        // 还没开始采购的才能分配采购员
         if (isOpen(code)) {
             actions.add("assign");
-            actions.add("receive");
+        }
+        // 能删的两种：还没开始的（明细退回新建）、终态的（明细一起删）。
+        // 已领取的不行 —— 那是在途，删了采购员手上的单就凭空消失了
+        if (isOpen(code) || isFinal(code)) {
             actions.add("delete");
+        }
+        if (canReceive(code)) {
+            actions.add("receive");
         }
         if (canDone(code)) {
             actions.add("done");
