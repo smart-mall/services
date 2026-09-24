@@ -7,3 +7,4 @@ common.config.JwtConfig
 common.config.RabbitConfig
 common.config.FeignConfig
 common.config.SentinelConfig
+common.mq.MqAutoConfiguration

@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.exception.NoStockException;
 import common.mq.MqConstant;
+import common.mq.MqPublisher;
 import common.to.OrderTo;
 import common.to.mq.StockDetailTo;
 import common.to.mq.StockLockedTo;
@@ -15,7 +16,6 @@ import common.utils.PageUtils;
 import common.utils.Query;
 import common.utils.R;
 import lombok.Data;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,16 +45,16 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
 
     private final WareSkuDao wareSkuDao;
     private final ProductFeignService productFeignService;
-    private final RabbitTemplate rabbitTemplate;
+    private final MqPublisher mqPublisher;
     private final WareOrderTaskService wareOrderTaskService;
     private final WareOrderTaskDetailService wareOrderTaskDetailService;
     private final OrderFeignService orderFeignService;
     private final WareInfoService wareInfoService;
 
-    public WareSkuServiceImpl(WareSkuDao wareSkuDao, ProductFeignService productFeignService, RabbitTemplate rabbitTemplate, WareOrderTaskService wareOrderTaskService, WareOrderTaskDetailService wareOrderTaskDetailService, OrderFeignService orderFeignService, WareInfoService wareInfoService) {
+    public WareSkuServiceImpl(WareSkuDao wareSkuDao, ProductFeignService productFeignService, MqPublisher mqPublisher, WareOrderTaskService wareOrderTaskService, WareOrderTaskDetailService wareOrderTaskDetailService, OrderFeignService orderFeignService, WareInfoService wareInfoService) {
         this.wareSkuDao = wareSkuDao;
         this.productFeignService = productFeignService;
-        this.rabbitTemplate = rabbitTemplate;
+        this.mqPublisher = mqPublisher;
         this.wareOrderTaskService = wareOrderTaskService;
         this.wareOrderTaskDetailService = wareOrderTaskDetailService;
         this.orderFeignService = orderFeignService;
@@ -195,7 +195,7 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
                     StockDetailTo detailTo = new StockDetailTo();
                     BeanUtils.copyProperties(taskDetailEntity,detailTo);
                     lockedTo.setDetailTo(detailTo);
-                    rabbitTemplate.convertAndSend(MqConstant.Exchanges.STOCK_EVENT, MqConstant.RoutingKeys.STOCK_LOCKED, lockedTo);
+                    mqPublisher.publish(MqConstant.Exchanges.STOCK_EVENT, MqConstant.RoutingKeys.STOCK_LOCKED, lockedTo);
                     break;
                 } else {
                     //当前仓库锁失败，重试下一个仓库

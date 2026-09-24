@@ -16,6 +16,7 @@ import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
 import common.exception.ValidationException;
 import common.mq.MqConstant;
+import common.mq.MqPublisher;
 import common.to.OrderTo;
 import common.to.mq.SeckillOrderTo;
 import common.utils.PageUtils;
@@ -54,7 +55,6 @@ import order.vo.SkuStockVo;
 import order.vo.SpuInfoVo;
 import order.vo.SubmitOrderResponseVo;
 import order.vo.WareSkuLockVo;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -106,7 +106,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     private StringRedisTemplate redisTemplate;
 
     @Autowired
-    private RabbitTemplate rabbitTemplate;
+    private MqPublisher mqPublisher;
 
     @Autowired
     private PaymentInfoService paymentInfoService;
@@ -371,7 +371,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         //   消息已经发出去了但事务可能回滚（消费者会收到一个数据库里不存在的订单），
         //   购物车也已经删了但订单可能没落库。要改成注册 TransactionSynchronization.afterCommit。
         // TODO 订单创建成功，发送消息给MQ
-        rabbitTemplate.convertAndSend(MqConstant.Exchanges.ORDER_EVENT, MqConstant.RoutingKeys.ORDER_CREATE, order.getOrder());
+        mqPublisher.publish(MqConstant.Exchanges.ORDER_EVENT, MqConstant.RoutingKeys.ORDER_CREATE, order.getOrder());
         // 删除购物车里的数据
         redisTemplate.delete(CART_PREFIX + memberId);
 
@@ -639,7 +639,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         try {
             // TODO 阶段 4：先改库再发消息，发失败就丢了解锁库存的机会（这里只打日志）。
             //   要做的是本地消息表 + 定时重投，或者让 ware 那边容忍漏消息
-            rabbitTemplate.convertAndSend(MqConstant.Exchanges.ORDER_EVENT, MqConstant.RoutingKeys.ORDER_RELEASE_OTHER, orderTo);
+            mqPublisher.publish(MqConstant.Exchanges.ORDER_EVENT, MqConstant.RoutingKeys.ORDER_RELEASE_OTHER, orderTo);
         } catch (Exception e) {
             log.error("发送库存释放消息失败，orderSn={}", orderInfo.getOrderSn(), e);
         }

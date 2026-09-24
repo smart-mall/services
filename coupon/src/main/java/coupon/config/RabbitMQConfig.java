@@ -29,10 +29,7 @@ import org.springframework.context.annotation.Configuration;
  *
  * <p><b>为什么不能只是 basicReject(requeue=true)：</b>那样会把消息塞回队头全速重投，
  * 没有退避、没有上限、没有出口 —— 一条毒消息能把消费者打死，而且完全静默。
- * 项目里 ware / order 的三个监听器还是这个写法，尚未迁移。</p>
- *
- * <p>所有名称取自 {@link MqConstant}；和 product 侧的交换机声明引用同一个常量，
- * "同名同参数"由代码保证。</p>
+ * 项目里现有三个监听器都是这个写法，新代码不照抄。</p>
  */
 @Configuration
 public class RabbitMQConfig {
@@ -51,7 +48,6 @@ public class RabbitMQConfig {
                 MqConstant.RoutingKeys.COUPON_PRODUCT_DELETED_RETRY);
     }
 
-    /** product.deleted → 业务队列 */
     @Bean
     public Binding couponProductDeletedBinding() {
         return MqBuilder.bind(
@@ -66,8 +62,8 @@ public class RabbitMQConfig {
     }
 
     /**
-     * 重试队列。消息在这里躺 {@code PRODUCT_DELETED_RETRY} 毫秒，到期后按 x-dead-letter-*
-     * 死信回业务交换机，于是又回到业务队列 —— 等于"延迟 1 分钟再投一次"。
+     * 重试队列。消息在这里躺 TTL，到期后按 x-dead-letter-* 死信回业务交换机，
+     * 于是又回到业务队列 —— 等于"延迟 1 分钟再投一次"。
      */
     @Bean
     public Queue couponProductDeletedRetryQueue() {
@@ -78,7 +74,6 @@ public class RabbitMQConfig {
                 MqConstant.TtlMillis.PRODUCT_DELETED_RETRY);
     }
 
-    /** 重试路由键 → 重试队列 */
     @Bean
     public Binding couponProductDeletedRetryBinding() {
         return MqBuilder.bind(
@@ -93,12 +88,7 @@ public class RabbitMQConfig {
         return MqBuilder.durableQueue(MqConstant.Queues.COUPON_PRODUCT_DELETED_DLQ);
     }
 
-    /**
-     * 死信队列的绑定。
-     *
-     * <p>它的路由键与队列名<b>同值</b>（沿用既有拓扑），所以直接用队列名常量当路由键，
-     * 不再单独定义一个值相同的常量。</p>
-     */
+    /** 死信队列的绑定，路由键与队列名同值 */
     @Bean
     public Binding couponProductDeletedDlqBinding() {
         return MqBuilder.bind(

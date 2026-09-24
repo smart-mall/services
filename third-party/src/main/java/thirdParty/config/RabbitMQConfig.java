@@ -14,9 +14,6 @@ import org.springframework.context.annotation.Configuration;
  * <p>结构和 coupon 侧完全对称（业务队列 → DLX → TTL 重试队列 → 回到业务队列；重试到上限由
  * 监听器投进死信队列），只是换了前缀。<b>两个服务各自一个队列、各自消费同一条消息</b>，
  * 互不阻塞：coupon 挂了不影响清文件，反过来的道理也一样。</p>
- *
- * <p>所有名称取自 {@link MqConstant}；和 product 侧的交换机声明引用同一个常量，
- * "同名同参数"由代码保证。</p>
  */
 @Configuration
 public class RabbitMQConfig {
@@ -26,7 +23,7 @@ public class RabbitMQConfig {
         return MqBuilder.topicExchange(MqConstant.Exchanges.PRODUCT_EVENT);
     }
 
-    /** 业务队列：消费失败 nack 后由自己的 DLX 接走 */
+    /** 业务队列。消费失败 nack 后由自己的 DLX 接走 */
     @Bean
     public Queue thirdPartyProductDeletedQueue() {
         return MqBuilder.deadLetterQueue(
@@ -35,7 +32,6 @@ public class RabbitMQConfig {
                 MqConstant.RoutingKeys.THIRDPARTY_PRODUCT_DELETED_RETRY);
     }
 
-    /** product.deleted → 业务队列 */
     @Bean
     public Binding thirdPartyProductDeletedBinding() {
         return MqBuilder.bind(
@@ -59,7 +55,6 @@ public class RabbitMQConfig {
                 MqConstant.TtlMillis.PRODUCT_DELETED_RETRY);
     }
 
-    /** 重试路由键 → 重试队列 */
     @Bean
     public Binding thirdPartyProductDeletedRetryBinding() {
         return MqBuilder.bind(
@@ -74,7 +69,7 @@ public class RabbitMQConfig {
         return MqBuilder.durableQueue(MqConstant.Queues.THIRDPARTY_PRODUCT_DELETED_DLQ);
     }
 
-    /** 死信队列的绑定：路由键与队列名同值（沿用既有拓扑） */
+    /** 死信队列的绑定，路由键与队列名同值 */
     @Bean
     public Binding thirdPartyProductDeletedDlqBinding() {
         return MqBuilder.bind(

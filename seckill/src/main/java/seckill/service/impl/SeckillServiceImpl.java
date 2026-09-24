@@ -11,13 +11,13 @@ import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
 import common.mq.MqConstant;
+import common.mq.MqPublisher;
 import common.to.mq.SeckillOrderTo;
 import common.utils.R;
 import common.vo.MemberResponseVo;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RSemaphore;
 import org.redisson.api.RedissonClient;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.BoundHashOperations;
@@ -58,7 +58,7 @@ public class SeckillServiceImpl implements SeckillService {
     private RedissonClient redissonClient;
 
     @Autowired
-    private RabbitTemplate rabbitTemplate;
+    private MqPublisher mqPublisher;
 
     /**
      * 活动缓存前缀
@@ -369,7 +369,7 @@ public class SeckillServiceImpl implements SeckillService {
         orderTo.setPromotionSessionId(redisTo.getPromotionSessionId());
         orderTo.setSkuId(redisTo.getSkuId());
         orderTo.setSeckillPrice(redisTo.getSeckillPrice());
-        rabbitTemplate.convertAndSend(
+        mqPublisher.publish(
                 MqConstant.Exchanges.ORDER_EVENT,
                 MqConstant.RoutingKeys.ORDER_SECKILL,
                 orderTo);
