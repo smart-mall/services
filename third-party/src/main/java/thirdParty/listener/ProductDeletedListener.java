@@ -1,6 +1,7 @@
 package thirdParty.listener;
 
 import com.rabbitmq.client.Channel;
+import common.mq.MqConstant;
 import common.to.mq.ProductDeletedTo;
 import common.utils.MqRetryUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -9,7 +10,6 @@ import org.springframework.amqp.rabbit.annotation.RabbitHandler;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;
-import thirdParty.config.RabbitMQConfig;
 import thirdParty.service.MediaService;
 
 import java.io.IOException;
@@ -31,7 +31,7 @@ import java.util.List;
  */
 @Slf4j
 @Component
-@RabbitListener(queues = RabbitMQConfig.PRODUCT_DELETED_QUEUE)
+@RabbitListener(queues = MqConstant.Queues.THIRDPARTY_PRODUCT_DELETED)
 public class ProductDeletedListener {
 
     /** 最多重试几次（不含首次投递） */
@@ -59,13 +59,13 @@ public class ProductDeletedListener {
             log.info("清理商品图片完成：spuIds={}，文件数={}", to.getSpuIds(),
                     to.getImageUrls() == null ? 0 : to.getImageUrls().size());
         } catch (Exception e) {
-            int retried = MqRetryUtils.attemptCount(message, RabbitMQConfig.PRODUCT_DELETED_QUEUE);
+            int retried = MqRetryUtils.attemptCount(message, MqConstant.Queues.THIRDPARTY_PRODUCT_DELETED);
             if (retried >= MAX_RETRY) {
-                rabbitTemplate.convertAndSend(RabbitMQConfig.PRODUCT_DELETED_DLX,
-                        RabbitMQConfig.DLQ_ROUTING_KEY, to);
+                rabbitTemplate.convertAndSend(MqConstant.Exchanges.THIRDPARTY_PRODUCT_DELETED_DLX,
+                        MqConstant.Queues.THIRDPARTY_PRODUCT_DELETED_DLQ, to);
                 channel.basicAck(deliveryTag, false);
                 log.error("清理商品图片重试 {} 次仍失败，已投入死信队列 {}：spuIds={}",
-                        retried, RabbitMQConfig.PRODUCT_DELETED_DLQ, to.getSpuIds(), e);
+                        retried, MqConstant.Queues.THIRDPARTY_PRODUCT_DELETED_DLQ, to.getSpuIds(), e);
             } else {
                 channel.basicNack(deliveryTag, false, false);
                 log.warn("清理商品图片失败，交由重试队列延迟重投（已重试 {} 次）：spuIds={}",

@@ -1,6 +1,7 @@
 package ware.listener;
 
 import com.rabbitmq.client.Channel;
+import common.mq.MqConstant;
 import common.to.OrderTo;
 import common.to.mq.StockLockedTo;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +22,7 @@ import java.io.IOException;
  **/
 
 @Slf4j
-@RabbitListener(queues = "stock.release.stock.queue")
+@RabbitListener(queues = MqConstant.Queues.STOCK_RELEASE)
 @Service
 public class StockReleaseListener {
 

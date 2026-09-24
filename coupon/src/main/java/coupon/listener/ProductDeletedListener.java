@@ -1,9 +1,9 @@
 package coupon.listener;
 
 import com.rabbitmq.client.Channel;
+import common.mq.MqConstant;
 import common.to.mq.ProductDeletedTo;
 import common.utils.MqRetryUtils;
-import coupon.config.RabbitMQConfig;
 import coupon.service.ProductCleanupService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Message;
@@ -28,7 +28,7 @@ import java.io.IOException;
  */
 @Slf4j
 @Component
-@RabbitListener(queues = RabbitMQConfig.PRODUCT_DELETED_QUEUE)
+@RabbitListener(queues = MqConstant.Queues.COUPON_PRODUCT_DELETED)
 public class ProductDeletedListener {
 
     /** 最多重试几次（不含首次投递）。4 次都失败基本就不是抖动，而是数据或代码问题 */
@@ -50,14 +50,14 @@ public class ProductDeletedListener {
             channel.basicAck(deliveryTag, false);
             log.info("清理商品优惠数据完成：spuIds={}，skuIds={}", to.getSpuIds(), to.getSkuIds());
         } catch (Exception e) {
-            int retried = MqRetryUtils.attemptCount(message, RabbitMQConfig.PRODUCT_DELETED_QUEUE);
+            int retried = MqRetryUtils.attemptCount(message, MqConstant.Queues.COUPON_PRODUCT_DELETED);
             if (retried >= MAX_RETRY) {
                 // 到上限了：投到死信队列让人看见，别再无限打转
-                rabbitTemplate.convertAndSend(RabbitMQConfig.PRODUCT_DELETED_DLX,
-                        RabbitMQConfig.DLQ_ROUTING_KEY, to);
+                rabbitTemplate.convertAndSend(MqConstant.Exchanges.COUPON_PRODUCT_DELETED_DLX,
+                        MqConstant.Queues.COUPON_PRODUCT_DELETED_DLQ, to);
                 channel.basicAck(deliveryTag, false);
                 log.error("清理商品优惠数据重试 {} 次仍失败，已投入死信队列 {}：spuIds={}",
-                        retried, RabbitMQConfig.PRODUCT_DELETED_DLQ, to.getSpuIds(), e);
+                        retried, MqConstant.Queues.COUPON_PRODUCT_DELETED_DLQ, to.getSpuIds(), e);
             } else {
                 // requeue=false：不走"塞回队头"，而是交给队列自己的 DLX → 重试队列延迟 1 分钟
                 channel.basicNack(deliveryTag, false, false);

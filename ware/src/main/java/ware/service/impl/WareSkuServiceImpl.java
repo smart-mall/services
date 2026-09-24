@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.exception.NoStockException;
+import common.mq.MqConstant;
 import common.to.OrderTo;
 import common.to.mq.StockDetailTo;
 import common.to.mq.StockLockedTo;
@@ -194,7 +195,7 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
                     StockDetailTo detailTo = new StockDetailTo();
                     BeanUtils.copyProperties(taskDetailEntity,detailTo);
                     lockedTo.setDetailTo(detailTo);
-                    rabbitTemplate.convertAndSend("stock-event-exchange","stock.locked",lockedTo);
+                    rabbitTemplate.convertAndSend(MqConstant.Exchanges.STOCK_EVENT, MqConstant.RoutingKeys.STOCK_LOCKED, lockedTo);
                     break;
                 } else {
                     //当前仓库锁失败，重试下一个仓库

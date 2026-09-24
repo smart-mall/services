@@ -1,6 +1,7 @@
 package order.listener;
 
 import com.rabbitmq.client.Channel;
+import common.mq.MqConstant;
 import order.entity.OrderEntity;
 import order.service.OrderService;
 import org.springframework.amqp.core.Message;
@@ -18,7 +19,7 @@ import java.io.IOException;
  * @createTime: 2020-07-07 09:54
  **/
 
-@RabbitListener(queues = "order.release.order.queue")
+@RabbitListener(queues = MqConstant.Queues.ORDER_RELEASE)
 @Service
 public class OrderCloseListener {
 

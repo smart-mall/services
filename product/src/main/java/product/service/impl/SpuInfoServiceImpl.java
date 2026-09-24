@@ -10,6 +10,7 @@ import common.constant.ProductConstant;
 import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
 import common.exception.ValidationException;
+import common.mq.MqConstant;
 import common.to.SkuReductionTo;
 import common.to.SpuBoundTo;
 import common.to.mq.ProductDeletedTo;
@@ -24,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
-import product.config.RabbitMQConfig;
 import product.dao.*;
 import product.entity.*;
 import product.feign.CouponFeignService;
@@ -300,8 +300,8 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
         // 永远没人清理的孤儿。落消息是唯一让两边都有据可依的做法：
         // 这条 insert 和上面 7 张表的删除在同一个事务里，所以提交成功 == 商品没了 + 一定有一条待投递消息。
         String messageId = mqMessageService.savePending(
-                RabbitMQConfig.PRODUCT_EVENT_EXCHANGE,
-                RabbitMQConfig.PRODUCT_DELETED_ROUTING_KEY,
+                MqConstant.Exchanges.PRODUCT_EVENT,
+                MqConstant.RoutingKeys.PRODUCT_DELETED,
                 new ProductDeletedTo(existingSpuIds, skuIds, imageUrls));
 
         // 提交之后再投。放进事务里发，一旦回滚消息已经出去了，消费方会去清理一个还活着的商品

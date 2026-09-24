@@ -10,6 +10,7 @@ import com.alibaba.fastjson.TypeReference;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
+import common.mq.MqConstant;
 import common.to.mq.SeckillOrderTo;
 import common.utils.R;
 import common.vo.MemberResponseVo;
@@ -369,8 +370,8 @@ public class SeckillServiceImpl implements SeckillService {
         orderTo.setSkuId(redisTo.getSkuId());
         orderTo.setSeckillPrice(redisTo.getSeckillPrice());
         rabbitTemplate.convertAndSend(
-                "order-event-exchange",
-                "order.seckill.order",
+                MqConstant.Exchanges.ORDER_EVENT,
+                MqConstant.RoutingKeys.ORDER_SECKILL,
                 orderTo);
 
         log.info("秒杀成功，memberId={}，killId={}，num={}，orderSn={}，耗时={}ms",

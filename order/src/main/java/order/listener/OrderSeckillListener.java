@@ -1,6 +1,7 @@
 package order.listener;
 
 import com.rabbitmq.client.Channel;
+import common.mq.MqConstant;
 import common.to.mq.SeckillOrderTo;
 import lombok.extern.slf4j.Slf4j;
 import order.service.OrderService;
@@ -21,7 +22,7 @@ import java.io.IOException;
 
 @Slf4j
 @Component
-@RabbitListener(queues = "order.seckill.order.queue")
+@RabbitListener(queues = MqConstant.Queues.ORDER_SECKILL)
 public class OrderSeckillListener {
 
     @Autowired
