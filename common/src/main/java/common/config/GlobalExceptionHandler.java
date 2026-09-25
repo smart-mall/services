@@ -4,7 +4,6 @@ import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
 import common.exception.ValidationException;
 import common.utils.R;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
@@ -159,28 +158,20 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 兜底。
+     * 兜底。未预期异常（NPE、字段超长…）本来会走 Spring 默认的 {@code {timestamp,status,error,path}}，
+     * 没有 code / msg，而调用方判断的是 {@code body.code} —— 这里统一补成 {@code {code, msg}}。
      *
-     * <p>以前这段是注释掉的，于是任何未预期异常（NPE、字段超长触发的
-     * {@code DataIntegrityViolationException}…）都会走 Spring 的默认 500 响应体
-     * {@code {timestamp,status,error,path}} —— 没有 code、没有 msg。而调用方是判断
-     * {@code body.code} 的，结果就是"只显示失败、取不到原因"。renren-fast 有兜底、
-     * 其余模块没有，两半边表现还不一样，所以必须补上。</p>
-     *
-     * <p><b>Spring MVC 自己的异常要放行状态码</b>：405 方法不支持、415 媒体类型不支持
-     * 这类异常带着语义化的 HTTP 状态码，把它们吞成 200 + 10000 会让调用方分不清
-     * "我调错了"和"服务挂了"。这里把状态码透传出去，响应体仍然补成统一的 {@code {code, msg}}。</p>
-     *
-     * <p>真实异常只进日志：响应体不回显 {@code ex.getMessage()}，那是内部实现细节
-     * （表名、SQL、类名），既帮不到调用方也泄露实现。</p>
+     * <p>405 方法不支持、415 媒体类型不支持这类"调用方式不对"单独给码，和 10000 那种真异常分开，
+     * 否则调用方分不清"我调错了"和"服务挂了"。真实异常只进日志：响应体不回显 {@code ex.getMessage()}，
+     * 那是表名、SQL、类名这类内部细节。</p>
      */
     @ExceptionHandler(Exception.class)
-    public R handleUnexpectedException(Exception ex, HttpServletResponse response) {
+    public R handleUnexpectedException(Exception ex) {
         if (ex instanceof ErrorResponse errorResponse) {
-            int status = errorResponse.getStatusCode().value();
-            log.warn("请求不被接受: status={} {}", status, ex.getMessage());
-            response.setStatus(status);
-            return R.error(status, "请求方式、路径或内容类型不被接受，请检查调用方式");
+            // 状态码也压平成 200，具体状态只进日志
+            log.warn("请求不被接受: status={} {}", errorResponse.getStatusCode().value(), ex.getMessage());
+            return R.error(BaseCodeEnum.REQUEST_NOT_ACCEPTABLE.getCode(),
+                    BaseCodeEnum.REQUEST_NOT_ACCEPTABLE.getMsg());
         }
         log.error("未预期异常:", ex);
         return R.error(BaseCodeEnum.UNKNOWN_EXCEPTION.getCode(), BaseCodeEnum.UNKNOWN_EXCEPTION.getMsg());

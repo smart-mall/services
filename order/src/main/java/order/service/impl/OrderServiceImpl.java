@@ -36,7 +36,6 @@ import order.feign.CartFeignService;
 import order.feign.MemberFeignService;
 import order.feign.ProductFeignService;
 import order.feign.WmsFeignService;
-import order.interceptor.LoginUserInterceptor;
 import order.service.OrderItemService;
 import order.service.OrderService;
 import order.service.PaymentInfoService;
@@ -134,41 +133,18 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     /* ═══════════════════ 当前会员与归属校验 ═══════════════════ */
 
     /**
-     * 当前登录会员 id。
-     *
-     * <p>正常不可达的空分支：{@code LoginUserInterceptor} 已经把所有请求的匿名情况拦成 401 了。
-     * 留着是因为这里依赖拦截器的注册，注册被改掉时要给出"没登录"而不是一个 NPE。</p>
+     * 按订单号取订单，并确认它属于该会员。不属于自己的订单一律按"不存在"报，不报"无权访问" ——
+     * 后者等于告诉调用方"这个订单号存在，只是不属于你"，那是个用户枚举点。
      */
-    private Long currentMemberId() {
-        MemberResponseVo user = LoginUserInterceptor.loginUser.get();
-        if (user == null || user.getId() == null) {
-            throw new BaseException(BaseCodeEnum.NOT_LOGIN_EXCEPTION);
-        }
-        return user.getId();
-    }
-
-    /**
-     * 按订单号取订单，并确认它属于当前登录会员。
-     *
-     * <p>不属于自己的订单一律按"不存在"报，<b>不报"无权访问"</b> —— 后者等于告诉调用方
-     * "这个订单号是存在的，只是不属于你"，那是个用户枚举点。之所以需要这道校验：
-     * 原来按订单号查的地方（支付、订单查询）只校验了"登录"，没校验"归属"，
-     * 拿到别人的订单号就能生成支付表单或读到收货人电话地址。</p>
-     */
-    private OrderEntity requireOwnOrder(String orderSn) {
+    private OrderEntity requireOwnOrder(MemberResponseVo user, String orderSn) {
         OrderEntity order = getOrderByOrderSn(orderSn);
-        if (order == null || !currentMemberId().equals(order.getMemberId())) {
+        if (order == null || !user.getId().equals(order.getMemberId())) {
             throw new BaseException(BaseCodeEnum.ORDER_NOT_FOUND);
         }
         return order;
     }
 
-    /**
-     * 确认 addrId 在当前会员的地址列表里。
-     *
-     * <p>为什么必须校验：{@code addrId} 是前端传的，而 ware 的 getFare 只按 id 查地址、
-     * 不校验归属，地址 id 又是自增的 —— 不查这一下就能把订单寄到任意地址去。</p>
-     */
+    /** 确认 addrId 在该会员的地址列表里：addrId 是前端传的，而 ware 只按 id 查地址、不校验归属 */
     private MemberAddressVo requireOwnAddress(Long addrId, List<MemberAddressVo> addresses) {
         if (addrId == null || addresses == null) {
             throw new BaseException(BaseCodeEnum.ADDRESS_NOT_FOUND);
@@ -179,17 +155,17 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
                 .orElseThrow(() -> new BaseException(BaseCodeEnum.ADDRESS_NOT_FOUND));
     }
 
-    /** 当前会员的全部收货地址。按 memberId 查，天然带归属过滤 */
-    private List<MemberAddressVo> memberAddresses() {
-        List<MemberAddressVo> addresses = memberFeignService.getAddress(currentMemberId());
+    /** 该会员的全部收货地址。按 memberId 查，天然带归属过滤 */
+    private List<MemberAddressVo> memberAddresses(MemberResponseVo user) {
+        List<MemberAddressVo> addresses = memberFeignService.getAddress(user.getId());
         return addresses == null ? List.of() : addresses;
     }
 
     /* ═══════════════════ 结算 ═══════════════════ */
 
     @Override
-    public OrderConfirmVo confirmOrder() {
-        Long memberId = currentMemberId();
+    public OrderConfirmVo confirmOrder(MemberResponseVo user) {
+        Long memberId = user.getId();
         OrderConfirmVo confirmVo = new OrderConfirmVo();
 
         // 三个远程调用互不依赖，并行发。
@@ -272,7 +248,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         confirmVo.setFreightAmount(freightAmount);
         confirmVo.setPayAmount(totalAmount.add(freightAmount));
 
-        confirmVo.setIntegration(LoginUserInterceptor.loginUser.get().getIntegration());
+        confirmVo.setIntegration(user.getIntegration());
 
         // 防重令牌
         String orderToken = UUID.randomUUID().toString().replace("-", "");
@@ -287,8 +263,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     }
 
     @Override
-    public FareVo getFare(Long addrId) {
-        requireOwnAddress(addrId, memberAddresses());
+    public FareVo getFare(MemberResponseVo user, Long addrId) {
+        requireOwnAddress(addrId, memberAddresses(user));
         return fetchFare(addrId);
     }
 
@@ -314,12 +290,12 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
      */
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public SubmitOrderResponseVo submitOrder(OrderSubmitVo vo) {
-        Long memberId = currentMemberId();
+    public SubmitOrderResponseVo submitOrder(MemberResponseVo user, OrderSubmitVo vo) {
+        Long memberId = user.getId();
 
         // 0、地址归属。放在最前面：其它步骤都有副作用（删令牌、落库、锁库存），
         //    校验失败时要保证什么都没动过
-        requireOwnAddress(vo.getAddrId(), memberAddresses());
+        requireOwnAddress(vo.getAddrId(), memberAddresses(user));
 
         // 1、验证令牌是否合法【令牌的对比和删除必须保证原子性】
         //    0 令牌失败 - 1 删除成功
@@ -335,7 +311,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         }
 
         // 2、创建订单、订单项等信息
-        OrderCreateTo order = createOrder(vo);
+        OrderCreateTo order = createOrder(user, vo);
 
         // 3、验证价格。用 compareTo 而不是相减比 double：两边 scale 不同（前端传的是
         //    41941，库里算出来是 41941.0000），BigDecimal.equals 会判不等，compareTo 只比数值
@@ -383,8 +359,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     /* ═══════════════════ 我的订单 ═══════════════════ */
 
     @Override
-    public PageUtils queryMemberOrders(Map<String, Object> params) {
-        Long memberId = currentMemberId();
+    public PageUtils queryMemberOrders(MemberResponseVo user, Map<String, Object> params) {
+        Long memberId = user.getId();
 
         QueryWrapper<OrderEntity> wrapper = new QueryWrapper<OrderEntity>()
                 .eq("member_id", memberId)
@@ -417,8 +393,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     }
 
     @Override
-    public OrderEntity getOrderDetail(String orderSn) {
-        OrderEntity order = requireOwnOrder(orderSn);
+    public OrderEntity getOrderDetail(MemberResponseVo user, String orderSn) {
+        OrderEntity order = requireOwnOrder(user, orderSn);
         order.setOrderItemEntityList(
                 orderItemService.list(new QueryWrapper<OrderItemEntity>().eq("order_sn", orderSn)));
         order.setStatusText(statusText(order.getStatus()));
@@ -492,8 +468,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     /* ═══════════════════ 支付 ═══════════════════ */
 
     @Override
-    public PayResultVo payOrder(String orderSn, Integer payType) {
-        OrderEntity order = requireOwnOrder(orderSn);
+    public PayResultVo payOrder(MemberResponseVo user, String orderSn, Integer payType) {
+        OrderEntity order = requireOwnOrder(user, orderSn);
 
         // 只有待付款能发起支付：已支付/已取消的订单再拉起收银台没有意义，
         // 而支付宝那边对同一 out_trade_no 重复下单也会报错
@@ -577,8 +553,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     }
 
     @Override
-    public OrderStatusVo getMyOrderStatus(String orderSn) {
-        return toStatusVo(requireOwnOrder(orderSn));
+    public OrderStatusVo getMyOrderStatus(MemberResponseVo user, String orderSn) {
+        return toStatusVo(requireOwnOrder(user, orderSn));
     }
 
     private OrderStatusVo toStatusVo(OrderEntity order) {
@@ -592,8 +568,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     /* ═══════════════════ 取消 / 关单 ═══════════════════ */
 
     @Override
-    public void cancelOrder(String orderSn) {
-        OrderEntity order = requireOwnOrder(orderSn);
+    public void cancelOrder(MemberResponseVo user, String orderSn) {
+        OrderEntity order = requireOwnOrder(user, orderSn);
         if (!OrderStatusEnum.CREATE_NEW.getCode().equals(order.getStatus())) {
             throw new BaseException(BaseCodeEnum.ORDER_STATUS_INVALID);
         }
@@ -663,13 +639,13 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     }
 
 
-    private OrderCreateTo createOrder(OrderSubmitVo submitVo) {
+    private OrderCreateTo createOrder(MemberResponseVo user, OrderSubmitVo submitVo) {
 
         OrderCreateTo createTo = new OrderCreateTo();
 
         //1、生成订单号
         String orderSn = IdWorker.getTimeId();
-        OrderEntity orderEntity = builderOrder(orderSn, submitVo);
+        OrderEntity orderEntity = builderOrder(user, orderSn, submitVo);
 
         //2、获取到所有的订单项
         List<OrderItemEntity> orderItemEntities = builderOrderItems(orderSn);
@@ -735,21 +711,13 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     }
 
 
-    /**
-     * 组装订单主表。
-     *
-     * <p>提交用的 {@link OrderSubmitVo} 从参数传进来，不再走 ThreadLocal ——
-     * 原来靠 {@code confirmVoThreadLocal} 在 submitOrder 里 set、在 builderOrder 里 get，
-     * 相隔好几层调用，读代码根本看不出 addrId 是哪来的。</p>
-     */
-    private OrderEntity builderOrder(String orderSn, OrderSubmitVo submitVo) {
-
-        MemberResponseVo memberResponseVo = LoginUserInterceptor.loginUser.get();
+    /** 组装订单主表。提交用的 {@link OrderSubmitVo} 和会员身份都从参数传进来 */
+    private OrderEntity builderOrder(MemberResponseVo user, String orderSn, OrderSubmitVo submitVo) {
 
         OrderEntity orderEntity = new OrderEntity();
-        orderEntity.setMemberId(memberResponseVo.getId());
+        orderEntity.setMemberId(user.getId());
         orderEntity.setOrderSn(orderSn);
-        orderEntity.setMemberUsername(memberResponseVo.getUsername());
+        orderEntity.setMemberUsername(user.getUsername());
         orderEntity.setNote(submitVo.getRemarks());
 
         //远程获取收货地址和运费信息

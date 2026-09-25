@@ -27,22 +27,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 手机验证码这条链路：发码 + 登录。
- *
- * <p>和 {@link EmailAuthController} 完全对称 —— 同样<b>没有注册接口</b>，
- * 验证码校验通过之后按手机号找人，找不到就用请求里的账号新建一个。</p>
- *
- * <p>注意 third-party 服务里也有一个同名接口（{@code /thirdParty/sms/sendCode}），别调错：
- * 前端要调的是这个（走 {@code /api/auth/sms/sendCode}），它负责防刷和验证码的存取，
- * third-party 那个只负责真正把短信发出去。</p>
- *
- * <p>参数名从 {@code phone} 改成了 {@code mobile}，和 {@code ums_member.mobile}、
- * third-party 那边的签名对齐。</p>
+ * 手机验证码这条链路：发码 + 登录，没有单独的注册接口（按手机号找不到人就新建）。
+ * third-party 里也有 {@code /thirdParty/sms/sendCode}，那个只负责真把短信发出去，别调错。
  */
 @Slf4j
 @RestController
 @Validated
-@RequestMapping("auth/sms")
+@RequestMapping("auth/front/sms")
 public class SmsAuthController extends AbstractLoginController {
 
     private final ThirdPartFeignService thirdPartFeignService;

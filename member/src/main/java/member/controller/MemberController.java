@@ -3,8 +3,10 @@ package member.controller;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import common.exception.BaseCodeEnum;
+import common.utils.LoginUserUtils;
 import common.utils.PageUtils;
 import common.utils.R;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import member.entity.MemberEntity;
 import member.exception.UsernameException;
@@ -179,6 +181,22 @@ public class MemberController {
     public R delete(@RequestBody Long[] ids){
 		memberService.removeByIds(Arrays.asList(ids));
 
+        return R.ok();
+    }
+
+
+    /** 换绑手机号，由 auth 在验证码校验通过后调用；号码已被别人绑定返回 15006 */
+    @PutMapping("/mobile/update")
+    public R changeMobile(@RequestParam("mobile") String mobile, HttpServletRequest request) {
+        memberService.changeMobile(LoginUserUtils.requireCurrentUser(request).getId(), mobile);
+        return R.ok();
+    }
+
+
+    /** 换绑邮箱，语义同 {@link #changeMobile}；被占用返回 15007 */
+    @PutMapping("/email/update")
+    public R changeEmail(@RequestParam("email") String email, HttpServletRequest request) {
+        memberService.changeEmail(LoginUserUtils.requireCurrentUser(request).getId(), email);
         return R.ok();
     }
 

@@ -41,7 +41,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 @RestController
 @Validated
-@RequestMapping("auth/email")
+@RequestMapping("auth/front/email")
 public class EmailAuthController extends AbstractLoginController {
 
     private final ThirdPartFeignService thirdPartFeignService;

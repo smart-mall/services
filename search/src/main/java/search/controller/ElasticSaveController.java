@@ -12,14 +12,14 @@ import search.service.ProductSaveService;
 
 import java.util.List;
 
-@RequestMapping("/search/save")
+@RequestMapping("/search/product")
 @RestController
 public class ElasticSaveController {
     @Autowired
     private ProductSaveService productSaveService;
 
     // 上架商品
-    @PostMapping("/product")
+    @PostMapping("/save")
     public R productStatusUp(@RequestBody List<SkuEsModel> models) {
         boolean b = productSaveService.productStatusUp(models);
         if (!b) {

@@ -2,37 +2,31 @@ package common.utils;
 
 import com.alibaba.fastjson.JSON;
 import common.exception.BaseCodeEnum;
+import common.exception.BaseException;
+import common.vo.AdminResponseVo;
 import common.vo.MemberResponseVo;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import static common.constant.AuthServerConstant.ADMIN_HEADER;
 import static common.constant.AuthServerConstant.MEMBER_CLAIMS_HEADER;
 
-/**
- * 下游服务从请求头里取当前登录用户。
- *
- * <p>登录态改成 JWT 之后的链路：前端把 token 放在 {@code Authorization: Bearer xxx}，
- * gateway 统一验签，然后把用户信息塞进 {@link common.constant.AuthServerConstant#MEMBER_CLAIMS_HEADER}
- * 请求头往下一层传，业务服务只认这个头 —— 不再解析 JWT、不再读 HttpSession，
- * 所以下游服务不需要引 jjwt。</p>
- *
- * <p>为什么头里的值要 Base64URL 再放：昵称可能是中文，而 HTTP 头按 ISO-8859-1 处理，
- * 直接塞中文取出来就是乱码。Base64 之后是纯 ASCII，怎么传都不会坏。</p>
- */
+/** 下游服务从网关注入的请求头里取当前登录者，不解析凭证。 */
 @Slf4j
 public final class LoginUserUtils {
+
+    /** Authorization 头里 token 的前缀。认证方案名大小写不敏感，但后面必须跟空白再接 token */
+    private static final String BEARER_PREFIX = "Bearer ";
 
     private LoginUserUtils() {
     }
 
-    /** 把用户信息编码成可以放进请求头的 ASCII 串。只编下面这几个字段，不要整个对象序列化 */
+    /** 会员身份，编码进 {@code X-Member-Claims}。只编下面这几个字段，不要整个对象序列化 */
     public static String encode(MemberResponseVo user) {
         if (user == null) {
             return null;
@@ -43,56 +37,75 @@ public final class LoginUserUtils {
         claims.put("nickname", user.getNickname());
         claims.put("header", user.getHeader());
         claims.put("integration", user.getIntegration());
-        // fastjson 默认不输出 null 字段
-        return Base64.getUrlEncoder().withoutPadding()
-                .encodeToString(JSON.toJSONBytes(claims));
+        return encode(claims);
     }
 
-    /** 解不出来就返回 null（当作未登录），不要把异常抛给业务 */
-    public static MemberResponseVo decode(String value) {
+    /** 管理员身份，编码进 {@code X-Admin} */
+    public static String encode(AdminResponseVo admin) {
+        if (admin == null) {
+            return null;
+        }
+        Map<String, Object> claims = new LinkedHashMap<>();
+        claims.put("id", admin.getId());
+        claims.put("username", admin.getUsername());
+        return encode(claims);
+    }
+
+    /** 当前登录会员；拿不到就抛 {@code 15004}（走 GlobalExceptionHandler 出 200 + code） */
+    public static MemberResponseVo requireCurrentUser(HttpServletRequest request) {
+        MemberResponseVo user = currentUser(request);
+        if (user == null || user.getId() == null) {
+            throw new BaseException(BaseCodeEnum.NOT_LOGIN_EXCEPTION);
+        }
+        return user;
+    }
+
+    /** 当前登录管理员；拿不到就抛 {@code 401}（管理端前端按 body 的 code 401 跳登录页） */
+    public static AdminResponseVo requireCurrentAdmin(HttpServletRequest request) {
+        AdminResponseVo admin = decode(header(request, ADMIN_HEADER), AdminResponseVo.class);
+        if (admin == null || admin.getId() == null) {
+            throw new BaseException(BaseCodeEnum.ADMIN_NOT_LOGIN_EXCEPTION);
+        }
+        return admin;
+    }
+
+    /** 从 Authorization 头取 Bearer token，格式不是 {@code Bearer <token>} 就返回 null */
+    public static String resolveBearer(String header) {
+        if (header == null) {
+            return null;
+        }
+        String value = header.trim();
+        if (!value.regionMatches(true, 0, BEARER_PREFIX, 0, BEARER_PREFIX.length())) {
+            return null;
+        }
+        String token = value.substring(BEARER_PREFIX.length()).trim();
+        return token.isEmpty() ? null : token;
+    }
+
+    private static MemberResponseVo currentUser(HttpServletRequest request) {
+        return decode(header(request, MEMBER_CLAIMS_HEADER), MemberResponseVo.class);
+    }
+
+    private static String header(HttpServletRequest request, String name) {
+        return request == null ? null : request.getHeader(name);
+    }
+
+    /** 解不出来返回 null，当作未登录 */
+    private static <T> T decode(String value, Class<T> type) {
         if (value == null || value.isBlank()) {
             return null;
         }
         try {
             byte[] json = Base64.getUrlDecoder().decode(value);
-            return JSON.parseObject(new String(json, StandardCharsets.UTF_8), MemberResponseVo.class);
+            return JSON.parseObject(new String(json, StandardCharsets.UTF_8), type);
         } catch (Exception e) {
-            log.warn("解析 {} 失败，按未登录处理", MEMBER_CLAIMS_HEADER, e);
+            log.warn("解析网关注入的身份失败，按未登录处理", e);
             return null;
         }
     }
 
-    /** 当前登录用户；未登录返回 null */
-    public static MemberResponseVo currentUser(HttpServletRequest request) {
-        if (request == null) {
-            return null;
-        }
-        return decode(request.getHeader(MEMBER_CLAIMS_HEADER));
-    }
-
-    /**
-     * 未登录时的统一响应：<b>HTTP 401</b> + {@code {code,msg}}。
-     *
-     * <p>为什么状态码必须是真 401：前端 request.ts 判断的是 HTTP 状态码 401 去清 localStorage 里的
-     * token，把 401 塞进 body 的 code 字段它认不出来。</p>
-     *
-     * <p>charset 也要显式写：Spring Boot 3.5 起不再给 application/json 自动补 charset，
-     * 少了它中文在部分客户端（比如 PowerShell 的 Invoke-RestMethod）会被按 Latin-1 解成乱码。</p>
-     */
-    public static void writeUnauthorized(HttpServletResponse response) throws IOException {
-        writeUnauthorized(response, BaseCodeEnum.NOT_LOGIN_EXCEPTION);
-    }
-
-    /**
-     * 同上，但错误码由调用方给。
-     *
-     * <p>需要它的只有一种情况：token <b>过期</b>要报 15005（前端提示"登录已过期"）而不是
-     * 15004（"请先登录"）。拦截器那边只遇到"这个头压根没有"，所以用上面那个无参版本。</p>
-     */
-    public static void writeUnauthorized(HttpServletResponse response, BaseCodeEnum codeEnum) throws IOException {
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        response.setContentType("application/json;charset=UTF-8");
-        response.setCharacterEncoding("UTF-8");
-        response.getWriter().write(JSON.toJSONString(R.error(codeEnum.getCode(), codeEnum.getMsg())));
+    /** Base64URL：HTTP 头按 ISO-8859-1 处理，中文昵称直接塞进去会乱码；fastjson 默认不输出 null 字段 */
+    private static String encode(Map<String, Object> claims) {
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(JSON.toJSONBytes(claims));
     }
 }

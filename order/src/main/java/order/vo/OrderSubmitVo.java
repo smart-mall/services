@@ -30,17 +30,12 @@ public class OrderSubmitVo {
     @NotBlank(message = "缺少防重令牌，请返回结算页重试")
     private String orderToken;
 
-    /**
-     * 应付价格。
-     *
-     * <p>前端回传的是"商品总额 + 运费"（这两个数由 {@code /order/front/confirm} 给全），
-     * 后端在 {@code submitOrder} 里和重新算出来的金额比对，不一致就拒单。</p>
-     */
+    /** 应付价格。前端回传"商品总额 + 运费"（由 {@code /order/front/jwt/confirm} 给全），提交时和重算结果比对 */
     @NotNull(message = "缺少应付金额")
     private BigDecimal payPrice;
 
     /** 订单备注 */
     private String remarks;
 
-    /** 会员 id 不在这里：从 {@code LoginUserInterceptor} 的 ThreadLocal 取，不接受前端传 */
+    /** 会员 id 不在这里：取网关注入的 {@code X-Member-Claims}，不接受前端传 */
 }

@@ -6,7 +6,6 @@ import ware.entity.PurchaseEntity;
 import ware.vo.MergeVO;
 import ware.vo.PurchaseAssignVO;
 import ware.vo.PurchaseDoneVO;
-import ware.vo.PurchaseReceiveVO;
 
 import java.util.List;
 import java.util.Map;
@@ -32,7 +31,8 @@ public interface PurchaseService extends IService<PurchaseEntity> {
 
     void removePurchase(List<Long> ids);
 
-    void receive(PurchaseReceiveVO receiveVO);
+    /** 领取采购单。领取人是当前登录管理员，只有这张单分配的采购员能领 */
+    void receive(Long currentAdminId, List<Long> ids);
 
     void done(PurchaseDoneVO purchaseDoneVO);
 }

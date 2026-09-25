@@ -60,6 +60,8 @@ public class ShiroConfig {
         filterMap.put("/swagger-resources/**", "anon");
         filterMap.put("/captcha.jpg", "anon");
         filterMap.put("/aaa.txt", "anon");
+        // 网关用它校验管理员 token，它本身就是"拿 token 换身份"，不能被 jwt 过滤器拦住
+        filterMap.put("/sys/usertoken/verify", "anon");
         filterMap.put("/**", "jwt");
         shiroFilter.setFilterChainDefinitionMap(filterMap);
 

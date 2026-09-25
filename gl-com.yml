@@ -152,8 +152,9 @@ services:
       - GrainMall-network
 
   # ==================== 业务服务（本地构建的 gl-* 镜像）====================
-  # 只做端口映射，不注入任何环境变量、不挂数据卷，连接参数取 common/src/main/resources/args.yaml
-  # 服务自身端口在各自 application.yaml 的 server.port 里写死，因此这里映射成宿主同端口
+  # 一律不映射端口：业务服务只允许经网关访问。映射到宿主机就等于开了一条绕过网关的路 ——
+  # 网关会把客户端手写的 X-Member-Claims / X-Admin 抹掉，直连不经过网关，伪造的头就被当成真的。
+  # 容器之间经 GrainMall-network 按服务名互访，服务端口在各自 application.yaml 的 server.port 里
   # 前置条件：镜像必须已存在于本机（本机构建的 gl-* 镜像，或 docker load / 从仓库 pull）
 
   gl-gateway:
@@ -179,8 +180,6 @@ services:
   gl-product:
     image: gl-product:latest
     container_name: gl-product
-    ports:
-      - "52400:52400"
     networks:
       - GrainMall-network
     depends_on:
@@ -195,8 +194,6 @@ services:
   gl-coupon:
     image: gl-coupon:latest
     container_name: gl-coupon
-    ports:
-      - "52100:52100"
     networks:
       - GrainMall-network
     depends_on:
@@ -210,8 +207,6 @@ services:
   gl-member:
     image: gl-member:latest
     container_name: gl-member
-    ports:
-      - "52200:52200"
     networks:
       - GrainMall-network
     depends_on:
@@ -225,8 +220,6 @@ services:
   gl-ware:
     image: gl-ware:latest
     container_name: gl-ware
-    ports:
-      - "52500:52500"
     networks:
       - GrainMall-network
     depends_on:
@@ -240,8 +233,6 @@ services:
   gl-order:
     image: gl-order:latest
     container_name: gl-order
-    ports:
-      - "52300:52300"
     networks:
       - GrainMall-network
     depends_on:
@@ -255,8 +246,6 @@ services:
   gl-search:
     image: gl-search:latest
     container_name: gl-search
-    ports:
-      - "52900:52900"
     networks:
       - GrainMall-network
     depends_on:
@@ -270,8 +259,6 @@ services:
   gl-third-party:
     image: gl-third-party:latest
     container_name: gl-third-party
-    ports:
-      - "52600:52600"
     networks:
       - GrainMall-network
     depends_on:
@@ -286,8 +273,6 @@ services:
   gl-auth:
     image: gl-auth:latest
     container_name: gl-auth
-    ports:
-      - "53100:53100"
     networks:
       - GrainMall-network
     depends_on:
@@ -301,8 +286,6 @@ services:
   gl-cart:
     image: gl-cart:latest
     container_name: gl-cart
-    ports:
-      - "53200:53200"
     networks:
       - GrainMall-network
     depends_on:
@@ -315,8 +298,6 @@ services:
   gl-seckill:
     image: gl-seckill:latest
     container_name: gl-seckill
-    ports:
-      - "53300:53300"
     networks:
       - GrainMall-network
     depends_on:
@@ -330,8 +311,6 @@ services:
   gl-renren-fast:
     image: gl-renren-fast:latest
     container_name: gl-renren-fast
-    ports:
-      - "58880:58880"
     networks:
       - GrainMall-network
     depends_on:

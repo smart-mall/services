@@ -5,30 +5,16 @@ public class AuthServerConstant {
 
     public static final String SMS_CODE_CACHE_PREFIX = "sms:code:";
 
-    /**
-     * 邮箱验证码在 Redis 里的 key 前缀，用法和 {@link #SMS_CODE_CACHE_PREFIX} 完全一致：
-     * value 是 {@code 验证码_写入时间戳}，防刷和一次性消费都靠它。
-     */
+    /** 邮箱验证码的 key 前缀，用法同 {@link #SMS_CODE_CACHE_PREFIX} */
     public static final String EMAIL_CODE_CACHE_PREFIX = "email:code:";
 
-    /**
-     * 网关验签通过之后注入的用户信息请求头。
-     *
-     * <p>登录态从 Session 换成 JWT 时把 {@code LOGIN_USER} 换成了这个头：
-     * 之前的做法是 auth 往 HttpSession 写 {@code loginUser}，依赖 Spring Session 把
-     * 会话共享到 Redis，所有服务再从 session 里读；现在头部请求由网关注入，业务服务只读头。</p>
-     *
-     * <p>值不是明文，是 Base64URL(UTF-8 JSON)，见 {@link common.utils.LoginUserUtils}。</p>
-     */
+    /** 当前登录会员。值是 Base64URL(UTF-8 JSON)，见 {@link common.utils.LoginUserUtils} */
     public static final String MEMBER_CLAIMS_HEADER = "X-Member-Claims";
 
-    /**
-     * 网关注入的客户端 IP 请求头。
-     *
-     * <p>网关是唯一拿得到真实客户端地址的地方：请求经网关转发之后，下游服务看到的
-     * remoteAddr 是网关自己。和 {@link #MEMBER_CLAIMS_HEADER} 一样，客户端自己传的同名头
-     * 会被网关抹掉，下游只能读到网关注入的值。</p>
-     */
+    /** 当前登录的后台管理员，编码方式同 {@link #MEMBER_CLAIMS_HEADER} */
+    public static final String ADMIN_HEADER = "X-Admin";
+
+    /** 客户端 IP。经网关转发后下游看到的 remoteAddr 是网关自己 */
     public static final String CLIENT_IP_HEADER = "X-Client-IP";
 
 

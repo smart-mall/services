@@ -1,5 +1,6 @@
 package seckill.service;
 
+import common.vo.MemberResponseVo;
 import seckill.to.SeckillSkuRedisTo;
 
 import java.util.List;
@@ -28,14 +29,12 @@ public interface SeckillService {
     /**
      * 秒杀下单：校验 + 扣信号量 + 发 MQ 让 order 异步建单。
      *
-     * <p>当前会员从 {@code LoginUserInterceptor} 写的 ThreadLocal 里取，和 order 模块同一套，
-     * 不接受前端传 memberId。</p>
-     *
+     * @param user   当前登录会员（控制器从 {@code X-Member-Claims} 取），不接受前端传 memberId
      * @param killId 场次id-skuId
      * @param key    随机码
      * @param num    购买数量
      * @return 秒杀订单号。注意<b>订单此时还没落库</b>，是 order 消费 MQ 之后才建的
      * @throws common.exception.BaseException 抢不到时按原因抛 18xxx（见 {@link common.exception.BaseCodeEnum}）
      */
-    String kill(String killId, String key, Integer num) throws InterruptedException;
+    String kill(MemberResponseVo user, String killId, String key, Integer num) throws InterruptedException;
 }

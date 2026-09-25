@@ -25,7 +25,6 @@ import ware.service.WareSkuService;
 import ware.vo.MergeVO;
 import ware.vo.PurchaseAssignVO;
 import ware.vo.PurchaseDoneVO;
-import ware.vo.PurchaseReceiveVO;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -361,15 +360,12 @@ public class PurchaseServiceImpl extends ServiceImpl<PurchaseDao, PurchaseEntity
      */
     @Override
     @Transactional
-    public void receive(PurchaseReceiveVO receiveVO) {
-        List<Long> distinctIds = receiveVO.getIds() == null
+    public void receive(Long currentAdminId, List<Long> ids) {
+        List<Long> distinctIds = ids == null
                 ? List.of()
-                : receiveVO.getIds().stream().filter(Objects::nonNull).distinct().toList();
+                : ids.stream().filter(Objects::nonNull).distinct().toList();
         if (distinctIds.isEmpty()) {
             throw new ValidationException("ids", "请先选择要领取的采购单");
-        }
-        if (receiveVO.getAssigneeId() == null) {
-            throw new ValidationException("assigneeId", "拿不到当前登录用户，请重新登录后再试");
         }
 
         List<PurchaseEntity> purchases = baseMapper.selectByIds(distinctIds);
@@ -386,7 +382,7 @@ public class PurchaseServiceImpl extends ServiceImpl<PurchaseDao, PurchaseEntity
 
         // 分配给谁就该谁领：别人（包括分配的人自己）不能替他把单领走
         List<Long> notMine = receivable.stream()
-                .filter(purchase -> !Objects.equals(purchase.getAssigneeId(), receiveVO.getAssigneeId()))
+                .filter(purchase -> !Objects.equals(purchase.getAssigneeId(), currentAdminId))
                 .map(PurchaseEntity::getId)
                 .toList();
         if (!notMine.isEmpty()) {
@@ -395,26 +391,26 @@ public class PurchaseServiceImpl extends ServiceImpl<PurchaseDao, PurchaseEntity
                             + "]不是分配给当前登录用户的，不能领取");
         }
 
-        List<Long> ids = receivable.stream().map(PurchaseEntity::getId).toList();
+        List<Long> receivableIds = receivable.stream().map(PurchaseEntity::getId).toList();
 
         List<PurchaseDetailEntity> details = purchaseDetailDao.selectList(new LambdaQueryWrapper<PurchaseDetailEntity>()
-                .in(PurchaseDetailEntity::getPurchaseId, ids));
+                .in(PurchaseDetailEntity::getPurchaseId, receivableIds));
         Set<Long> purchaseIdsWithDetail = details.stream()
                 .map(PurchaseDetailEntity::getPurchaseId)
                 .collect(Collectors.toSet());
-        if (!purchaseIdsWithDetail.containsAll(ids)) {
+        if (!purchaseIdsWithDetail.containsAll(receivableIds)) {
             throw new BaseException(BaseCodeEnum.PURCHASE_DETAIL_EMPTY);
         }
 
         LambdaUpdateWrapper<PurchaseEntity> updateChainWrapper = new LambdaUpdateWrapper<>(PurchaseEntity.class);
         updateChainWrapper.set(PurchaseEntity::getStatus, PurchaseStatusEnum.RECEIVE.getCode())
                 .set(PurchaseEntity::getUpdateTime, new Date())
-                .in(PurchaseEntity::getId, ids);
+                .in(PurchaseEntity::getId, receivableIds);
         baseMapper.update(updateChainWrapper);
 
         LambdaUpdateWrapper<PurchaseDetailEntity> updateWrapper = new LambdaUpdateWrapper<>(PurchaseDetailEntity.class);
         updateWrapper.set(PurchaseDetailEntity::getStatus, PurchaseDetailEnum.BUYING.getCode())
-                .in(PurchaseDetailEntity::getPurchaseId, ids)
+                .in(PurchaseDetailEntity::getPurchaseId, receivableIds)
                 .in(PurchaseDetailEntity::getStatus, PurchaseDetailEnum.ASSIGNED.getCode());
         purchaseDetailDao.update(updateWrapper);
     }

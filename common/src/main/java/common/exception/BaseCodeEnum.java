@@ -41,6 +41,8 @@ public enum BaseCodeEnum {
     TO_MANY_REQUEST(10003, "请求流量过大，请稍后再试"),
 
     SMS_CODE_EXCEPTION(10004,"验证码获取频率太高，请稍后再试"),
+    // 405 方法不支持、415 媒体类型不支持这类"调用方式不对"。状态码同样压平成 200，具体状态只进日志
+    REQUEST_NOT_ACCEPTABLE(10006, "请求方式、路径或内容类型不被接受，请检查调用方式"),
     USER_EXIST_EXCEPTION(15001,"存在相同的用户"),
     NO_STOCK_EXCEPTION(21000,"商品库存不足"),
     USERNAME_PASSWORD_EXCEPTION(15003,"账号或密码错误"),
@@ -86,10 +88,16 @@ public enum BaseCodeEnum {
     MEDIA_URL_INVALID(19003,"文件地址不合法"),
     MEDIA_STORAGE_ERROR(19004,"文件存储失败，请稍后重试"),
 
-    // 下面两个配合 HTTP 401 一起用。前端 request.ts 是看 HTTP 状态码 401 去清 token 的，
-    // 不看 body 里的 code，所以状态码必须是真 401，body 里的 code 只是给人看日志用的。
+    // 未登录。网关拒绝请求时用这两个码（HTTP 200 + code），前端据此清 token
     NOT_LOGIN_EXCEPTION(15004,"请先登录"),
     LOGIN_EXPIRED_EXCEPTION(15005,"登录已过期，请重新登录"),
+
+    // 后台管理端。401 是管理端前端识别"登录失效"的依据，renren 自己的 JWTFilter 也是这个码；
+    // 和会员侧的 15004/15005 分开，两边"重新登录"的入口不一样
+    ADMIN_NOT_LOGIN_EXCEPTION(401, "登录已失效，请重新登录"),
+
+    // 凭证由签发方校验，那边不可用时报这个：既不能当成"凭证无效"（用户会被莫名登出），也不能放行
+    AUTH_UNAVAILABLE(10005, "登录状态校验失败，请稍后重试"),
     ;
 
 

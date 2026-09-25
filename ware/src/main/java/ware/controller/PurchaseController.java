@@ -2,8 +2,10 @@ package ware.controller;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
+import common.utils.LoginUserUtils;
 import common.utils.PageUtils;
 import common.utils.R;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -12,7 +14,6 @@ import ware.service.PurchaseService;
 import ware.vo.MergeVO;
 import ware.vo.PurchaseAssignVO;
 import ware.vo.PurchaseDoneVO;
-import ware.vo.PurchaseReceiveVO;
 
 import java.util.Arrays;
 import java.util.List;
@@ -46,12 +47,12 @@ public class PurchaseController {
     }
 
     /**
-     * 接受采购单
+     * 接受采购单。领取人取网关注入的 {@code X-Admin}，不接受前端传
      */
     @PostMapping("/receive")
-    public R receive(@RequestBody PurchaseReceiveVO receiveVO){
-        log.info("接受采购单: {}", receiveVO);
-        purchaseService.receive(receiveVO);
+    public R receive(HttpServletRequest request, @RequestBody List<Long> ids){
+        log.info("接受采购单: {}", ids);
+        purchaseService.receive(LoginUserUtils.requireCurrentAdmin(request).getId(), ids);
 
         return R.ok();
     }

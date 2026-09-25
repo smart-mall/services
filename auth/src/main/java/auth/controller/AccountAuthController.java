@@ -16,19 +16,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * 账号密码这条链路：注册 + 登录。
- *
- * <p>和另外两条（邮箱验证码、手机验证码）是<b>各自独立</b>的：这条链路的账号不绑手机号也不绑邮箱，
- * 另外两条链路也不认密码。互不授予登录能力。</p>
- *
- * <p>路径前缀 {@code auth/account} 配合网关的 {@code Path=/api/auth/**} 路由
- * （重写规则会把 {@code /api} 去掉，所以前端写 {@code /api/auth/account/login}，
- * 到这里就是 {@code /auth/account/login}）。</p>
- */
+/** 账号密码这条链路：注册 + 登录。和邮箱/手机验证码两条链路各自独立，互不授予登录能力。 */
 @Slf4j
 @RestController
-@RequestMapping("auth/account")
+@RequestMapping("auth/front/account")
 public class AccountAuthController extends AbstractLoginController {
 
     private final MemberFeignService memberFeignService;

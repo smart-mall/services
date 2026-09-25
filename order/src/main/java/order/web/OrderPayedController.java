@@ -16,12 +16,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * @Description: 订单支付成功监听器
- * @Created: with IntelliJ IDEA.
- * @author: 夏沫止水
- * @createTime: 2020-07-08 17:39
- **/
-
+ * 第三方支付的异步通知。没有登录态，所以挂在 front 约定下的公开路径上；
+ * 响应必须是字面量 {@code success}，不能用 {@code R} 包。回调地址配在 application-common.yaml。
+ */
 @RestController
 public class OrderPayedController {
 
@@ -31,7 +28,7 @@ public class OrderPayedController {
     @Autowired
     private AlipayTemplate alipayTemplate;
 
-    @PostMapping(value = "/payed/notify")
+    @PostMapping(value = "/order/front/notify/alipay")
     public String handleAlipayed(PayAsyncVo asyncVo, HttpServletRequest request) throws AlipayApiException, UnsupportedEncodingException {
         // 只要收到支付宝的异步通知，返回 success 支付宝便不再通知
         // 获取支付宝POST过来反馈信息
@@ -64,7 +61,7 @@ public class OrderPayedController {
         }
     }
 
-    @PostMapping(value = "/pay/notify")
+    @PostMapping(value = "/order/front/notify/wx")
     public String asyncNotify(@RequestBody String notifyData) {
         //异步通知结果
         return orderService.asyncNotify(notifyData);

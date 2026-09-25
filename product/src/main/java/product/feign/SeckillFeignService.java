@@ -9,7 +9,7 @@ import product.fallback.SeckillFeignServiceFallBack;
 
 @FeignClient(value = "seckill",fallback = SeckillFeignServiceFallBack.class)
 public interface SeckillFeignService {
-    @GetMapping(value = "/sku/seckill/{skuId}")
+    @GetMapping(value = "/seckill/seckillsku/info/{skuId}")
     R getSkuSeckilInfo(@PathVariable("skuId") Long skuId);
 
 }

@@ -7,19 +7,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 订单确认页需要用的数据。
- *
- * <p>三个金额字段都是**后端算好**的，前端只负责显示和原样回传：</p>
- * <ul>
- *   <li>{@code totalAmount} = 各购物项 price × count 之和</li>
- *   <li>{@code freightAmount} = 默认收货地址的运费（换地址时调 {@code /order/front/fare} 重取）</li>
- *   <li>{@code payAmount} = 前两者之和，也就是前端提交时要回传的 {@code payPrice}</li>
- * </ul>
- *
- * <p>⚠️ 为什么要专门给 freighAmount：提交时 {@code submitOrder} 比对的是
- * "商品总额 + 运费"，而确认页原本只有商品总额 —— 只要运费大于 0，提交必然被判成
- * "价格已变动"。老页面是靠浏览器自己去 ware 拉运费、再用 JS 相加绕过去的，
- * 那既绕过归属校验，又让前端用浮点数算钱。</p>
+ * 订单确认页需要用的数据。三个金额都由后端算好，前端只负责显示和原样回传：
+ * {@code totalAmount} = 各购物项 price × count 之和，{@code freightAmount} = 默认收货地址的运费
+ * （换地址时调 {@code /order/front/jwt/fare} 重取），{@code payAmount} = 前两者之和，即提交时要回传的 {@code payPrice}。
  */
 @Data
 public class OrderConfirmVo {

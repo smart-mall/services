@@ -1,11 +1,9 @@
 package member.controller;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -14,10 +12,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import common.to.LoginLogTo;
-import common.utils.LoginUserUtils;
-import common.vo.MemberResponseVo;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import member.entity.MemberLoginLogEntity;
 import member.service.MemberLoginLogService;
 import common.utils.PageUtils;
@@ -52,25 +46,6 @@ public class MemberLoginLogController {
         memberLoginLogService.record(to);
 
         return R.ok();
-    }
-
-    /**
-     * 当前登录会员自己的登录记录，按时间倒序。参数 {@code pageNum / pageSize}。
-     *
-     * <p>会员 id 取自网关注入的 {@code X-Member-Claims}，不接受前端传 ——
-     * 传参的话就成了"读任意会员的登录 IP"。</p>
-     */
-    @GetMapping("/mine")
-    public R mine(@RequestParam Map<String, Object> params,
-                  HttpServletRequest request,
-                  HttpServletResponse response) throws IOException {
-        MemberResponseVo user = LoginUserUtils.currentUser(request);
-        if (user == null || user.getId() == null) {
-            LoginUserUtils.writeUnauthorized(response);
-            return null;
-        }
-
-        return R.ok().setData(memberLoginLogService.queryMine(user.getId(), params));
     }
 
     /**

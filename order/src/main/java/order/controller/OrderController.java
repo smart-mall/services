@@ -49,15 +49,10 @@ public class OrderController {
      * （{@code ware/feign/OrderFeignService} → {@code WareSkuServiceImpl#unLockStock}）。
      * 路径正好落在本类的 {@code order/order} 前缀下，所以放在这里，不另开控制器。</p>
      *
-     * <p>⚠️ 两件事必须保持：</p>
-     * <ul>
-     *   <li>它在 {@code LoginUserInterceptor} 的白名单里被放行 —— Feign 是在 MQ 监听线程里
-     *       发起的，没有请求上下文，带不了 {@code X-Member-Claims}。所以它免登录可访问，
-     *       返回的 {@link order.vo.OrderStatusVo} 只带 orderSn/status/statusText，
-     *       不能返回整个订单（那会把收货人姓名电话地址暴露出去）。</li>
-     *   <li>订单不存在时返回 {@code code=0 + data=null}，<b>不能报错</b> ——
-     *       ware 正是靠 data==null 判断"必须解锁库存"，报错会让它抛异常、消息无限重投。</li>
-     * </ul>
+     * <p>⚠️ 两件事必须保持：返回的 {@link order.vo.OrderStatusVo} 只带 orderSn/status/statusText
+     * —— Feign 从 MQ 监听线程发起、没有请求上下文，这条免登录可访问，返回整单会暴露收货人姓名电话地址；
+     * 订单不存在时返回 {@code code=0 + data=null} 而不是报错 —— ware 靠 data==null 判断"必须解锁库存"，
+     * 报错会让它抛异常、消息无限重投。</p>
      */
     @GetMapping("/status/{orderSn}")
     public R status(@PathVariable("orderSn") String orderSn){

@@ -26,7 +26,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import seckill.feign.CouponFeignService;
 import seckill.feign.ProductFeignService;
-import seckill.interceptor.LoginUserInterceptor;
 import seckill.service.SeckillService;
 import seckill.to.SeckillSkuRedisTo;
 import seckill.vo.SeckillSessionWithSkusVo;
@@ -282,25 +281,11 @@ public class SeckillServiceImpl implements SeckillService {
     }
 
 
-    /**
-     * 当前登录会员 id。
-     *
-     * <p>正常不可达的空分支：{@code LoginUserInterceptor} 已经把 {@code /seckill/front/kill}
-     * 的匿名情况拦成 401 了。留着是因为这里依赖拦截器的路径配置，配置被改掉时要给出"没登录"而不是一个 NPE。</p>
-     */
-    private Long currentMemberId() {
-        MemberResponseVo user = LoginUserInterceptor.loginUser.get();
-        if (user == null || user.getId() == null) {
-            throw new BaseException(BaseCodeEnum.NOT_LOGIN_EXCEPTION);
-        }
-        return user.getId();
-    }
-
     @Override
-    public String kill(String killId, String key, Integer num) throws InterruptedException {
+    public String kill(MemberResponseVo user, String killId, String key, Integer num) throws InterruptedException {
 
         long start = System.currentTimeMillis();
-        Long memberId = currentMemberId();
+        Long memberId = user.getId();
 
         //1、从 Redis 里取这次秒杀的商品信息。killId 就是那个 hash 的 field（场次id-skuId）
         BoundHashOperations<String, String, String> hashOps = redisTemplate.boundHashOps(SECKILL_CACHE_PREFIX);

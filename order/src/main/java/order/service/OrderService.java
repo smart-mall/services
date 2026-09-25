@@ -3,6 +3,7 @@ package order.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import common.to.mq.SeckillOrderTo;
 import common.utils.PageUtils;
+import common.vo.MemberResponseVo;
 import order.entity.OrderEntity;
 import order.vo.*;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,14 +23,14 @@ public interface OrderService extends IService<OrderEntity> {
     PageUtils queryPage(Map<String, Object> params);
 
     /** 结算页数据：收货地址、已勾选商品、库存、积分、防重令牌、金额 */
-    OrderConfirmVo confirmOrder();
+    OrderConfirmVo confirmOrder(MemberResponseVo user);
 
     /**
      * 计算指定收货地址的运费。
      *
-     * @throws common.exception.BaseException 地址不属于当前登录会员时抛 {@code ADDRESS_NOT_FOUND}
+     * @throws common.exception.BaseException 地址不属于该会员时抛 {@code ADDRESS_NOT_FOUND}
      */
-    FareVo getFare(Long addrId);
+    FareVo getFare(MemberResponseVo user, Long addrId);
 
     /**
      * 提交订单。
@@ -37,17 +38,17 @@ public interface OrderService extends IService<OrderEntity> {
      * @throws common.exception.BaseException 令牌失效 {@code ORDER_TOKEN_INVALID}、
      *         价格变动 {@code ORDER_PRICE_CHANGED}、库存不足 {@code NO_STOCK_EXCEPTION}
      */
-    SubmitOrderResponseVo submitOrder(OrderSubmitVo vo);
+    SubmitOrderResponseVo submitOrder(MemberResponseVo user, OrderSubmitVo vo);
 
     /** 我的订单分页。params 支持 pageNum / pageSize / status */
-    PageUtils queryMemberOrders(Map<String, Object> params);
+    PageUtils queryMemberOrders(MemberResponseVo user, Map<String, Object> params);
 
     /**
      * 订单详情（含订单项）。
      *
-     * @throws common.exception.BaseException 订单不存在或不属于当前会员时抛 {@code ORDER_NOT_FOUND}
+     * @throws common.exception.BaseException 订单不存在或不属于该会员时抛 {@code ORDER_NOT_FOUND}
      */
-    OrderEntity getOrderDetail(String orderSn);
+    OrderEntity getOrderDetail(MemberResponseVo user, String orderSn);
 
     OrderEntity getOrderByOrderSn(String orderSn);
 
@@ -57,7 +58,7 @@ public interface OrderService extends IService<OrderEntity> {
      * @throws common.exception.BaseException 订单不存在 {@code ORDER_NOT_FOUND}、
      *         状态不是待付款 {@code ORDER_STATUS_INVALID}
      */
-    PayResultVo payOrder(String orderSn, Integer payType);
+    PayResultVo payOrder(MemberResponseVo user, String orderSn, Integer payType);
 
     /**
      * 查订单状态。<b>内部接口</b>：ware 在释放库存前用它判断订单是否已取消。
@@ -70,9 +71,9 @@ public interface OrderService extends IService<OrderEntity> {
     /**
      * 查自己的订单状态（SPA 的扫码页轮询用）。
      *
-     * @throws common.exception.BaseException 订单不存在或不属于当前会员时抛 {@code ORDER_NOT_FOUND}
+     * @throws common.exception.BaseException 订单不存在或不属于该会员时抛 {@code ORDER_NOT_FOUND}
      */
-    OrderStatusVo getMyOrderStatus(String orderSn);
+    OrderStatusVo getMyOrderStatus(MemberResponseVo user, String orderSn);
 
     /**
      * 取消未支付的订单，并通知仓库释放库存。
@@ -80,7 +81,7 @@ public interface OrderService extends IService<OrderEntity> {
      * @throws common.exception.BaseException 订单不存在 {@code ORDER_NOT_FOUND}、
      *         状态不是待付款 {@code ORDER_STATUS_INVALID}
      */
-    void cancelOrder(String orderSn);
+    void cancelOrder(MemberResponseVo user, String orderSn);
 
     /** 关闭超时未支付的订单（由 MQ 延迟消息触发） */
     void closeOrder(OrderEntity orderEntity);

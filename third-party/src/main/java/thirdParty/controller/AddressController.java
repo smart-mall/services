@@ -6,8 +6,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import thirdParty.service.AddressService;
 
+/** 省市区地址树。前后台共用且不需要登录态，挂在 front 约定下的公开路径上 */
 @RestController
-@RequestMapping("/thirdParty/address")
+@RequestMapping("thirdParty/front/address")
 @Slf4j
 public class AddressController {
     private final AddressService addressService;
