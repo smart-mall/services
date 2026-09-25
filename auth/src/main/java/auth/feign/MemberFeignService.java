@@ -10,6 +10,7 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -78,4 +79,20 @@ public interface MemberFeignService {
      */
     @PostMapping(value = "/member/memberloginlog/record")
     R recordLoginLog(@RequestBody LoginLogTo to);
+
+    /**
+     * 换绑手机号。号码已被别人绑定时 member 返回 15006。
+     *
+     * <p>路径不带 member 前缀：那是 member 的服务间接口，经网关打不到
+     * （见 member 的 MemberInternalController）。改的是哪个账号，由 FeignConfig 自动转发的
+     * {@code X-Member-Claims} 决定，所以这里不传 memberId —— 传了就等于让浏览器也能指定改谁。</p>
+     *
+     * <p>验证码由 auth 校验（存 Redis），member 不参与。</p>
+     */
+    @PutMapping(value = "/internal/member/mobile")
+    R changeMobile(@RequestParam("mobile") String mobile);
+
+    /** 换绑邮箱，占用时返回 15007 */
+    @PutMapping(value = "/internal/member/email")
+    R changeEmail(@RequestParam("email") String email);
 }

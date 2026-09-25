@@ -4,8 +4,11 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import common.exception.BaseCodeEnum;
+import common.exception.BaseException;
 import common.utils.HttpUtils;
 import common.utils.PageUtils;
 import common.utils.Query;
@@ -16,6 +19,7 @@ import member.entity.MemberEntity;
 import member.entity.MemberLevelEntity;
 import member.exception.UsernameException;
 import member.service.MemberService;
+import member.vo.MemberProfileUpdateVo;
 import member.vo.MemberUserRegisterVo;
 import member.vo.QQUserInfo;
 import member.vo.SocialUser;
@@ -24,6 +28,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.util.EntityUtils;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -241,6 +246,69 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
             this.baseMapper.insert(memberEntity);
         }
         return memberEntity;
+    }
+
+    @Override
+    public MemberEntity updateProfile(Long memberId, MemberProfileUpdateVo vo) {
+
+        // 用 set 逐列写：updateById 默认忽略 null 字段，用户清空职业/签名时会静默保留旧值。
+        // 这串 set 同时就是安全边界 —— 只有这 7 列能被写进来
+        this.update(new LambdaUpdateWrapper<MemberEntity>()
+                .eq(MemberEntity::getId, memberId)
+                .set(MemberEntity::getNickname, vo.getNickname())
+                .set(MemberEntity::getHeader, vo.getHeader())
+                .set(MemberEntity::getGender, vo.getGender())
+                .set(MemberEntity::getBirth, vo.getBirth())
+                .set(MemberEntity::getCity, vo.getCity())
+                .set(MemberEntity::getJob, vo.getJob())
+                .set(MemberEntity::getSign, vo.getSign()));
+
+        MemberEntity updated = this.getById(memberId);
+        if (updated == null) {
+            // 令牌有效但库里没人：账号被删了，等同于未登录
+            throw new BaseException(BaseCodeEnum.NOT_LOGIN_EXCEPTION);
+        }
+        return updated;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public void changeMobile(Long memberId, String mobile) {
+        if (existsOnOther("mobile", mobile, memberId)) {
+            throw new BaseException(BaseCodeEnum.MOBILE_IN_USE);
+        }
+        this.update(new LambdaUpdateWrapper<MemberEntity>()
+                .eq(MemberEntity::getId, memberId)
+                .set(MemberEntity::getMobile, mobile));
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public void changeEmail(Long memberId, String email) {
+        if (existsOnOther("email", email, memberId)) {
+            throw new BaseException(BaseCodeEnum.EMAIL_IN_USE);
+        }
+        this.update(new LambdaUpdateWrapper<MemberEntity>()
+                .eq(MemberEntity::getId, memberId)
+                .set(MemberEntity::getEmail, email));
+    }
+
+    /**
+     * 这个联系方式是否已经绑在别人身上。
+     *
+     * <p>排除自己：改成和当前一样的值不该报"已绑定其他账号"。</p>
+     *
+     * <p>为什么要查：库里 mobile / email 都没有唯一索引，而按联系方式找人用的是
+     * {@code selectOne} —— 一旦写进重复值，那个号从此登录会抛 TooManyResultsException。
+     * 并发下仍有窗口，根治得加唯一索引（历史数据可能已有重复，加之前要先查一遍）。</p>
+     *
+     * <p>邮箱不用单独处理大小写：表是 utf8mb4_unicode_ci，比较本身就忽略大小写。</p>
+     */
+    private boolean existsOnOther(String column, String value, Long selfId) {
+        Long count = this.baseMapper.selectCount(new QueryWrapper<MemberEntity>()
+                .eq(column, value)
+                .ne("id", selfId));
+        return count != null && count > 0;
     }
 
 

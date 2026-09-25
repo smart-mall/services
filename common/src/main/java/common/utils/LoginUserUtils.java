@@ -80,10 +80,19 @@ public final class LoginUserUtils {
      * 少了它中文在部分客户端（比如 PowerShell 的 Invoke-RestMethod）会被按 Latin-1 解成乱码。</p>
      */
     public static void writeUnauthorized(HttpServletResponse response) throws IOException {
+        writeUnauthorized(response, BaseCodeEnum.NOT_LOGIN_EXCEPTION);
+    }
+
+    /**
+     * 同上，但错误码由调用方给。
+     *
+     * <p>需要它的只有一种情况：token <b>过期</b>要报 15005（前端提示"登录已过期"）而不是
+     * 15004（"请先登录"）。拦截器那边只遇到"这个头压根没有"，所以用上面那个无参版本。</p>
+     */
+    public static void writeUnauthorized(HttpServletResponse response, BaseCodeEnum codeEnum) throws IOException {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json;charset=UTF-8");
         response.setCharacterEncoding("UTF-8");
-        response.getWriter().write(JSON.toJSONString(
-                R.error(BaseCodeEnum.NOT_LOGIN_EXCEPTION.getCode(), BaseCodeEnum.NOT_LOGIN_EXCEPTION.getMsg())));
+        response.getWriter().write(JSON.toJSONString(R.error(codeEnum.getCode(), codeEnum.getMsg())));
     }
 }

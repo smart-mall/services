@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import common.utils.PageUtils;
 import member.entity.MemberEntity;
 import member.exception.UsernameException;
+import member.vo.MemberProfileUpdateVo;
 import member.vo.MemberUserRegisterVo;
 import member.vo.QQUserInfo;
 import member.vo.SocialUser;
@@ -54,4 +55,26 @@ public interface MemberService extends IService<MemberEntity> {
     MemberEntity login(SocialUser socialUser) throws Exception;
 
     MemberEntity login(QQUserInfo qqUserInfo);
+
+    /**
+     * 修改会员资料，返回更新后的会员。
+     *
+     * <p>只动 {@link member.vo.MemberProfileUpdateVo} 里那 7 个字段。等级、积分、成长值、
+     * 启用状态、用户名都不在白名单里 —— 让用户改它们等于提权。</p>
+     */
+    MemberEntity updateProfile(Long memberId, MemberProfileUpdateVo vo);
+
+    /**
+     * 换绑手机号。
+     *
+     * @throws common.exception.BaseException {@code MOBILE_IN_USE} 该手机号已绑定其他账号
+     */
+    void changeMobile(Long memberId, String mobile);
+
+    /**
+     * 换绑邮箱。
+     *
+     * @throws common.exception.BaseException {@code EMAIL_IN_USE} 该邮箱已绑定其他账号
+     */
+    void changeEmail(Long memberId, String email);
 }
