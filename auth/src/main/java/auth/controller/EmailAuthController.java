@@ -2,6 +2,7 @@ package auth.controller;
 
 import auth.feign.MemberFeignService;
 import auth.feign.ThirdPartFeignService;
+import auth.service.LoginLogService;
 import auth.utils.VerifyCodeUtils;
 import auth.vo.UserEmailVo;
 import com.alibaba.fastjson.TypeReference;
@@ -11,6 +12,7 @@ import common.exception.BaseException;
 import common.utils.JwtUtils;
 import common.utils.R;
 import common.vo.MemberResponseVo;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotEmpty;
@@ -49,8 +51,9 @@ public class EmailAuthController extends AbstractLoginController {
     public EmailAuthController(ThirdPartFeignService thirdPartFeignService,
                                MemberFeignService memberFeignService,
                                StringRedisTemplate stringRedisTemplate,
-                               JwtUtils jwtUtils) {
-        super(jwtUtils);
+                               JwtUtils jwtUtils,
+                               LoginLogService loginLogService) {
+        super(jwtUtils, loginLogService);
         this.thirdPartFeignService = thirdPartFeignService;
         this.memberFeignService = memberFeignService;
         this.stringRedisTemplate = stringRedisTemplate;
@@ -99,7 +102,7 @@ public class EmailAuthController extends AbstractLoginController {
      * 填错也不影响登录。</p>
      */
     @PostMapping("/login")
-    public R login(@RequestBody @Valid UserEmailVo vo) {
+    public R login(@RequestBody @Valid UserEmailVo vo, HttpServletRequest request) {
         log.info("邮箱验证码登录: email={}", vo.getEmail());
 
         //1、校验验证码（只读不写，等登录成功之后才决定删不删）
@@ -125,6 +128,6 @@ public class EmailAuthController extends AbstractLoginController {
         //3、登录成功才删验证码
         VerifyCodeUtils.consume(stringRedisTemplate, AuthServerConstant.EMAIL_CODE_CACHE_PREFIX, vo.getEmail());
 
-        return issueToken(user);
+        return issueToken(user, request);
     }
 }

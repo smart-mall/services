@@ -4,6 +4,7 @@ package auth.feign;
 import auth.vo.QQUserInfo;
 import auth.vo.SocialUser;
 import auth.vo.UserAccountVo;
+import common.to.LoginLogTo;
 import common.utils.R;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -71,4 +72,10 @@ public interface MemberFeignService {
      */
     @GetMapping(value = "/member/member/info/{id}")
     R getUserInfo(@PathVariable("id") Long id);
+
+    /**
+     * 落一条登录记录。登录成功后由 {@code LoginLogService} 调用，失败不影响登录。
+     */
+    @PostMapping(value = "/member/memberloginlog/record")
+    R recordLoginLog(@RequestBody LoginLogTo to);
 }

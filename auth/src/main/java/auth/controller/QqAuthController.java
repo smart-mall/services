@@ -1,6 +1,7 @@
 package auth.controller;
 
 import auth.feign.MemberFeignService;
+import auth.service.LoginLogService;
 import auth.vo.QQUserInfo;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
@@ -8,6 +9,7 @@ import common.utils.HttpUtils;
 import common.utils.JwtUtils;
 import common.utils.R;
 import common.vo.MemberResponseVo;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpResponse;
 import org.apache.http.util.EntityUtils;
@@ -35,12 +37,14 @@ public class QqAuthController extends AbstractSocialAuthController {
 
     public QqAuthController(MemberFeignService memberFeignService,
                             JwtUtils jwtUtils,
+                            LoginLogService loginLogService,
                             @Value("${auth.front-url:http://localhost:5173}") String frontUrl) {
-        super(memberFeignService, jwtUtils, frontUrl);
+        super(memberFeignService, jwtUtils, loginLogService, frontUrl);
     }
 
     @GetMapping(value = "/oauth2/qq/success")
-    public ResponseEntity<Void> qq(@RequestParam("code") String code) throws Exception {
+    public ResponseEntity<Void> qq(@RequestParam("code") String code,
+                                   HttpServletRequest request) throws Exception {
         log.info("进入qq登录: {}", code);
 
         Map<String, String> map = new HashMap<>();
@@ -68,6 +72,6 @@ public class QqAuthController extends AbstractSocialAuthController {
         // 原来这里写的是 getData(new TypeReference<>() {})，靠赋值目标反推类型，
         // 显式写出来更清楚
         MemberResponseVo user = oauthLogin.getData("data", new TypeReference<MemberResponseVo>() {});
-        return toFrontWithToken(user, "qq");
+        return toFrontWithToken(user, "qq", request);
     }
 }

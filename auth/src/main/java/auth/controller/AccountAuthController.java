@@ -1,12 +1,14 @@
 package auth.controller;
 
 import auth.feign.MemberFeignService;
+import auth.service.LoginLogService;
 import auth.vo.UserAccountVo;
 import com.alibaba.fastjson.TypeReference;
 import common.exception.BaseException;
 import common.utils.JwtUtils;
 import common.utils.R;
 import common.vo.MemberResponseVo;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -31,8 +33,9 @@ public class AccountAuthController extends AbstractLoginController {
 
     private final MemberFeignService memberFeignService;
 
-    public AccountAuthController(MemberFeignService memberFeignService, JwtUtils jwtUtils) {
-        super(jwtUtils);
+    public AccountAuthController(MemberFeignService memberFeignService, JwtUtils jwtUtils,
+                                 LoginLogService loginLogService) {
+        super(jwtUtils, loginLogService);
         this.memberFeignService = memberFeignService;
     }
 
@@ -62,7 +65,7 @@ public class AccountAuthController extends AbstractLoginController {
      * 也就是手机号可以当账号用；现在手机号只能走短信链路。</p>
      */
     @PostMapping("/login")
-    public R login(@RequestBody @Valid UserAccountVo vo) {
+    public R login(@RequestBody @Valid UserAccountVo vo, HttpServletRequest request) {
         // 不打明文密码，只记账号
         log.info("账号登录: username={}", vo.getUsername());
 
@@ -79,6 +82,6 @@ public class AccountAuthController extends AbstractLoginController {
             throw new BaseException("登录失败，用户信息异常");
         }
 
-        return issueToken(user);
+        return issueToken(user, request);
     }
 }

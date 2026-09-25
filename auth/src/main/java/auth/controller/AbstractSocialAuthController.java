@@ -1,8 +1,11 @@
 package auth.controller;
 
 import auth.feign.MemberFeignService;
+import auth.service.LoginLogService;
+import common.utils.ClientIpUtils;
 import common.utils.JwtUtils;
 import common.vo.MemberResponseVo;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,19 +33,24 @@ public abstract class AbstractSocialAuthController {
     protected final MemberFeignService memberFeignService;
     protected final JwtUtils jwtUtils;
 
+    private final LoginLogService loginLogService;
+
     /** 前端地址。末尾斜杠在构造里已经去掉，免得拼出 //oauth/callback */
     protected final String frontUrl;
 
     protected AbstractSocialAuthController(MemberFeignService memberFeignService,
                                            JwtUtils jwtUtils,
+                                           LoginLogService loginLogService,
                                            String frontUrl) {
         this.memberFeignService = memberFeignService;
         this.jwtUtils = jwtUtils;
+        this.loginLogService = loginLogService;
         this.frontUrl = frontUrl.endsWith("/") ? frontUrl.substring(0, frontUrl.length() - 1) : frontUrl;
     }
 
     /** 登录成功：签发 JWT 并跳回前端的回调页，由前端把 token 存进 localStorage */
-    protected ResponseEntity<Void> toFrontWithToken(MemberResponseVo user, String channel) {
+    protected ResponseEntity<Void> toFrontWithToken(MemberResponseVo user, String channel,
+                                                    HttpServletRequest request) {
         if (user == null || user.getId() == null) {
             log.error("{} 登录返回的用户信息不完整", channel);
             return toLoginPage(channel + "_user_missing");
@@ -54,6 +62,7 @@ public abstract class AbstractSocialAuthController {
 
         String token = jwtUtils.create(user);
         log.info("{} 登录成功: memberId={}", channel, user.getId());
+        loginLogService.recordWebLogin(user.getId(), ClientIpUtils.currentIp(request));
 
         // JWT 是 Base64URL 字符集（字母数字 - _ 和点），本身就能直接放查询串，不用再编码
         return redirect(frontUrl + "/oauth/callback?token=" + token);

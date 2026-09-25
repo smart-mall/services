@@ -2,6 +2,7 @@ package auth.controller;
 
 import auth.feign.MemberFeignService;
 import auth.feign.ThirdPartFeignService;
+import auth.service.LoginLogService;
 import auth.utils.VerifyCodeUtils;
 import auth.vo.UserMobileVo;
 import com.alibaba.fastjson.TypeReference;
@@ -11,6 +12,7 @@ import common.exception.BaseException;
 import common.utils.JwtUtils;
 import common.utils.R;
 import common.vo.MemberResponseVo;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
@@ -50,8 +52,9 @@ public class SmsAuthController extends AbstractLoginController {
     public SmsAuthController(ThirdPartFeignService thirdPartFeignService,
                              MemberFeignService memberFeignService,
                              StringRedisTemplate stringRedisTemplate,
-                             JwtUtils jwtUtils) {
-        super(jwtUtils);
+                             JwtUtils jwtUtils,
+                             LoginLogService loginLogService) {
+        super(jwtUtils, loginLogService);
         this.thirdPartFeignService = thirdPartFeignService;
         this.memberFeignService = memberFeignService;
         this.stringRedisTemplate = stringRedisTemplate;
@@ -94,7 +97,7 @@ public class SmsAuthController extends AbstractLoginController {
      * （15001）。老用户走这条链路是按手机号认人的，请求里的 {@code username} 会被忽略。</p>
      */
     @PostMapping("/login")
-    public R login(@RequestBody @Valid UserMobileVo vo) {
+    public R login(@RequestBody @Valid UserMobileVo vo, HttpServletRequest request) {
         log.info("手机验证码登录: mobile={}", vo.getMobile());
 
         //1、校验验证码（只读不写，等登录成功之后才决定删不删）
@@ -120,6 +123,6 @@ public class SmsAuthController extends AbstractLoginController {
         //3、登录成功才删验证码
         VerifyCodeUtils.consume(stringRedisTemplate, AuthServerConstant.SMS_CODE_CACHE_PREFIX, vo.getMobile());
 
-        return issueToken(user);
+        return issueToken(user, request);
     }
 }

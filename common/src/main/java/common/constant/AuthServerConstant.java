@@ -22,5 +22,14 @@ public class AuthServerConstant {
      */
     public static final String MEMBER_CLAIMS_HEADER = "X-Member-Claims";
 
+    /**
+     * 网关注入的客户端 IP 请求头。
+     *
+     * <p>网关是唯一拿得到真实客户端地址的地方：请求经网关转发之后，下游服务看到的
+     * remoteAddr 是网关自己。和 {@link #MEMBER_CLAIMS_HEADER} 一样，客户端自己传的同名头
+     * 会被网关抹掉，下游只能读到网关注入的值。</p>
+     */
+    public static final String CLIENT_IP_HEADER = "X-Client-IP";
+
 
 }

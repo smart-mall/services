@@ -1,6 +1,7 @@
 package auth.controller;
 
 import auth.feign.MemberFeignService;
+import auth.service.LoginLogService;
 import auth.vo.SocialUser;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
@@ -8,6 +9,7 @@ import common.utils.HttpUtils;
 import common.utils.JwtUtils;
 import common.utils.R;
 import common.vo.MemberResponseVo;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpResponse;
 import org.apache.http.util.EntityUtils;
@@ -37,12 +39,14 @@ public class WeiboAuthController extends AbstractSocialAuthController {
 
     public WeiboAuthController(MemberFeignService memberFeignService,
                                JwtUtils jwtUtils,
+                               LoginLogService loginLogService,
                                @Value("${auth.front-url:http://localhost:5173}") String frontUrl) {
-        super(memberFeignService, jwtUtils, frontUrl);
+        super(memberFeignService, jwtUtils, loginLogService, frontUrl);
     }
 
     @GetMapping(value = "/oauth2/weibo/success")
-    public ResponseEntity<Void> weibo(@RequestParam("code") String code) throws Exception {
+    public ResponseEntity<Void> weibo(@RequestParam("code") String code,
+                                      HttpServletRequest request) throws Exception {
 
         Map<String, String> map = new HashMap<>();
         map.put("client_id", "1398918556");
@@ -75,6 +79,6 @@ public class WeiboAuthController extends AbstractSocialAuthController {
         }
 
         MemberResponseVo user = oauthLogin.getData("data", new TypeReference<MemberResponseVo>() {});
-        return toFrontWithToken(user, "weibo");
+        return toFrontWithToken(user, "weibo", request);
     }
 }

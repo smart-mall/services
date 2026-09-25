@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
 
+import static common.constant.AuthServerConstant.CLIENT_IP_HEADER;
 import static common.constant.AuthServerConstant.MEMBER_CLAIMS_HEADER;
 
 /**
@@ -43,6 +44,8 @@ import static common.constant.AuthServerConstant.MEMBER_CLAIMS_HEADER;
  *       注意：业务服务都是直接对外暴露端口的（见 gl-com.yml 的 ports），
  *       绕过网关直接打 52400 / 53100 依然能伪造这个头 —— 真要堵住得让每个服务自己验签，
  *       本项目的假设是"服务在内网、只经网关访问"。</li>
+ *   <li><b>顺带注入 X-Client-IP</b>，同样抹掉客户端传的同名头。网关是边缘，
+ *       只有它拿得到真实客户端地址；下游的 remoteAddr 是网关自己。</li>
  * </ul>
  */
 @Slf4j
@@ -62,21 +65,24 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         String token = resolveToken(request);
+        // 只认 remoteAddr：网关就是边缘，前面没有可信代理。信任 X-Forwarded-For
+        // 等于让调用方随便伪造 IP（旁边 X-Member-Claims 就是同一个坑）
+        String clientIp = request.getRemoteAddr();
 
         if (token == null) {
             // 没带 token：纯匿名请求，把客户端可能伪造的 claims 头抹掉后放行
-            filterChain.doFilter(new ClaimsHeaderRequest(request, null), response);
+            filterChain.doFilter(new TrustedHeadersRequest(request, null, clientIp), response);
             return;
         }
 
         try {
             MemberResponseVo user = jwtUtils.parse(token);
-            filterChain.doFilter(new ClaimsHeaderRequest(request, LoginUserUtils.encode(user)), response);
+            filterChain.doFilter(new TrustedHeadersRequest(request, LoginUserUtils.encode(user), clientIp), response);
         } catch (JwtException | IllegalArgumentException e) {
             // 过期 / 签名不对 / 格式错 / 算法被改，全部按未登录处理。
             // 只打 debug：伪造 token 的扫描请求会很吵，不值得刷 warn
             log.debug("token 无效，按匿名请求处理: {} - {}", e.getClass().getSimpleName(), e.getMessage());
-            filterChain.doFilter(new ClaimsHeaderRequest(request, null), response);
+            filterChain.doFilter(new TrustedHeadersRequest(request, null, clientIp), response);
         }
     }
 
@@ -99,36 +105,40 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     /**
-     * 只暴露网关自己验签出来的 claims，客户端传的
-     * {@link common.constant.AuthServerConstant#MEMBER_CLAIMS_HEADER} 一律不认。
+     * 只暴露网关自己产出的 {@link common.constant.AuthServerConstant#MEMBER_CLAIMS_HEADER}
+     * 与 {@link common.constant.AuthServerConstant#CLIENT_IP_HEADER}，
+     * 客户端传的同名头一律不认。
      *
      * <p>三个方法都要覆盖：{@code getHeader} 管业务代码的读取，
      * {@code getHeaders} / {@code getHeaderNames} 管网关转发时重建请求头的过程。
      * 只覆盖第一个的话，伪造的头还是会被原样转发给下游。</p>
      */
-    private static class ClaimsHeaderRequest extends HttpServletRequestWrapper {
+    private static class TrustedHeadersRequest extends HttpServletRequestWrapper {
 
         private final String claims;
+        private final String clientIp;
 
-        ClaimsHeaderRequest(HttpServletRequest request, String claims) {
+        TrustedHeadersRequest(HttpServletRequest request, String claims, String clientIp) {
             super(request);
             this.claims = claims;
+            this.clientIp = clientIp;
         }
 
         @Override
         public String getHeader(String name) {
-            if (MEMBER_CLAIMS_HEADER.equalsIgnoreCase(name)) {
-                return claims;
+            if (isTrusted(name)) {
+                return trustedValue(name);
             }
             return super.getHeader(name);
         }
 
         @Override
         public Enumeration<String> getHeaders(String name) {
-            if (MEMBER_CLAIMS_HEADER.equalsIgnoreCase(name)) {
-                return claims == null
+            if (isTrusted(name)) {
+                String value = trustedValue(name);
+                return value == null
                         ? Collections.emptyEnumeration()
-                        : Collections.enumeration(List.of(claims));
+                        : Collections.enumeration(List.of(value));
             }
             return super.getHeaders(name);
         }
@@ -139,14 +149,25 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             Enumeration<String> origin = super.getHeaderNames();
             while (origin != null && origin.hasMoreElements()) {
                 String name = origin.nextElement();
-                if (!MEMBER_CLAIMS_HEADER.equalsIgnoreCase(name)) {
+                if (!isTrusted(name)) {
                     names.add(name);
                 }
             }
             if (claims != null) {
                 names.add(MEMBER_CLAIMS_HEADER);
             }
+            if (clientIp != null) {
+                names.add(CLIENT_IP_HEADER);
+            }
             return Collections.enumeration(names);
+        }
+
+        private boolean isTrusted(String name) {
+            return MEMBER_CLAIMS_HEADER.equalsIgnoreCase(name) || CLIENT_IP_HEADER.equalsIgnoreCase(name);
+        }
+
+        private String trustedValue(String name) {
+            return MEMBER_CLAIMS_HEADER.equalsIgnoreCase(name) ? claims : clientIp;
         }
     }
 }
