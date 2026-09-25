@@ -16,7 +16,7 @@ public interface ThirdPartyFeignService {
      *
      * <p>方法名保留 {@code deleteFile} 是为了不动 6 个调用点，语义上它一直是批量的
      * （入参就是 List）。third-party 那边只认自己 {@code clientPoint/bucket/} 前缀下的地址，
-     * 对不上的会进返回体的 {@code failed} 清单，不会让整个调用失败。</p>
+     * 对不上的会进返回体的 {@code data} 清单，不会让整个调用失败。</p>
      */
     @DeleteMapping("/thirdParty/file/deleteBatch")
     R deleteFile(@RequestBody List<String> urls);

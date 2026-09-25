@@ -42,17 +42,16 @@ public class MediaController {
         this.mediaService = mediaService;
     }
 
-    /** 单文件上传 */
+    /** 单文件上传。结果是一条 {@link MediaFileVo}，在 {@code data} 里 */
     @PostMapping("/upload")
     public R upload(@RequestParam("file") MultipartFile file) {
-        MediaFileVo vo = mediaService.upload(file);
-        return R.ok().put("url", vo.url()).put("name", vo.name()).put("size", vo.size());
+        return R.ok().setData(mediaService.upload(file));
     }
 
-    /** 批量上传。整批成功或整批失败 */
+    /** 批量上传。整批成功或整批失败，{@code data} 是 {@link MediaFileVo} 数组，顺序同入参 */
     @PostMapping("/uploadBatch")
     public R uploadBatch(@RequestParam("files") MultipartFile[] files) {
-        return R.ok().put("files", mediaService.uploadBatch(files));
+        return R.ok().setData(mediaService.uploadBatch(files));
     }
 
     /** 删除单个文件 */
@@ -62,9 +61,9 @@ public class MediaController {
         return R.ok();
     }
 
-    /** 批量删除。尽力而为，删不掉的回 failed 清单 */
+    /** 批量删除。尽力而为，{@code data} 是删不掉的那些 URL，全成功时是空数组 */
     @DeleteMapping("/deleteBatch")
     public R deleteBatch(@RequestBody List<String> urls) {
-        return R.ok().put("failed", mediaService.deleteBatch(urls));
+        return R.ok().setData(mediaService.deleteBatch(urls));
     }
 }
