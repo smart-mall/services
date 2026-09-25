@@ -1,15 +1,17 @@
 @echo off
 setlocal EnableExtensions
-title Gulimall - Build Docker Images
+title Gulimall - Build and Deploy
 
 rem ============================================================
-rem  Double-click this file to build all gl-* images in one go.
-rem  It is only a wrapper around build-images.ps1, so keep both
-rem  files in the same folder (the project root).
+rem  Double-click this file for a one-shot rebuild + redeploy:
+rem    1. backend images : build-images.ps1  (builds every gl-* image)
+rem    2. admin SPA      : ..\grain-mall-front-end -> grain-mall-admin:latest
+rem    3. user  SPA      : ..\user-vue            -> grain-mall-user:latest
+rem    4. docker compose : gl-com.yml up -d
 rem
-rem  Optional arguments are passed through, for example:
-rem      build-images.bat -Tag 0.0.1
+rem  Optional arguments are passed through to build-images.ps1:
 rem      build-images.bat -Only gl-product,gl-cart
+rem      build-images.bat -Tag 0.0.1
 rem
 rem  IMPORTANT: keep this file ASCII-only and CRLF-terminated.
 rem  cmd.exe decodes .bat files with the console code page (GBK on
@@ -17,20 +19,28 @@ rem  Chinese Windows), so UTF-8 text can be mis-parsed and break it.
 rem ============================================================
 
 set "RC=1"
-set "ROOT=%~dp0"
-set "PS1=%ROOT%build-images.ps1"
+cd /d "%~dp0"
 
 echo.
 echo ==========================================================
-echo   Gulimall - build all Docker images  ^(gl-*^)
-echo   Project: %ROOT%
+echo   Gulimall - build all images and redeploy
+echo   Project : %~dp0
+echo   Backend : build-images.ps1
+echo   Admin   : ..\grain-mall-front-end
+echo   User    : ..\user-vue
+echo   Compose : gl-com.yml
 echo ==========================================================
 echo.
 
-if not exist "%PS1%" (
+if not exist "build-images.ps1" (
     echo [ERROR] build-images.ps1 was not found next to this file.
-    echo         Expected: %PS1%
-    echo         Keep both files in the project root directory.
+    echo         Expected: %~dp0build-images.ps1
+    goto :done
+)
+
+if not exist "gl-com.yml" (
+    echo [ERROR] gl-com.yml was not found next to this file.
+    echo         Expected: %~dp0gl-com.yml
     goto :done
 )
 
@@ -41,7 +51,7 @@ if errorlevel 1 (
     goto :done
 )
 
-echo [1/2] Checking Docker engine ...
+echo [0/4] Checking Docker engine ...
 docker info >nul 2>&1
 if errorlevel 1 (
     echo       Docker is not running. Trying to start Docker Desktop ...
@@ -57,22 +67,42 @@ if errorlevel 1 (
 echo       Docker is ready.
 echo.
 
-echo [2/2] Building images (first run downloads Maven dependencies) ...
+echo [1/4] Building backend images (first run downloads Maven dependencies) ...
 echo.
-powershell -NoProfile -ExecutionPolicy Bypass -File "%PS1%" %*
-set "RC=%ERRORLEVEL%"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0build-images.ps1" %*
+if errorlevel 1 goto :failed
 echo.
 
-if "%RC%"=="0" (
-    echo ==========================================================
-    echo   ALL DONE
-    echo ==========================================================
-) else (
-    echo ==========================================================
-    echo   FINISHED WITH ERRORS  ^(exit code %RC%^)
-    echo   Scroll up to see which image failed.
-    echo ==========================================================
-)
+echo [2/4] Building admin SPA image ^(grain-mall-admin:latest^) ...
+docker build -t grain-mall-admin:latest ..\grain-mall-front-end
+if errorlevel 1 goto :failed
+echo.
+
+echo [3/4] Building user SPA image ^(grain-mall-user:latest^) ...
+docker build -t grain-mall-user:latest ..\user-vue
+if errorlevel 1 goto :failed
+echo.
+
+echo [4/4] Starting containers ^(docker compose -f gl-com.yml up -d^) ...
+docker compose -f gl-com.yml up -d
+if errorlevel 1 goto :failed
+echo.
+
+set "RC=0"
+echo ==========================================================
+echo   ALL DONE
+echo   Gateway : http://localhost:53000/api
+echo   Admin   : http://localhost:56731
+echo   User    : http://localhost:56732
+echo ==========================================================
+goto :done
+
+:failed
+echo.
+echo ==========================================================
+echo   FINISHED WITH ERRORS
+echo   Scroll up to see which step failed.
+echo ==========================================================
 
 :done
 echo.
