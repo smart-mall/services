@@ -19,7 +19,9 @@ import common.utils.R;
 
 import common.query.PageQuery;
 /**
- * 优惠券与产品关联
+ * 优惠券与 SPU 关联关系的后台管理接口：分页列表、详情、新增、修改、删除。
+ *
+ * <p>路径不在 {@code /front} 下，经网关访问时按管理端接口鉴权。
  */
 @RestController
 @RequestMapping("coupon/couponspurelation")
@@ -28,7 +30,10 @@ public class CouponSpuRelationController {
     private CouponSpuRelationService couponSpuRelationService;
 
     /**
-     * 列表
+     * 分页查询优惠券与 SPU 的关联关系。
+     *
+     * @param query 分页参数，{@code page} 为页码、{@code limit} 为每页条数
+     * @return 分页结果，{@code rows} 为关联关系列表
      */
     @RequestMapping("/list")
     public R<PageVO<CouponSpuRelationEntity>> list(PageQuery query){
@@ -39,7 +44,10 @@ public class CouponSpuRelationController {
 
 
     /**
-     * 信息
+     * 按主键查询单条优惠券与 SPU 的关联关系。
+     *
+     * @param id 关联关系主键
+     * @return 关联关系详情；id 不存在时 {@code data} 为 {@code null}
      */
     @RequestMapping("/info/{id}")
     public R<CouponSpuRelationEntity> info(@PathVariable("id") Long id){
@@ -49,7 +57,10 @@ public class CouponSpuRelationController {
     }
 
     /**
-     * 保存
+     * 新增一条优惠券与 SPU 的关联关系。
+     *
+     * @param couponSpuRelation 关联关系内容，主键留空时由数据库生成
+     * @return 统一成功响应，不含业务数据
      */
     @RequestMapping("/save")
     public R<Void> save(@RequestBody CouponSpuRelationEntity couponSpuRelation){
@@ -59,7 +70,10 @@ public class CouponSpuRelationController {
     }
 
     /**
-     * 修改
+     * 按主键修改一条优惠券与 SPU 的关联关系。
+     *
+     * @param couponSpuRelation 关联关系内容，主键必填；为 {@code null} 的字段不参与更新
+     * @return 统一成功响应，不含业务数据
      */
     @RequestMapping("/update")
     public R<Void> update(@RequestBody CouponSpuRelationEntity couponSpuRelation){
@@ -69,7 +83,10 @@ public class CouponSpuRelationController {
     }
 
     /**
-     * 删除
+     * 按主键批量删除优惠券与 SPU 的关联关系。
+     *
+     * @param ids 待删除的关联关系主键数组
+     * @return 统一成功响应，不含业务数据
      */
     @RequestMapping("/delete")
     public R<Void> delete(@RequestBody Long[] ids){
