@@ -194,7 +194,7 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
         if (StringUtils.hasText(oldPath) && !oldPath.equals(attr.getIcon())) {
             R<List<String>> r = thirdPartyFeignService.deleteFile(List.of(oldPath));
             if (r.getCode() != 0) {
-                throw new BaseException("删除失败" + r.getMsg());
+                throw new BaseException(r.getCode(), "删除失败：" + r.getMsg());
             }
         }
 

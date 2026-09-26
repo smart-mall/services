@@ -63,7 +63,7 @@ public abstract class AbstractSocialAuthController {
             return toLoginPage(channel + "_user_missing");
         }
 
-        // 密码哈希与微博令牌不能出这个类：MemberResponseVo 上的 @JsonIgnore 对 fastjson 不生效
+        // 密码哈希与微博令牌不能出这个类；member 侧由 WRITE_ONLY 挡住，这里再抹一次做兜底
         user.setPassword(null);
         user.setAccessToken(null);
 

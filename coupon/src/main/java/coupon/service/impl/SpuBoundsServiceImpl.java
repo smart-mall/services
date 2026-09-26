@@ -63,7 +63,7 @@ public class SpuBoundsServiceImpl extends ServiceImpl<SpuBoundsDao, SpuBoundsEnt
         R<Map<Long, String>> r = productFeignService.getSpuNames(spuIds);
 
         if (r.getCode() != 0) {
-            throw new BaseException("远程服务调用失败" + r.getMsg() );
+            throw new BaseException(r.getCode(), "远程服务调用失败：" + r.getMsg());
         }
 
         Map<Long, String> spuNameMap = r.getData();

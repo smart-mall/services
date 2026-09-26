@@ -220,14 +220,14 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
             items = cartFuture.get();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new BaseException("加载结算信息被中断，请重试");
+            throw new BaseException(BaseCodeEnum.ORDER_CONFIRM_FAILED, "加载结算信息被中断，请重试");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
             if (cause instanceof BaseException baseException) {
                 throw baseException;
             }
             log.error("加载结算信息失败", cause);
-            throw new BaseException("加载结算信息失败，请稍后重试");
+            throw new BaseException(BaseCodeEnum.ORDER_CONFIRM_FAILED);
         }
 
         confirmVo.setAddresses(addresses == null ? List.of() : addresses);
@@ -262,7 +262,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         BigDecimal totalAmount = BigDecimal.ZERO;
         for (OrderItemVo item : confirmVo.getItems()) {
             if (item.getPrice() == null || item.getCount() == null) {
-                throw new BaseException("购物项价格信息不完整，请返回购物车重试");
+                throw new BaseException(BaseCodeEnum.ORDER_ITEM_INCOMPLETE, "购物项价格信息不完整，请返回购物车重试");
             }
             totalAmount = totalAmount.add(item.getPrice().multiply(BigDecimal.valueOf(item.getCount())));
         }
@@ -311,7 +311,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         FareVo fare = fareResp.getData();
         if (fare == null || fare.getFare() == null) {
             // ware 在地址查不到时返回 data=null，直接取 fare 会空指针
-            throw new BaseException("运费计算失败，请检查收货地址");
+            throw new BaseException(BaseCodeEnum.ORDER_FARE_FAILED);
         }
         return fare;
     }
@@ -496,7 +496,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
                 result.setForm(alipayTemplate.pay(buildPayVo(orderSn)));
             } catch (AlipayApiException e) {
                 log.error("发起支付宝支付失败，orderSn={}", orderSn, e);
-                throw new BaseException("发起支付失败，请稍后重试");
+                throw new BaseException(BaseCodeEnum.ORDER_PAY_FAILED);
             }
             return result;
         }
@@ -516,7 +516,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
                 // BestPay 在微信侧返回非 SUCCESS 时抛的是 RuntimeException（不是受检异常），
                 // 不转换就会一路冒到 DispatcherServlet，前端拿到没有 code 的裸 500
                 log.error("发起微信支付失败，orderSn={}", orderSn, e);
-                throw new BaseException("发起微信支付失败，请稍后重试或改用支付宝");
+                throw new BaseException(BaseCodeEnum.ORDER_PAY_FAILED, "发起微信支付失败，请稍后重试或改用支付宝");
             }
             log.info("发起微信支付 orderSn={} response={}", orderSn, payResponse);
             result.setCodeUrl(payResponse.getCodeUrl());
@@ -663,7 +663,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         // 2. 组装订单项；购物车可能已被清空或全部取消勾选，空车会建出只有运费的空单
         List<OrderItemEntity> orderItemEntities = builderOrderItems(orderSn);
         if (orderItemEntities.isEmpty()) {
-            throw new BaseException("购物车里没有已勾选的商品，无法提交订单");
+            throw new BaseException(BaseCodeEnum.ORDER_CART_EMPTY);
         }
 
         // 3. 计算价格与积分
@@ -784,7 +784,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     private OrderItemEntity builderOrderItem(OrderItemVo items) {
 
         if (items.getSkuId() == null || items.getPrice() == null || items.getCount() == null) {
-            throw new BaseException("购物项信息不完整（skuId/价格/数量），请返回购物车重试");
+            throw new BaseException(BaseCodeEnum.ORDER_ITEM_INCOMPLETE, "购物项信息不完整（skuId/价格/数量），请返回购物车重试");
         }
 
         OrderItemEntity orderItemEntity = new OrderItemEntity();
@@ -795,7 +795,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         SpuInfoVo spuInfoData = spuInfo.getData();
         if (spuInfoData == null) {
             // 商品服务查不到时，下面几行会把订单项写成 spuId/spuName 全空的脏数据，且不报错
-            throw new BaseException("商品 " + skuId + " 的 SPU 信息缺失，无法下单");
+            throw new BaseException(BaseCodeEnum.PRODUCT_NOT_FOUND, "商品 " + skuId + " 的 SPU 信息缺失，无法下单");
         }
         orderItemEntity.setSpuId(spuInfoData.getId());
         orderItemEntity.setSpuName(spuInfoData.getSpuName());

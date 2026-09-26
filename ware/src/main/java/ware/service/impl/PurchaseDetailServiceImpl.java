@@ -97,7 +97,7 @@ public class PurchaseDetailServiceImpl extends ServiceImpl<PurchaseDetailDao, Pu
             R<Map<Long, String>> r = productFeignService.getSkuNames(skuIds);
 
             if (r.getCode() != 0) {
-                throw new BaseException("远程服务异常" + r.getMsg());
+                throw new BaseException(r.getCode(), "远程服务异常：" + r.getMsg());
             }
 
             Map<Long, String> skuNameMap = r.getData();

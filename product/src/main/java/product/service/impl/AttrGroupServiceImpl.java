@@ -186,7 +186,7 @@ public class AttrGroupServiceImpl extends ServiceImpl<AttrGroupDao, AttrGroupEnt
         if (StringUtils.hasText(oldPath) && !oldPath.equals(attrGroup.getIcon())) {
             R<List<String>> r = thirdPartyFeignService.deleteFile(List.of(oldPath));
             if (r.getCode() != 0) {
-                throw new BaseException("删除失败" + r.getMsg());
+                throw new BaseException(r.getCode(), "删除失败：" + r.getMsg());
             }
         }
         log.debug("修改品牌信息");

@@ -41,8 +41,8 @@ public abstract class AbstractLoginController {
      * @return 统一响应结构，{@code data} 内含 token、有效期秒数与用户信息
      */
     protected final R<Map<String, Object>> issueToken(MemberResponseVo user, HttpServletRequest request) {
-        // member 返回的是完整 MemberEntity：password 是 BCrypt 哈希，accessToken 是微博令牌。
-        // MemberResponseVo 上的 @JsonIgnore 对 fastjson 反序列化不生效，必须在这里显式置空
+        // member 侧由 WRITE_ONLY 挡住这两个字段，响应体里不含它们；这里再置空一次是兜底：
+        // 万一那两个注解被摘掉，登录响应也不会泄露凭证与令牌。
         user.setPassword(null);
         user.setAccessToken(null);
 

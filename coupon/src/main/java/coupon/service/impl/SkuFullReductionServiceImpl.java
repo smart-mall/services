@@ -75,7 +75,7 @@ public class SkuFullReductionServiceImpl extends ServiceImpl<SkuFullReductionDao
         R<Map<Long, String>> r = productFeignService.getSkuNames(spuIds);
 
         if (r.getCode() != 0) {
-            throw new BaseException("远程服务调用失败" + r.getMsg() );
+            throw new BaseException(r.getCode(), "远程服务调用失败：" + r.getMsg());
         }
 
         Map<Long, String> spuNameMap = r.getData();

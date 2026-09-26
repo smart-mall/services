@@ -83,7 +83,7 @@ public class EmailAuthController extends AbstractLoginController {
             R<Void> r = thirdPartFeignService.emailSendCode(email, codeNum);
             if (r.getCode() != 0) {
                 // 这里必须抛出来：不然验证码已经写进 Redis、邮件却没发出去，前端还以为发出去了
-                throw new BaseException("邮件发送失败: " + r.getMsg());
+                throw new BaseException(BaseCodeEnum.EMAIL_SEND_EXCEPTION, "邮件发送失败: " + r.getMsg());
             }
         });
 

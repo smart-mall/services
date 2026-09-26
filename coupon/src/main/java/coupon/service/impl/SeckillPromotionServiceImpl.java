@@ -65,7 +65,7 @@ public class SeckillPromotionServiceImpl extends ServiceImpl<SeckillPromotionDao
 
         R<Map<Long, String>> r = renrenFeignService.getUserNames(userIds);
         if (r.getCode() != 0) {
-            throw new BaseException("查询用户名失败" + r.getMsg());
+            throw new BaseException(r.getCode(), "查询用户名失败：" + r.getMsg());
         }
 
         Map<Long, String> data = r.getData();

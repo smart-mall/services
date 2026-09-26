@@ -133,7 +133,7 @@ CREATE TABLE `pms_category`  (
   `name` char(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '分类名称',
   `parent_cid` bigint(20) NULL DEFAULT NULL COMMENT '父分类id',
   `cat_level` int(11) NULL DEFAULT NULL COMMENT '层级',
-  `show_status` tinyint(4) NULL DEFAULT NULL COMMENT '是否显示[0-不显示，1显示]',
+  `show_status` tinyint(4) NOT NULL DEFAULT 1 COMMENT '是否显示[0-不显示，1显示]',
   `sort` int(11) NULL DEFAULT NULL COMMENT '排序',
   `icon` char(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '图标地址',
   `product_unit` char(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '计量单位',

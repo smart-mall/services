@@ -2,6 +2,8 @@ package member.entity;
 
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -26,6 +28,8 @@ public class MemberEntity implements Serializable {
 	/** 登录账号，注册时校验全局唯一。 */
 	private String username;
 	/** 登录密码，存 BCrypt 哈希；验证码链路建的账号没有密码，为 {@code null}。 */
+	// 用 WRITE_ONLY 而非 @JsonIgnore：写接口要把密码放进请求体，@JsonIgnore 会连反序列化一起挡掉
+	@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
 	private String password;
 	/** 昵称，注册时默认与账号同名。 */
 	private String nickname;
@@ -58,6 +62,7 @@ public class MemberEntity implements Serializable {
 	/** 社交账号 ID，社交登录时按它匹配已有会员。 */
 	private String socialUid;
 	/** 社交账号访问令牌，调用社交平台接口时使用。 */
+	@JsonIgnore
 	private String accessToken;
 	/** 社交账号令牌有效期，单位秒，由社交平台返回。 */
 	private String expiresIn;
