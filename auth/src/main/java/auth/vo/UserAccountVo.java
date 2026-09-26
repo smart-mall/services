@@ -14,10 +14,13 @@ import org.hibernate.validator.constraints.Length;
 @Data
 public class UserAccountVo {
 
+    /** 登录账号，注册时同时作为用户名 */
     @NotEmpty(message = "账号不能为空")
     @Length(min = 6, max = 19, message = "账号长度在6-19字符")
     private String username;
 
+    /** 明文密码，只出现在请求体里，不打进日志 */
+    /** 明文密码，只出现在请求体里，不打进日志 */
     @NotEmpty(message = "密码必须填写")
     @Length(min = 6, max = 18, message = "密码必须是6—18位字符")
     private String password;

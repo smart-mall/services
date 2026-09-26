@@ -28,16 +28,11 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 import common.exception.ValidationException;
 /**
- * 邮箱这条链路：发码 + 登录。
+ * 邮箱这条链路：发码 + 登录，没有单独的注册接口 —— 验证码校验通过后按邮箱找人，找不到就用
+ * 请求里的账号新建一个，所以"登录"本身就兼顾了注册。
  *
- * <p><b>没有注册接口</b>：验证码校验通过之后按邮箱找人，找不到就用请求里的账号新建一个，
- * 所以"登录"这个动作本身就兼顾了注册。前端因此只需要一个登录页面。</p>
- *
- * <p>它和账号密码那条链路完全独立：这里建出来的账号<b>没有密码</b>，只能靠邮箱验证码登录，
- * 也不能反过来用账号密码链路登录。</p>
- *
- * <p>Redis 里的 key 是 {@code email:code:<邮箱>}，value 是 {@code 验证码_写入时间戳}，
- * 这套机制整个收在 {@link VerifyCodeUtils} 里。</p>
+ * <p>与账号密码链路独立：这里建出的账号没有密码，只能靠邮箱验证码登录；Redis 里的 key 是
+ * {@code email:code:<邮箱>}，value 是 {@code 验证码_写入时间戳}，机制收在 {@link VerifyCodeUtils} 里。
  */
 @Slf4j
 @RestController
@@ -63,27 +58,27 @@ public class EmailAuthController extends AbstractLoginController {
     /**
      * 发送邮箱验证码。
      *
-     * <p>邮箱格式在这里也校验一遍，图的是少发几封垃圾邮件 ——
-     * auth 只负责生成验证码和防刷，真正的发信在 third-party 的
-     * {@code EmailSendController}（走 Resend）。</p>
+     * <p>邮箱格式在这里也校验一遍，图的是少发几封垃圾邮件，真正的发信在 third-party（走 Resend）；
+     * 给 query 参数加约束需要类上有 {@code @Validated}，失败时抛 {@code ConstraintViolationException}，
+     * 由 GlobalExceptionHandler 转成 {@code code:10001 + errors}。</p>
      *
-     * <p>给 query 参数加约束需要类上有 {@code @Validated}，失败时抛的是
-     * {@code ConstraintViolationException}，由 GlobalExceptionHandler 转成
-     * {@code code:10001 + errors{email:...}}。</p>
+     * @param email 收码邮箱
+     * @return 成功返回 {@code code:0}；距上次发码不足 60 秒时返回验证码频率异常
      */
     @GetMapping("/sendCode")
     public R<Void> sendCode(@RequestParam("email")
                       @NotEmpty(message = "邮箱不能为空")
                       @Email(message = "邮箱格式不正确") String email) {
         log.info("发送邮箱验证码: {}", email);
+        // 验证码 5 分钟过期，同时也是防刷窗口的上限
         int time = 5;
 
-        //1、接口防刷：同一个邮箱 60 秒内只能发一次
+        // 1. 接口防刷：同一个邮箱 60 秒内只能发一次
         if (VerifyCodeUtils.remainingSeconds(stringRedisTemplate, AuthServerConstant.EMAIL_CODE_CACHE_PREFIX, email) > 0) {
             return R.error(BaseCodeEnum.SMS_CODE_EXCEPTION);
         }
 
-        //2、生成验证码、存 Redis（time 分钟），再交给 third-party 用 Resend 把邮件发出去
+        // 2. 生成验证码存 Redis（time 分钟），再交给 third-party 用 Resend 发信
         VerifyCodeUtils.send(stringRedisTemplate, AuthServerConstant.EMAIL_CODE_CACHE_PREFIX, email, time, codeNum -> {
             R<Void> r = thirdPartFeignService.emailSendCode(email, codeNum);
             if (r.getCode() != 0) {
@@ -98,21 +93,24 @@ public class EmailAuthController extends AbstractLoginController {
     /**
      * 邮箱验证码登录（兼注册）。
      *
-     * <p>失败只有两种：验证码不对（10001 + errors{code}），或者需要新建账号时账号已被占用
-     * （15001）。老用户走这条链路是按邮箱认人的，请求里的 {@code username} 会被忽略，
-     * 填错也不影响登录。</p>
+     * <p>失败只有两种：验证码不对（10001 + errors{code}），或需要新建账号时账号已被占用（15001）；
+     * 老用户按邮箱认人，请求里的 {@code username} 会被忽略。</p>
+     *
+     * @param vo      登录入参，含账号、邮箱与验证码
+     * @param request 当前请求，用于取客户端 IP
+     * @return 登录响应，{@code data} 内含 token、有效期秒数与用户信息
      */
     @PostMapping("/login")
     public R<Map<String, Object>> login(@RequestBody @Valid UserEmailVo vo, HttpServletRequest request) {
         log.info("邮箱验证码登录: email={}", vo.getEmail());
 
-        //1、校验验证码（只读不写，等登录成功之后才决定删不删）
+        // 1. 校验验证码：只读不写，登录成功之后才决定删不删
         if (!VerifyCodeUtils.verify(stringRedisTemplate, AuthServerConstant.EMAIL_CODE_CACHE_PREFIX,
                 vo.getEmail(), vo.getCode())) {
             throw new ValidationException("code", "验证码错误");
         }
 
-        //2、按邮箱取人，取不到就用 username 建一个
+        // 2. 按邮箱取人，取不到就用 username 建一个
         R<MemberResponseVo> memberR = memberFeignService.emailLogin(vo.getUsername(), vo.getEmail());
         if (memberR.getCode() != 0) {
             // 15001 账号已被占用。故意不删验证码：用户换个账号名就能用同一个码重试
@@ -126,7 +124,7 @@ public class EmailAuthController extends AbstractLoginController {
             throw new BaseException("登录失败，用户信息异常");
         }
 
-        //3、登录成功才删验证码
+        // 3. 登录成功才删验证码
         VerifyCodeUtils.consume(stringRedisTemplate, AuthServerConstant.EMAIL_CODE_CACHE_PREFIX, vo.getEmail());
 
         return issueToken(user, request);

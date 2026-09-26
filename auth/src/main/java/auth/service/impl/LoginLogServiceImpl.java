@@ -26,6 +26,7 @@ public class LoginLogServiceImpl implements LoginLogService {
         this.ipLocationService = ipLocationService;
     }
 
+    /** {@inheritDoc} */
     @Override
     public void recordWebLogin(Long memberId, String clientIp) {
         if (memberId == null) {

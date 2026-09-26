@@ -16,7 +16,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
-/** 账号密码这条链路：注册 + 登录。和邮箱/手机验证码两条链路各自独立，互不授予登录能力。 */
+
+/**
+ * 账号密码链路：注册 + 登录。
+ *
+ * <p>与邮箱、手机验证码两条链路各自独立：本链路建出的账号带密码，另外两条建出的账号没有密码，
+ * 三条链路互不授予登录能力。
+ */
 @Slf4j
 @RestController
 @RequestMapping("auth/front/account")
@@ -31,8 +37,13 @@ public class AccountAuthController extends AbstractLoginController {
     }
 
     /**
-     * 注册。参数校验交给 {@code @Valid}，失败时由 GlobalExceptionHandler 统一转成
-     * {@code code:10001 + errors{字段:消息}}。
+     * 注册账号。
+     *
+     * <p>参数校验交给 {@code @Valid}，失败时由 GlobalExceptionHandler 统一转成
+     * {@code code:10001 + errors{字段:消息}}。</p>
+     *
+     * @param vo 注册入参，含账号与密码
+     * @return 成功返回 {@code code:0}；账号被占用时透传 member 的 15001
      */
     @PostMapping("/register")
     public R<Void> register(@RequestBody @Valid UserAccountVo vo) {
@@ -50,10 +61,13 @@ public class AccountAuthController extends AbstractLoginController {
     }
 
     /**
-     * 登录，成功后签发 JWT。
+     * 账号密码登录，成功后签发 JWT。
      *
-     * <p>只按账号查人 —— 以前是 {@code username = ? OR mobile = ?}，
-     * 也就是手机号可以当账号用；现在手机号只能走短信链路。</p>
+     * <p>只按账号查人：手机号只能走短信链路，不参与本链路的认证。</p>
+     *
+     * @param vo      登录入参，含账号与密码
+     * @param request 当前请求，用于取客户端 IP
+     * @return 登录响应，{@code data} 内含 token、有效期秒数与用户信息
      */
     @PostMapping("/login")
     public R<Map<String, Object>> login(@RequestBody @Valid UserAccountVo vo, HttpServletRequest request) {

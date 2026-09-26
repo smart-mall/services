@@ -13,19 +13,11 @@ import org.springframework.http.ResponseEntity;
 import java.net.URI;
 
 /**
- * 社交登录（微博 / QQ）两个 controller 的公共部分。
+ * 社交登录（微博 / QQ）两个 controller 的公共部分：用 code 换取用户信息、交 member 服务登录或自动注册、
+ * 签发 JWT，最后 302 跳回前端。
  *
- * <p>两个渠道的流程一模一样：浏览器带着 code 跳到我们登记的 redirect_uri →
- * 用 code 换取用户信息 → 交给 member 服务按社交账号登录或自动注册 → 签发 JWT →
- * 302 跳回前端并把 token 挂在查询串上。只有"换取用户信息"那一段不同，
- * 所以提到基类共用，两个子类各自只留自己那段。</p>
- *
- * <p>这是唯一一类不能返回 JSON 的接口：请求是<b>浏览器整页跳转</b>过来的，
- * token 没法放在 Authorization 头里，只能挂在 URL 上回传给前端。</p>
- *
- * <p><b>已知取舍</b>：token 出现在 URL 查询串里，会进浏览器历史、Referer 和服务端访问日志。
- * 想做干净的话，正确做法是先往 Redis 写一个一次性的 code，跳回前端时只带 code，
- * 前端再 POST 换 token —— 需要前端配合加一个 exchange 调用，本轮先不做。</p>
+ * <p>这是唯一一类不能返回 JSON 的接口：请求由浏览器整页跳转发起，token 没法放进 Authorization 头，
+ * 只能挂在 URL 上回传，因此会进浏览器历史、Referer 和服务端访问日志。
  */
 @Slf4j
 public abstract class AbstractSocialAuthController {
@@ -38,6 +30,14 @@ public abstract class AbstractSocialAuthController {
     /** 前端地址。末尾斜杠在构造里已经去掉，免得拼出 //oauth/callback */
     protected final String frontUrl;
 
+    /**
+     * 构造器：前端地址末尾的斜杠在这里去掉，避免拼出 {@code //oauth/callback}。
+     *
+     * @param memberFeignService member 服务客户端
+     * @param jwtUtils           JWT 签发工具
+     * @param loginLogService    登录记录服务
+     * @param frontUrl           前端地址，末尾带不带斜杠都可以
+     */
     protected AbstractSocialAuthController(MemberFeignService memberFeignService,
                                            JwtUtils jwtUtils,
                                            LoginLogService loginLogService,
@@ -48,7 +48,14 @@ public abstract class AbstractSocialAuthController {
         this.frontUrl = frontUrl.endsWith("/") ? frontUrl.substring(0, frontUrl.length() - 1) : frontUrl;
     }
 
-    /** 登录成功：签发 JWT 并跳回前端的回调页，由前端把 token 存进 localStorage */
+    /**
+     * 登录成功：签发 JWT 并跳回前端的回调页，由前端把 token 存进 localStorage。
+     *
+     * @param user    member 服务返回的会员信息，{@code id} 为空时视为失败
+     * @param channel 登录渠道标识，用于日志与失败原因，如 {@code weibo} / {@code qq}
+     * @param request 当前请求，用于取客户端 IP
+     * @return 302 跳转响应；用户信息不完整时跳回登录页
+     */
     protected ResponseEntity<Void> toFrontWithToken(MemberResponseVo user, String channel,
                                                     HttpServletRequest request) {
         if (user == null || user.getId() == null) {
@@ -56,7 +63,7 @@ public abstract class AbstractSocialAuthController {
             return toLoginPage(channel + "_user_missing");
         }
 
-        // 和 AccountAuthController#login 同理：这两个字段不能出这个类
+        // 密码哈希与微博令牌不能出这个类：MemberResponseVo 上的 @JsonIgnore 对 fastjson 不生效
         user.setPassword(null);
         user.setAccessToken(null);
 
@@ -65,13 +72,26 @@ public abstract class AbstractSocialAuthController {
         loginLogService.recordWebLogin(user.getId(), ClientIpUtils.currentIp(request));
 
         // JWT 是 Base64URL 字符集（字母数字 - _ 和点），本身就能直接放查询串，不用再编码
+        // TODO: 接入一次性 code 换取 token（需前端配合 exchange 接口），避免 token 进 URL
         return redirect(frontUrl + "/oauth/callback?token=" + token);
     }
 
+    /**
+     * 跳回前端登录页并带上社交登录的失败原因。
+     *
+     * @param reason 失败原因标识，前端按它展示提示
+     * @return 302 跳转响应
+     */
     protected ResponseEntity<Void> toLoginPage(String reason) {
         return redirect(frontUrl + "/login?socialError=" + reason);
     }
 
+    /**
+     * 构造 302 跳转响应。
+     *
+     * @param url 目标地址
+     * @return 302 跳转响应
+     */
     protected ResponseEntity<Void> redirect(String url) {
         return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(url)).build();
     }

@@ -4,7 +4,9 @@ import com.alibaba.fastjson.annotation.JSONField;
 import lombok.Data;
 
 /**
- * QQ登录用户信息实体类
+ * QQ 用户信息接口的返回结果，字段与第三方中转域名返回的 JSON 一一对应。
+ *
+ * <p>除 {@link #token} 由本服务回填外，其余字段都直接来自接口响应，用于展示与社交账号绑定。</p>
  */
 @Data
 public class QQUserInfo {
@@ -119,5 +121,6 @@ public class QQUserInfo {
     @JSONField(name = "open_id")
     private String openId;
 
+    /** 授权 code，由 {@code QqAuthController} 回填后随用户信息一起转交 member 服务 */
     private String token;
 }
