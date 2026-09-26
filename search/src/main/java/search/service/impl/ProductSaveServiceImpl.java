@@ -19,15 +19,21 @@ import search.service.ProductSaveService;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 商品文档写入服务：上架时按 SKU 批量索引，下架时按 SPU 条件删除。
+ *
+ * <p>无状态、线程安全，所有读写都通过容器注入的 {@link ElasticsearchTemplate} 落到 ES。
+ */
 @Service
 @Slf4j
 public class ProductSaveServiceImpl implements ProductSaveService {
     @Autowired
     private ElasticsearchTemplate elasticsearchTemplate;
 
+    /** {@inheritDoc} */
     @Override
     public boolean productStatusUp(List<SkuEsModel> skuEsModels) {
-        // 批量索引操作
+        // 文档 ID 用 skuId：同一 SKU 重复上架时覆盖原文档，而不是写入重复数据
         List<IndexQuery> indexQueries = new ArrayList<>();
 
         for (SkuEsModel sku : skuEsModels) {
@@ -37,18 +43,15 @@ public class ProductSaveServiceImpl implements ProductSaveService {
             indexQueries.add(indexQuery);
         }
 
-        // 执行批量插入
         List<IndexedObjectInformation> res = elasticsearchTemplate.bulkIndex(indexQueries, IndexCoordinates.of(EsConstant.PRODUCT_INDEX));
-        // 检查是否成功
         if (!res.isEmpty()) {
-            // 检查是否有失败的信息
+            // 单条写入失败不会让整批回滚，只能靠 seqNo / version 为负逐条判断
             boolean hasError = res.stream().anyMatch(info ->
                     info.seqNo() < 0 || info.version() < 0
             );
 
             if (hasError) {
                 log.error("批量插入部分失败");
-                // 打印失败详情
                 res.forEach(info -> System.out.println("ID: " + info.id() +
                         ", SeqNo: " + info.seqNo() +
                         ", Version: " + info.version()));
@@ -63,6 +66,7 @@ public class ProductSaveServiceImpl implements ProductSaveService {
         }
     }
 
+    /** {@inheritDoc} */
     @Override
     public boolean productStatusDown(List<Long> spuIds) {
         if (spuIds == null || spuIds.isEmpty()) {

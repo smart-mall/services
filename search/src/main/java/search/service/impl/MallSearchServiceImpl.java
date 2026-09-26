@@ -31,6 +31,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * 前台商品检索服务的 ES 实现：把 {@link SearchParam} 翻译成 ES 查询，再把命中结果与聚合结果封装成
+ * {@link SearchResult}。
+ *
+ * <p>无状态、线程安全，依赖的 {@link ElasticsearchTemplate} 由容器注入。
+ */
 @Slf4j
 @Service
 public class MallSearchServiceImpl implements MallSearchService {
@@ -40,43 +46,45 @@ public class MallSearchServiceImpl implements MallSearchService {
         this.elasticsearchTemplate = elasticsearchTemplate;
     }
 
+    /** {@inheritDoc} */
     @Override
     public SearchResult search(SearchParam param) {
-        //0、补齐缺省值并校验查询条件。不合法直接抛 BaseException，由 common 的
-        //   GlobalExceptionHandler 统一转成 code=10001；之后的代码可以直接信任
-        //   pageNum / pageSize / sort / skuPrice / attrs 这些字段
+        // 1. 补齐缺省值并校验查询条件：不合法抛 ValidationException，由 common 的
+        //    GlobalExceptionHandler 统一转成 code=10001；之后可以直接信任
+        //    pageNum / pageSize / sort / skuPrice / attrs 这些字段
         param.normalizeAndValidate();
 
-        //1、准备检索请求
+        // 2. 准备检索请求
         NativeQuery nativeQuery = buildNativeQuery(param);
 
-        //2、执行检索请求
+        // 3. 执行检索请求
         SearchHits<SkuEsModel> search = elasticsearchTemplate.search(nativeQuery, SkuEsModel.class, IndexCoordinates.of(EsConstant.PRODUCT_INDEX));
 
-        //3、分析响应数据，封装成我们需要的格式
+        // 4. 分析响应数据，封装成调用方需要的格式
         return buildSearchResult(search, param);
     }
 
     /**
-     * 构建结果数据
-     * 模糊匹配，过滤（按照属性、分类、品牌，价格区间，库存），完成排序、分页、高亮,聚合分析功能
+     * 把 ES 的命中结果与聚合结果封装成出参。
      *
-     * @param searchHits 检索结果
-     * @return 封装了检索结果的数据
+     * <p>商品标题优先取高亮片段；聚合结果按属性、品牌、分类三组转成筛选项；最后补上分页信息与
+     * 已选筛选条件。
+     *
+     * @param searchHits ES 检索结果
+     * @param param 当前检索条件，用于回填页码与已选筛选条件
+     * @return 封装好的检索结果
      */
     private SearchResult buildSearchResult(SearchHits<SkuEsModel> searchHits, SearchParam param) {
         SearchResult result = new SearchResult();
 
-        //1、返回的所有查询到的商品
+        // 1. 返回的所有查询到的商品
         List<SkuEsModel> esModels = new ArrayList<>();
 
-        //遍历所有商品信息
         if (searchHits != null && !searchHits.getSearchHits().isEmpty()) {
             for (SearchHit<SkuEsModel> hit : searchHits.getSearchHits()) {
                 SkuEsModel esModel = hit.getContent();
-                //判断是否按关键字检索，若是就显示高亮，否则不显示
+                // 高亮只在关键字命中时返回，取不到片段就保留 ES 里的原文标题
                 if (StringUtils.hasText(param.getKeyword()) && hit.getHighlightFields().containsKey("skuTitle")) {
-                    //拿到高亮信息显示标题
                     List<String> fragments = hit.getHighlightFields().get("skuTitle");
                     if (fragments != null && !fragments.isEmpty()) {
                         String skuTitleValue = fragments.getFirst();
@@ -90,19 +98,17 @@ public class MallSearchServiceImpl implements MallSearchService {
         }
         result.setProduct(esModels);
 
-        //2、当前商品涉及到的所有【属性】信息attrs
+        // 2. 当前商品涉及到的所有属性信息（attrs）
         if (searchHits != null && searchHits.getAggregations() != null) {
             ElasticsearchAggregations aggregations = (ElasticsearchAggregations) searchHits.getAggregations();
 
-            // 获取属性信息的聚合。
-            // attr_agg 的结构是 global → attr_scope(filter) → attr_nested，不把外面两层剥掉
-            // 拿到的会是 GlobalAggregate，而不是期望的 NestedAggregate。
+            // attr_agg 的结构是 global → attr_scope(filter) → attr_nested，不剥掉外面两层
+            // 拿到的是 GlobalAggregate，不是 attrs 对应的 NestedAggregate
             ElasticsearchAggregation attrsAgg = aggregations.get("attr_agg");
             if (attrsAgg != null) {
                 List<SearchResult.AttrVo> attrVos = new ArrayList<>();
                 Aggregate aggregate = unwrapFacet(attrsAgg.aggregation().getAggregate(), "attr_scope", "attr_nested");
 
-                // 因为 attrs 是 nested 类型，剥掉外面两层之后就是 NestedAggregate
                 Aggregate attrIdAggregate = null;
 
                 if (aggregate != null && aggregate.isNested()) {
@@ -116,11 +122,9 @@ public class MallSearchServiceImpl implements MallSearchService {
 
                     for (LongTermsBucket bucket : buckets) {
                         SearchResult.AttrVo attrVo = new SearchResult.AttrVo();
-                        //1、得到属性的id
                         long attrId = bucket.key();
                         attrVo.setAttrId(attrId);
 
-                        //2、得到属性的名字
                         Aggregate attrNameAgg = bucket.aggregations().get("attr_name_agg");
                         if (attrNameAgg != null && attrNameAgg.isSterms()) {
                             StringTermsAggregate stringTerms = attrNameAgg.sterms();
@@ -131,7 +135,6 @@ public class MallSearchServiceImpl implements MallSearchService {
                             }
                         }
 
-                        //3、得到属性的所有值
                         Aggregate attrValueAgg = bucket.aggregations().get("attr_value_agg");
                         if (attrValueAgg != null && attrValueAgg.isSterms()) {
                             List<String> attrValues = new ArrayList<>();
@@ -149,7 +152,7 @@ public class MallSearchServiceImpl implements MallSearchService {
                 result.setAttrs(attrVos);
             }
 
-            //3、当前商品涉及到的所有【品牌】信息
+            // 3. 当前商品涉及到的所有品牌信息
             ElasticsearchAggregation brandAgg = aggregations.get("brand_agg");
             if (brandAgg != null) {
                 List<SearchResult.BrandVo> brandVos = new ArrayList<>();
@@ -190,7 +193,7 @@ public class MallSearchServiceImpl implements MallSearchService {
                 result.setBrands(brandVos);
             }
 
-            //4、当前商品涉及到的所有分类信息
+            // 4. 当前商品涉及到的所有分类信息
             ElasticsearchAggregation catalogAgg = aggregations.get("catalog_agg");
             if (catalogAgg != null) {
                 List<SearchResult.CatalogVo> catalogVos = new ArrayList<>();
@@ -221,22 +224,17 @@ public class MallSearchServiceImpl implements MallSearchService {
             }
         }
 
-        //5、分页信息-页码
+        // 5. 分页信息：页码、总记录数、总页码（pageSize 已由 normalizeAndValidate 补齐）
         result.setPageNum(param.getPageNum());
-        //5、1分页信息、总记录数
         long total = searchHits != null ? searchHits.getTotalHits() : 0;
         result.setTotal(total);
 
-        //5、2分页信息-总页码-计算。用前端传进来的 pageSize（normalizeAndValidate 已补齐）
         int pageSize = param.getPageSize();
         int totalPages = (int) (total % pageSize == 0 ? total / pageSize : total / pageSize + 1);
         result.setTotalPages(totalPages);
-        // 不再返回 pageNavs：原来是把 1..totalPages 全部页码塞进数组，结果一多就是个大数组。
-        // 前端拿 pageNum / totalPages 自己算要显示哪几个页码更合适（它知道自己的分页控件有多宽）。
+        // 页码导航由前端用 pageNum / totalPages 自己算，服务端不返回页码数组
 
-        //6、当前已选中的属性 id
-        // 单独算一遍，不再像原来那样挂在下面的 navs 循环里 —— 前端要用它回显属性的勾选状态，
-        // 将来就算不再返回 navs，这个字段也得留着。
+        // 6. 当前已选中的属性 id：前端用它回显属性勾选状态，与 navs 是否返回无关
         if (param.getAttrs() != null) {
             for (String attr : param.getAttrs()) {
                 SearchParam.AttrFilter parsed = SearchParam.parseAttr(attr);
@@ -246,14 +244,14 @@ public class MallSearchServiceImpl implements MallSearchService {
             }
         }
 
-        //7、已选筛选条件（属性）。前端当筛选 chips 用：每条告诉它"要移除哪个参数的哪个值"。
+        // 7. 已选筛选条件（属性）：每条告诉前端要移除哪个参数的哪个值
         if (param.getAttrs() != null && !param.getAttrs().isEmpty()) {
             List<SearchResult.NavVo> navs = result.getNavs();
             // 一条都没命中时聚合结果整体为空，result.getAttrs() 会是 null
             List<SearchResult.AttrVo> attrs = result.getAttrs() == null ? List.of() : result.getAttrs();
 
             for (String attr : param.getAttrs()) {
-                // 只按第一个下划线切分：原来的 split("_") 会把 "1_8GB_plus" 这种值截断成 "8GB"
+                // 属性值里可能自带下划线，只能按第一个下划线切分，否则值会被截断
                 SearchParam.AttrFilter parsed = SearchParam.parseAttr(attr);
                 if (parsed == null) {
                     continue;
@@ -263,7 +261,7 @@ public class MallSearchServiceImpl implements MallSearchService {
                 // 同一属性多值时协议里用冒号分隔（8GB:12GB），展示时换成顿号
                 navVo.setNavValue(parsed.value().replace(":", "、"));
 
-                // 从聚合结果中获取属性名称
+                // 聚合里查不到名称时退回属性 id，保证 chips 不会显示空白
                 String attrName = attrs.stream()
                         .filter(a -> a.getAttrId().equals(parsed.attrId()))
                         .map(SearchResult.AttrVo::getAttrName)
@@ -279,14 +277,13 @@ public class MallSearchServiceImpl implements MallSearchService {
             result.setNavs(navs);
         }
 
-        //8. 已选筛选条件（品牌）
+        // 8. 已选筛选条件（品牌）
         if (param.getBrandId() != null && !param.getBrandId().isEmpty()) {
             List<SearchResult.NavVo> navs = result.getNavs();
             // 一条都没命中时聚合结果整体为空，result.getBrands() 会是 null
             List<SearchResult.BrandVo> brands = result.getBrands() == null ? List.of() : result.getBrands();
 
-            // 选了多个品牌就生成多条面包屑，每条各自负责移除自己的 brandId。
-            // 原来是把所有品牌名拼成一条、但点击 x 只移除第一个 brandId，剩下的品牌还在过滤却看不到了
+            // 每个品牌单独一条：合并成一条时前端移除只作用于第一个 brandId，其余品牌仍在生效
             for (Long brandId : param.getBrandId()) {
                 SearchResult.NavVo navVo = new SearchResult.NavVo();
                 navVo.setNavName("品牌");
@@ -301,7 +298,7 @@ public class MallSearchServiceImpl implements MallSearchService {
             }
         }
 
-        //9. 已选筛选条件（分类）
+        // 9. 已选筛选条件（分类）
         if (param.getCatalog3Id() != null) {
             List<SearchResult.NavVo> navs = result.getNavs();
             // 一条都没命中时聚合结果整体为空，result.getCatalogs() 会是 null
@@ -310,7 +307,7 @@ public class MallSearchServiceImpl implements MallSearchService {
             SearchResult.NavVo navVo = new SearchResult.NavVo();
             navVo.setNavName("分类");
 
-            // 从聚合结果中获取分类名称
+            // 聚合里查不到名称时退回分类 id，保证 chips 不会显示空白
             navVo.setNavValue(catalogs.stream()
                     .filter(c -> c.getCatalogId().equals(param.getCatalog3Id()))
                     .map(SearchResult.CatalogVo::getCatalogName)
@@ -327,14 +324,18 @@ public class MallSearchServiceImpl implements MallSearchService {
         return result;
     }
 
+    /**
+     * 把检索条件翻译成 ES 的 NativeQuery：bool 查询、排序、分页、高亮与三个 facet 聚合。
+     *
+     * @param param 检索条件，缺省值已补齐
+     * @return 可直接交给 {@link ElasticsearchTemplate} 执行的查询
+     */
     private NativeQuery buildNativeQuery(SearchParam param) {
 
-        // 1. 构建 Bool Query。
-        //    facet 聚合要各自排除掉"自己这一类"的过滤条件，所以过滤条件的拼装抽到了
-        //    buildBoolQuery 里；这里传 null 表示所有条件都生效（主查询用）。
+        // 1. 构建 bool 查询：facet 聚合要各自排除掉"自己这一类"的过滤条件，所以过滤条件的拼装
+        //    抽到了 buildBoolQuery 里；这里传 null 表示所有条件都生效（主查询用）
         BoolQuery boolQuery = buildBoolQuery(param, null);
 
-        // 构建 NativeQuery
         NativeQueryBuilder queryBuilder = NativeQuery.builder()
                 .withQuery(boolQuery._toQuery());
 
@@ -370,22 +371,12 @@ public class MallSearchServiceImpl implements MallSearchService {
             );
         }
 
-        // 5. 聚合分析（三个 facet）
+        // 5. 聚合分析（品牌、分类、属性三个 facet），结构都是 global → filter → terms/nested
         //
-        // 每个 facet 的结构是 global → filter → terms/nested：
-        //
-        // 为什么要 global（关键）：ES 的聚合是在"父查询命中的文档"上算的，子聚合只能在那个集合里
-        // 继续收窄，不能放宽。所以只包一层 filter 聚合是没用的 —— 勾了"华为"之后聚合仍然只在
-        // 华为的文档里算，brand_agg 里依然只剩华为。
-        // 这一点在真实 ES 8.11 上验证过：主查询 brandId=1 时，
-        //   filter 写法          → 品牌桶只有 1 个：1(3)
-        //   global + filter 写法 → 品牌桶 3 个：2(9), 6(4), 1(3)
-        // global 会跳出查询作用域、在索引全部文档上算，所以里面那个 filter 必须把该生效的条件
-        // （关键字、分类、价格、有货……）自己重新加上，这就是 buildBoolQuery 的第二个参数。
-        //
-        // 排除的只是"自己这一类"：选了三级分类之后品牌候选仍然只在该分类里（这是想要的），
-        // 价格区间、是否有货这类硬条件也仍然生效。
-// 5.1 按照品牌进行聚合
+        // 聚合默认只在父查询命中的文档上算，外面只包一层 filter 收窄不了候选：勾了"华为"之后品牌桶
+        // 里依然只剩华为。所以每个 facet 用 global 跳出查询作用域，再在 filter 里把该生效的条件
+        // 重新加上（buildBoolQuery 的第二个参数），只排除"自己这一类"。
+        // 5.1 按品牌聚合
         queryBuilder.withAggregation("brand_agg", Aggregation.of(agg -> agg
                 .global(g -> g)
                 .aggregations("brand_scope", Aggregation.of(scope -> scope
@@ -411,7 +402,7 @@ public class MallSearchServiceImpl implements MallSearchService {
                 ))
         ));
 
-// 5.2 按照分类信息进行聚合
+        // 5.2 按分类聚合
         queryBuilder.withAggregation("catalog_agg", Aggregation.of(agg -> agg
                 .global(g -> g)
                 .aggregations("catalog_scope", Aggregation.of(scope -> scope
@@ -431,7 +422,7 @@ public class MallSearchServiceImpl implements MallSearchService {
                 ))
         ));
 
-// 5.3 按照属性信息进行聚合（Nested聚合，同样包在 global → filter 里面）
+        // 5.3 按属性聚合（Nested 聚合，同样包在 global → filter 里）
         queryBuilder.withAggregation("attr_agg", Aggregation.of(agg -> agg
                 .global(g -> g)
                 .aggregations("attr_scope", Aggregation.of(scope -> scope
@@ -466,23 +457,30 @@ public class MallSearchServiceImpl implements MallSearchService {
     }
 
     /**
-     * facet 聚合要排除掉"自己这一类"的过滤条件，用这个枚举区分是哪一类。
+     * facet 聚合需要排除的过滤条件类别，每个取值对应一个聚合维度。
      */
     private enum FacetKind {
+        /*
+         * BRAND：品牌聚合，排除 brandId 过滤条件
+         * ATTR：属性聚合，排除 attrs 过滤条件
+         * CATALOG：分类聚合，排除 catalog3Id 过滤条件
+         */
         BRAND, ATTR, CATALOG
     }
 
     /**
-     * 构建 bool 查询。
+     * 构建 bool 查询：把关键字、分类、品牌、属性、库存、价格这些条件拼成 must / filter。
      *
-     * @param excluding 本次要排除掉哪一类过滤条件：主查询传 null（所有条件都生效），
+     * @param param 检索条件
+     * @param excluding 要排除掉哪一类过滤条件：主查询传 {@code null}（所有条件都生效），
      *                  三个 facet 聚合各自传自己的类型
+     * @return 组装好的 bool 查询
      */
     private BoolQuery buildBoolQuery(SearchParam param, FacetKind excluding) {
 
         BoolQuery.Builder boolQueryBuilder = new BoolQuery.Builder();
 
-        // 1.1 bool-must 模糊匹配
+        // 1.1 must：关键字模糊匹配
         if (StringUtils.hasText(param.getKeyword())) {
             boolQueryBuilder.must(m -> m
                     .match(match -> match
@@ -492,7 +490,7 @@ public class MallSearchServiceImpl implements MallSearchService {
             );
         }
 
-        // 1.2 bool-filter 按照三级分类id查询
+        // 1.2 filter：三级分类
         if (param.getCatalog3Id() != null && excluding != FacetKind.CATALOG) {
             boolQueryBuilder.filter(f -> f
                     .term(term -> term
@@ -502,7 +500,7 @@ public class MallSearchServiceImpl implements MallSearchService {
             );
         }
 
-        // 1.2.2 brandId 按照品牌id查询
+        // 1.3 filter：品牌，多选之间是 OR
         if (param.getBrandId() != null && !param.getBrandId().isEmpty() && excluding != FacetKind.BRAND) {
             boolQueryBuilder.filter(f -> f
                     .terms(terms -> terms
@@ -515,8 +513,8 @@ public class MallSearchServiceImpl implements MallSearchService {
             );
         }
 
-        // 1.2.3 attrs 按照所有指定的属性查询
-        // 每个属性一个 nested filter，属性之间是 AND；同一属性内多个值是 OR（同一个 nested 文档里 terms）
+        // 1.4 filter：属性。每个属性一个 nested filter，属性之间是 AND，
+        //     同一属性内多个值是 OR（同一个 nested 文档里 terms）
         if (param.getAttrs() != null && !param.getAttrs().isEmpty() && excluding != FacetKind.ATTR) {
             for (String item : param.getAttrs()) {
                 // normalizeAndValidate() 已经保证能解析出来，这里只是兜底
@@ -557,7 +555,7 @@ public class MallSearchServiceImpl implements MallSearchService {
             }
         }
 
-        // 1.2.4 hasStock 按照库存是否有进行查询
+        // 1.5 filter：是否有货
         if (param.getHasStock() != null) {
             boolQueryBuilder.filter(f -> f
                     .term(term -> term
@@ -567,20 +565,18 @@ public class MallSearchServiceImpl implements MallSearchService {
             );
         }
 
-        // 1.2.5 skuPrice 按照价格区间进行查询
+        // 1.6 filter：价格区间
         if (StringUtils.hasText(param.getSkuPrice())) {
             // split 必须带 -1 才会保留结尾的空串："1000_" 用默认的 split 只得到一段，
-            // 会掉进"既不是区间也不是单边"的空档，价格条件被静默丢掉。
+            // 价格条件会被静默丢掉
             String[] price = param.getSkuPrice().split("_", -1);
 
-            // 构建 NumberRangeQuery
             NumberRangeQuery.Builder rangeQueryBuilder =
                     new NumberRangeQuery.Builder()
                             .field("skuPrice");
 
             // 合法性已由 SearchParam.isValidSkuPrice() 保证，这里只可能是
-            // 1000_2000 / _2000 / 1000_ 三种形状：哪一端非空就加哪一端的边界。
-            // 原来的写法把 "_2000" 当成两段区间去 parseDouble("")，直接 NumberFormatException。
+            // 1000_2000 / _2000 / 1000_ 三种形状：哪一端非空就加哪一端的边界
             if (!price[0].isBlank()) {
                 rangeQueryBuilder.gte(Double.parseDouble(price[0]));
             }
@@ -588,12 +584,10 @@ public class MallSearchServiceImpl implements MallSearchService {
                 rangeQueryBuilder.lte(Double.parseDouble(price[1]));
             }
 
-            // 创建 RangeQuery 并指定为 number 类型
             RangeQuery rangeQuery = RangeQuery.of(r -> r
                     .number(rangeQueryBuilder.build())
             );
 
-            // 添加到 filter
             boolQueryBuilder.filter(f -> f.range(rangeQuery));
         }
 
@@ -604,7 +598,7 @@ public class MallSearchServiceImpl implements MallSearchService {
      * 剥掉 facet 聚合外面的 global 和 filter 两层包装，拿到真正做 terms / nested 的那一层。
      *
      * <p>三个 facet 都不是裸的 terms / nested：结构是 global → filter → terms/nested
-     * （为什么要 global 见 buildNativeQuery 里的注释）。</p>
+     * （global 的作用见 buildNativeQuery 里的注释）。</p>
      *
      * @param aggregate 顶层聚合结果
      * @param scopeName 中间那层 filter 聚合的名字

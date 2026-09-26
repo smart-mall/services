@@ -3,6 +3,9 @@ package search.vo;
 import lombok.Data;
 
 
+/**
+ * 属性及其所属分组、分类的出参对象。
+ */
 @Data
 public class AttrResponseVo {
 
@@ -43,12 +46,16 @@ public class AttrResponseVo {
      */
     private Integer showDesc;
 
+    /** 所属属性分组 ID。 */
     private Long attrGroupId;
 
+    /** 所属分类名称。 */
     private String catalogName;
 
+    /** 所属属性分组名称。 */
     private String groupName;
 
+    /** 所属分类的完整路径。 */
     private Long[] catalogPath;
 
 

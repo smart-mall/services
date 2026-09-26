@@ -7,11 +7,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 
+/**
+ * 前台商品检索的出参：命中的商品列表、分页信息与聚合出的筛选项。
+ */
 @Data
 public class SearchResult {
 
     /**
-     * 查询到的所有商品信息
+     * 命中的商品列表
      */
     private List<SkuEsModel> product;
 
@@ -49,31 +52,28 @@ public class SearchResult {
 
 
 
-    /* 已选筛选条件（前端当筛选 chips 用） */
+    /** 已选筛选条件，前端当筛选 chips 用。 */
     private List<NavVo> navs = new ArrayList<>();
+
+    /** 已选中的属性 ID，前端用它回显属性勾选状态。 */
     private List<Long> attrIds = new ArrayList<>();
 
     /**
-     * 已选筛选条件里的一条。原来这里是一个后端拼好的 link（写死了
-     * http://search.gulimall.com/list.html?...），SPA 里不必让后端拼 URL：
-     * 后端只负责告诉前端"要移除哪个查询参数的哪个值"，前端从自己的查询条件里删掉后重新请求即可。
+     * 已选筛选条件里的一条：告诉前端要移除哪个查询参数的哪个值。
      *
-     * <p>它不承担"面包屑"的导航职责，就是当前筛选状态的可视化 ——
-     * 关键词这种没有复选框可以回显的条件，只能靠它显示和清除。</p>
+     * <p>后端只给 {@code removeKey} + {@code removeValue}，不拼装 URL，前端从自己的查询条件里删掉
+     * 后重新请求即可。关键词这类没有复选框可回显的条件，只能靠它显示和清除。
      */
     @Data
     public static class NavVo {
 
-        /** 显示的分类名，例如"品牌"、"分类"、"内存" */
+        /** 筛选条件的类别名，例如"品牌"、"分类"、"内存" */
         private String navName;
 
-        /**
-         * 显示的具体值，例如"华为"、"手机"、"8GB"。
-         * 属性多选时用顿号连接（内部先把协议里的冒号换成顿号），只用于展示。
-         */
+        /** 展示用的具体值，例如"华为"、"手机"、"8GB"；属性多值时用顿号连接 */
         private String navValue;
 
-        /** 点击 x 时要从前端查询条件里移除的参数名，例如 brandId / catalog3Id / attrs */
+        /** 点击 x 时要移除的查询参数名，例如 brandId / catalog3Id / attrs */
         private String removeKey;
 
         /** 要移除的参数值，原样未做 URL 编码，例如 "1" / "5" / "1_华为" */
@@ -81,33 +81,50 @@ public class SearchResult {
     }
 
 
+    /**
+     * 检索结果中出现过的品牌，供前端渲染品牌筛选项。
+     */
     @Data
     public static class BrandVo {
 
+        /** 品牌 ID。 */
         private Long brandId;
 
+        /** 品牌名称。 */
         private String brandName;
 
+        /** 品牌图片地址。 */
         private String brandImg;
     }
 
 
+    /**
+     * 检索结果中出现过的属性，供前端渲染属性筛选项。
+     */
     @Data
     public static class AttrVo {
 
+        /** 属性 ID。 */
         private Long attrId;
 
+        /** 属性名称。 */
         private String attrName;
 
+        /** 该属性在结果中出现过的所有值。 */
         private List<String> attrValue;
     }
 
 
+    /**
+     * 检索结果中出现过的分类，供前端渲染分类筛选项。
+     */
     @Data
     public static class CatalogVo {
 
+        /** 分类 ID。 */
         private Long catalogId;
 
+        /** 分类名称。 */
         private String catalogName;
     }
 }

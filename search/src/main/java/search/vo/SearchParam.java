@@ -8,46 +8,47 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 /**
- * 封装页面所有可能传递过来的查询条件
+ * 前台商品检索的查询条件，由 URL 查询参数绑定。
+ *
+ * <p>缺省值补齐与合法性校验集中在 {@link #normalizeAndValidate()}，检索前必须先调用它。
  */
 
 @Data
 public class SearchParam {
 
     /**
-     * 页面传递过来的全文匹配关键字
+     * 全文匹配关键字，匹配商品标题
      */
     private String keyword;
 
     /**
-     * 品牌id,可以多选
+     * 品牌 ID，可多选，多个之间是 OR
      */
     private List<Long> brandId;
 
     /**
-     * 三级分类id
+     * 三级分类 ID
      */
     private Long catalog3Id;
 
     /**
-     * 排序条件，格式为 <字段>_<asc|desc>，字段名必须和 es.SkuEsModel 里的名字一致，
-     * 后端是拆开后直接当 ES 的排序字段用的。
-     * 例如：skuPrice_asc、saleCount_desc、hotScore_desc
+     * 排序条件，格式为 {@code <字段>_<asc|desc>}，字段名必须和 {@code es.SkuEsModel} 里的名字一致，
+     * 后端拆开后直接当 ES 的排序字段用。例如：skuPrice_asc、saleCount_desc、hotScore_desc
      */
     private String sort;
 
     /**
-     * 是否显示有货
+     * 是否有货：0-无货，1-有货；不传表示不按库存过滤
      */
     private Integer hasStock;
 
     /**
-     * 价格区间查询
+     * 价格区间，格式为 {@code 最低价_最高价}，任一端可省略
      */
     private String skuPrice;
 
     /**
-     * 按照属性进行筛选
+     * 属性筛选，每项格式为 {@code <属性id>_<属性值>}
      */
     private List<String> attrs;
 
@@ -63,23 +64,28 @@ public class SearchParam {
     private Integer pageSize;
 
     /**
-     * 合法的排序条件：<字段>_<asc|desc>。
-     * 字段名必须和 es.SkuEsModel 里的一致（ES 的字段名区分大小写），因为后端拆开后直接当 ES 排序字段用；
-     * 升降序不区分大小写，和原来 "asc".equalsIgnoreCase(...) 的行为保持一致，不要无谓收窄可接受的入参。
+     * 合法的排序条件：{@code <字段>_<asc|desc>}。
+     *
+     * <p>字段名必须和 {@code es.SkuEsModel} 里的一致（ES 的字段名区分大小写），因为后端拆开后直接
+     * 当 ES 排序字段用；升降序不区分大小写。
      */
     private static final Pattern SORT_PATTERN = Pattern.compile("^(skuPrice|saleCount|hotScore)_(?i:asc|desc)$");
 
     /**
      * 合法的价格区间：{@code 1000_2000}、{@code _2000}（只要上限）、{@code 1000_}（只要下限）。
-     * 小数仍然允许（原来是 Double.parseDouble，别无谓收窄）。
+     *
+     * <p>边界值允许小数，解析时按 {@code Double} 处理。
      */
     private static final Pattern SKU_PRICE_PATTERN = Pattern.compile("^(-?\\d+(\\.\\d+)?)?_(-?\\d+(\\.\\d+)?)?$");
 
     /**
-     * 校验 sort 是否合法。
+     * 校验排序条件是否合法。
      *
-     * 不校验的后果：字段名写错（比如 price）ES 会直接报错，少写 _asc/_desc 会 sortFields[1] 数组越界，
-     * 两种返回的都是 Spring 默认的 500 error JSON，里面没有 code/msg，前端只能弹"请求失败（HTTP 500）"。
+     * <p>不校验的后果：字段名写错 ES 会直接报错，少写 {@code _asc}/{@code _desc} 会数组越界，两种
+     * 返回的都是没有 code/msg 的 500，前端只能提示"请求失败"。
+     *
+     * @param sort 排序条件，允许为 {@code null} 或空（表示不排序）
+     * @return {@code true} 表示合法或未指定排序
      */
     public static boolean isValidSort(String sort) {
         return sort == null || sort.isBlank() || SORT_PATTERN.matcher(sort).matches();
@@ -88,11 +94,12 @@ public class SearchParam {
     /**
      * 校验价格区间是否合法。
      *
-     * 不校验的后果有两个：
-     * 1、{@code skuPrice=_2000} 原意是"价格小于等于 2000"，但 split("_") 得到的是 ["", "2000"]（两段），
-     *    会走区间分支去 parseDouble("")，直接 NumberFormatException；
-     * 2、{@code skuPrice=abc}、{@code 1000__2000} 这类两段都不是的，原来的 if/else if 一个分支都进不去，
-     *    结果是"静默不加价格条件"，用户以为筛了其实没筛。
+     * <p>不校验的后果：{@code _2000} 这类只给上限的写法会被拆成两段、去解析空串而抛
+     * {@code NumberFormatException}；{@code abc}、{@code 1000__2000} 这类解析不出区间的写法会被
+     * 静默忽略，用户以为筛了价格其实没筛。
+     *
+     * @param skuPrice 价格区间，允许为 {@code null} 或空（表示不按价格过滤）
+     * @return {@code true} 表示合法或未指定价格区间
      */
     public static boolean isValidSkuPrice(String skuPrice) {
         if (skuPrice == null || skuPrice.isBlank()) {
@@ -103,11 +110,13 @@ public class SearchParam {
     }
 
     /**
-     * attrs 里的一项：{@code <属性id>_<属性值>}。属性值里允许再出现下划线和冒号
-     * （冒号是同一属性多值的分隔符），所以只按<b>第一个</b>下划线切分 ——
-     * 原来的 {@code split("_")} 会把 "1_8GB_plus" 这种值截断成 "8GB"，静默筛错。
+     * 解析属性筛选参数里的一项。
      *
-     * @return 解析结果，格式不合法时返回 null（由调用方决定是报错还是忽略）
+     * <p>属性值里允许再出现下划线和冒号（冒号是同一属性多值的分隔符），所以只按第一个下划线切分，
+     * 否则 {@code 1_8GB_plus} 这类值会被截断成 {@code 8GB}，静默筛错。
+     *
+     * @param attr 属性筛选项，格式为 {@code <属性id>_<属性值>}
+     * @return 解析结果，格式不合法时返回 {@code null}（由调用方决定是报错还是忽略）
      */
     public static AttrFilter parseAttr(String attr) {
         if (attr == null) {
@@ -131,25 +140,25 @@ public class SearchParam {
     }
 
     /**
-     * 属性筛选条件。{@code value} 可能是 {@code 8GB:12GB} 这种多值形式（冒号分隔，同属性内是 OR）。
+     * 属性筛选条件。
+     *
+     * @param attrId 属性 ID
+     * @param value 属性值，可能是 {@code 8GB:12GB} 这种多值形式（冒号分隔，同属性内是 OR）
      */
     public record AttrFilter(long attrId, String value) {
     }
 
     /**
-     * 补齐缺省值并校验，不合法直接抛 {@link ValidationException}，产出和注解路径完全一样的
+     * 补齐缺省值并校验查询条件，不合法时抛 {@link ValidationException}，产出与注解校验一致的
      * {@code {code:10001, errors:{字段:消息}}}。
      *
-     * <p>为什么不用 @Valid 注解：本类是从 URL 查询参数绑定的（@ModelAttribute 路径），校验失败时
-     * Spring 抛的异常和 @RequestParam 上的约束（ConstraintViolationException）、@RequestBody 上的
-     * @Valid（MethodArgumentNotValidException）不是同一条链路。而且下面这几条规则注解也表达不了：
-     * from+size 是跨字段的，sort / skuPrice / attrs 是复合格式的。手写校验既能和已有的 isValidSort
-     * 保持同一套写法，又能让校验规则和下面的解析逻辑待在一起，不会出现"校验说合法、解析却按
-     * 另一种方式理解"的漂移。</p>
+     * <p>手写校验而不用注解：本类走 URL 查询参数绑定，与 {@code @RequestParam} 上的约束、
+     * {@code @RequestBody} 上的 {@code @Valid} 不是同一条异常链路；且 from+size 是跨字段规则，
+     * sort / skuPrice / attrs 是复合格式规则，注解表达不了。
      *
-     * <p>校验失败一律报错、不静默忽略：静默忽略会让前端以为筛选生效了、实际没生效，最难排查。</p>
+     * <p>校验失败一律报错、不静默忽略：静默忽略会让前端以为筛选生效了、实际没生效，最难排查。
      *
-     * <p>本方法会把补好的缺省值写回字段，之后 service 直接用 getPageNum()/getPageSize() 即可。</p>
+     * <p>本方法会把补好的缺省值写回字段，之后 service 直接用 {@code getPageNum()}/{@code getPageSize()} 即可。
      */
     public void normalizeAndValidate() {
         if (pageNum == null) {
@@ -193,9 +202,12 @@ public class SearchParam {
     /**
      * 复杂规则手写校验的统一出口。
      *
-     * <p>字段名不是随便给的 —— 它要和调用方那边的字段名一致（前端 el-form-item 的 prop、
-     * 查询参数名），否则错误挂不到对应控件上。整体性的规则（比如"翻页过深"）挂到最相关的
-     * 那个字段，也不要退回成不带字段的 msg：那会让调用方多一种形状要处理。</p>
+     * <p>字段名必须与调用方的字段名一致（前端表单控件的 prop、查询参数名），否则错误挂不到对应
+     * 控件上；整体性规则挂到最相关的字段，不要退回成不带字段的消息，那会让调用方多一种形状要处理。
+     *
+     * @param field 出错的字段名
+     * @param message 错误提示
+     * @return 可直接抛出的校验异常
      */
     private static ValidationException invalid(String field, String message) {
         return new ValidationException(field, message);
