@@ -12,9 +12,15 @@ import member.service.IntegrationChangeHistoryService;
 
 
 import common.query.PageQuery;
+/**
+ * 会员积分变动流水的查询实现。
+ *
+ * <p>无状态、线程安全，只做分页透传，不修改数据。
+ */
 @Service("integrationChangeHistoryService")
 public class IntegrationChangeHistoryServiceImpl extends ServiceImpl<IntegrationChangeHistoryDao, IntegrationChangeHistoryEntity> implements IntegrationChangeHistoryService {
 
+    /** {@inheritDoc} */
     @Override
     public PageVO<IntegrationChangeHistoryEntity> queryPage(PageQuery query) {
         IPage<IntegrationChangeHistoryEntity> page = this.page(query.toPage());

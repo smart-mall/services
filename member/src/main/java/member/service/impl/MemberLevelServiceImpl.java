@@ -15,9 +15,15 @@ import java.util.Map;
 
 
 import common.query.KeyPageQuery;
+/**
+ * 会员等级服务的实现：等级分页查询与下拉选项组装。
+ *
+ * <p>无状态、线程安全；下拉选项由全量查询后在内存里裁剪字段得到。
+ */
 @Service("memberLevelService")
 public class MemberLevelServiceImpl extends ServiceImpl<MemberLevelDao, MemberLevelEntity> implements MemberLevelService {
 
+    /** {@inheritDoc} */
     @Override
     public PageVO<MemberLevelEntity> queryPage(KeyPageQuery query) {
         String key = query.getKey();
@@ -38,6 +44,7 @@ public class MemberLevelServiceImpl extends ServiceImpl<MemberLevelDao, MemberLe
         return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
+    /** {@inheritDoc} */
     @Override
     public List<MemberSelectVO> getMemberSelect() {
         return baseMapper.selectList(null).stream().map(item -> {

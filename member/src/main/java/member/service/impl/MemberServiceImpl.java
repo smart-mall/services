@@ -37,15 +37,26 @@ import java.util.function.Consumer;
 
 import common.query.PageQuery;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
+/**
+ * 会员账号服务的实现：注册、多链路登录、资料与联系方式维护。
+ *
+ * <p>无状态、线程安全；默认等级经 {@link MemberLevelDao} 查询，其余数据走 MyBatis-Plus。
+ */
 @Service("memberService")
 @Slf4j
 public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> implements MemberService {
     private final MemberLevelDao memberLevelDao;
 
+    /**
+     * 构造器注入会员等级查询，注册链路靠它取默认等级。
+     *
+     * @param memberLevelDao 会员等级查询，不能为 {@code null}
+     */
     public MemberServiceImpl(MemberLevelDao memberLevelDao) {
         this.memberLevelDao = memberLevelDao;
     }
 
+    /** {@inheritDoc} */
     @Override
     public PageVO<MemberEntity> queryPage(PageQuery query) {
         IPage<MemberEntity> page = this.page(query.toPage());
@@ -53,21 +64,21 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
         return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
+    /** {@inheritDoc} */
     @Override
     public void accountRegister(MemberUserRegisterVo vo) {
 
-        //感知异常，异常机制：账号被占用就抛，由 controller 转成 15001
+        // 账号被占用直接抛出，由 controller 统一转成 15001
         checkUsernameAvailable(vo.getUsername());
 
         MemberEntity memberEntity = new MemberEntity();
         fillDefaults(memberEntity, vo.getUsername());
-        //密码进行BCrypt加密
         memberEntity.setPassword(new BCryptPasswordEncoder().encode(vo.getPassword()));
 
-        //保存数据
         this.baseMapper.insert(memberEntity);
     }
 
+    /** {@inheritDoc} */
     @Override
     public MemberEntity loginByUsername(String username, String password) {
 
@@ -75,19 +86,16 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
                 new LambdaQueryWrapper<MemberEntity>().eq(MemberEntity::getUsername, username));
 
         if (memberEntity == null) {
-            //账号不存在
             return null;
         }
 
         String passwordDB = memberEntity.getPassword();
-        //没设过密码的账号（验证码链路建出来的）在这里一律登录失败。
-        //先判空是必要的：BCryptPasswordEncoder.matches 遇到 null 的密文虽然不会抛异常，
-        //但会打一条 "Empty encoded password" 的 warn 日志，正常业务不该刷这个日志。
+        // 无密码账号（验证码链路建的）一律登录失败；先判空是因为 BCrypt.matches
+        // 对 null 密文会打 "Empty encoded password" 的 warn 日志，正常业务不该刷
         if (StringUtils.isBlank(password) || passwordDB == null) {
             return null;
         }
 
-        //进行密码匹配
         if (new BCryptPasswordEncoder().matches(password, passwordDB)) {
             return memberEntity;
         }
@@ -95,12 +103,14 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
         return null;
     }
 
+    /** {@inheritDoc} */
     @Override
     public MemberEntity loginOrRegisterByEmail(String username, String email) {
         return loginOrRegister(username, new LambdaQueryWrapper<MemberEntity>().eq(MemberEntity::getEmail, email),
                 member -> member.setEmail(email));
     }
 
+    /** {@inheritDoc} */
     @Override
     public MemberEntity loginOrRegisterByMobile(String username, String mobile) {
         return loginOrRegister(username, new LambdaQueryWrapper<MemberEntity>().eq(MemberEntity::getMobile, mobile),
@@ -110,25 +120,24 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
     /**
      * 验证码链路的公共实现：先按联系方式找人，找不到就用 {@code username} 建一个。
      *
-     * <p>「查不到才建」这一步本身就是唯一性检查，所以不需要再单独 check 邮箱/手机号是否重复；
-     * 但账号是用户填的、和联系方式无关，必须单独查一次。</p>
+     * <p>「查不到才建」本身就是联系方式的唯一性检查，不必再查一次；账号是用户填的、与联系方式无关，
+     * 必须单独校验。新建的账号没有密码，只能靠验证码登录。
      *
-     * <p>建出来的账号<b>没有密码</b>：它只能靠验证码登录。这是有意的 ——
-     * 验证码链路和账号密码链路是各自独立的两套，不互相授予登录能力。</p>
-     *
+     * @param username 新建时使用的账号
      * @param byContact 按联系方式查询的条件
      * @param bindContact 新建时把联系方式落到实体上
+     * @return 命中的已有会员，或刚落库的新会员
      */
     private MemberEntity loginOrRegister(String username, LambdaQueryWrapper<MemberEntity> byContact,
                                          Consumer<MemberEntity> bindContact) {
 
         MemberEntity memberEntity = this.baseMapper.selectOne(byContact);
         if (memberEntity != null) {
-            //老用户：username 忽略，这条链路是按联系方式认人的
+            // 已有账号时忽略 username：这条链路按联系方式认人
             return memberEntity;
         }
 
-        //新用户：账号是用户填的、全局唯一，撞了就抛给上层转 15001
+        // 新建时账号是用户填的、全局唯一，撞了就抛给上层转 15001
         checkUsernameAvailable(username);
 
         MemberEntity register = new MemberEntity();
@@ -139,7 +148,12 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
         return register;
     }
 
-    /** 用户名是否已被占用，占用则抛 {@link UsernameException} */
+    /**
+     * 校验用户名是否可用，已被占用时抛 {@link UsernameException}。
+     *
+     * @param userName 待校验的账号，不能为 {@code null}
+     * @throws UsernameException 该账号已被占用
+     */
     private void checkUsernameAvailable(String userName) {
 
         Long usernameCount = this.baseMapper.selectCount(
@@ -150,37 +164,40 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
         }
     }
 
-    /** 三条注册/自动注册链路共用的默认字段 */
+    /**
+     * 填充注册共用的默认字段：默认等级、昵称、性别与注册时间。
+     *
+     * @param memberEntity 待填充的会员实体，不能为 {@code null}
+     * @param userName 账号，同时用作默认昵称
+     */
     private void fillDefaults(MemberEntity memberEntity, String userName) {
 
-        //设置默认等级
         MemberLevelEntity levelEntity = memberLevelDao.getDefaultLevel();
         if (levelEntity != null) {
             memberEntity.setLevelId(levelEntity.getId());
         } else {
-            //没有配默认等级不该让注册整个失败，落个 null 让后台能看出来
+            // 没有配默认等级不该让注册整个失败，落个 null 让后台能看出来
             log.warn("没有查询到默认会员等级，levelId 将为空");
         }
 
-        //设置昵称
         memberEntity.setNickname(userName);
         memberEntity.setUsername(userName);
+        // 0 表示性别未知，取值约定与资料修改接口一致
         memberEntity.setGender(0);
         memberEntity.setCreateTime(new Date());
     }
 
+    /** {@inheritDoc} */
     @Override
     public MemberEntity login(SocialUser socialUser) throws Exception {
 
-        //具有登录和注册逻辑
         String uid = socialUser.getUid();
 
-        //1、判断当前社交用户是否已经登录过系统
+        // 1. 按 socialUid 判断该微博账号是否已注册
         MemberEntity memberEntity = this.baseMapper.selectOne(new LambdaQueryWrapper<MemberEntity>().eq(MemberEntity::getSocialUid, uid));
 
         if (memberEntity != null) {
-            //这个用户已经注册过
-            //更新用户的访问令牌的时间和access_token
+            // 已注册：刷新 access_token 与有效期，后续调微博接口要用
             MemberEntity update = new MemberEntity();
             update.setId(memberEntity.getId());
             update.setAccessToken(socialUser.getAccess_token());
@@ -191,16 +208,14 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
             memberEntity.setExpiresIn(String.valueOf(socialUser.getExpires_in()));
             return memberEntity;
         } else {
-            //2、没有查到当前社交用户对应的记录我们就需要注册一个
+            // 2. 未注册：拉取微博资料后建档
             MemberEntity register = new MemberEntity();
-            //3、查询当前社交用户的社交账号信息（昵称、性别等）
             Map<String,String> query = new HashMap<>();
             query.put("access_token",socialUser.getAccess_token());
             query.put("uid",socialUser.getUid());
             HttpResponse response = HttpUtils.doGet("https://api.weibo.com", "/2/users/show.json", "get", new HashMap<String, String>(), query);
 
             if (response.getStatusLine().getStatusCode() == 200) {
-                //查询成功
                 String json = EntityUtils.toString(response.getEntity());
                 JSONObject jsonObject = JSON.parseObject(json);
                 String name = jsonObject.getString("name");
@@ -215,15 +230,16 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
                 register.setAccessToken(socialUser.getAccess_token());
                 register.setExpiresIn(String.valueOf(socialUser.getExpires_in()));
 
-                //把用户信息插入到数据库中
                 this.baseMapper.insert(register);
 
             }
+            // 微博资料接口非 200 时不落库，返回的实体 id 为 null
             return register;
         }
 
     }
 
+    /** {@inheritDoc} */
     @Override
     public MemberEntity login(QQUserInfo qqUserInfo) {
         String openid = qqUserInfo.getOpenId();
@@ -234,7 +250,6 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
 
         if (memberEntity == null) {
             log.debug("新用户注册");
-            //把扫码人的信息添加到数据库中
             memberEntity = new MemberEntity();
             memberEntity.setNickname(qqUserInfo.getNickname());
             memberEntity.setGender(Double.valueOf(qqUserInfo.getGenderType()).intValue());
@@ -246,6 +261,7 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
         return memberEntity;
     }
 
+    /** {@inheritDoc} */
     @Override
     public MemberEntity updateProfile(Long memberId, MemberProfileUpdateVo vo) {
 
@@ -269,6 +285,8 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
         return updated;
     }
 
+    /** {@inheritDoc} */
+    // 检查与写入放同一事务，但并发下仍有窗口：根治要加唯一索引，见 existsOnOther
     @Transactional(rollbackFor = Exception.class)
     @Override
     public void changeMobile(Long memberId, String mobile) {
@@ -280,6 +298,8 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
                 .set(MemberEntity::getMobile, mobile));
     }
 
+    /** {@inheritDoc} */
+    // 检查与写入放同一事务，但并发下仍有窗口：根治要加唯一索引，见 existsOnOther
     @Transactional(rollbackFor = Exception.class)
     @Override
     public void changeEmail(Long memberId, String email) {
@@ -292,15 +312,17 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
     }
 
     /**
-     * 这个联系方式是否已经绑在别人身上。
+     * 判断这个联系方式是否已经绑在别人身上。
      *
-     * <p>排除自己：改成和当前一样的值不该报"已绑定其他账号"。</p>
+     * <p>必须查：mobile / email 都没有唯一索引，而按联系方式找人用的是 {@code selectOne}，
+     * 写进重复值会让那个号从此登录抛 {@code TooManyResultsException}；并发下仍有窗口，
+     * 根治要加唯一索引。排除自己是为了让"设成当前值"不报错；邮箱比较忽略大小写，
+     * 由表的 utf8mb4_unicode_ci 排序规则保证，不用单独处理。
      *
-     * <p>为什么要查：库里 mobile / email 都没有唯一索引，而按联系方式找人用的是
-     * {@code selectOne} —— 一旦写进重复值，那个号从此登录会抛 TooManyResultsException。
-     * 并发下仍有窗口，根治得加唯一索引（历史数据可能已有重复，加之前要先查一遍）。</p>
-     *
-     * <p>邮箱不用单独处理大小写：表是 utf8mb4_unicode_ci，比较本身就忽略大小写。</p>
+     * @param column 联系方式列，取 {@code mobile} 或 {@code email}
+     * @param value 待校验的联系方式，不能为 {@code null}
+     * @param selfId 当前会员 ID，用于排除自己，不能为 {@code null}
+     * @return {@code true} 表示该联系方式已绑在别的会员上
      */
     private boolean existsOnOther(SFunction<MemberEntity, ?> column, Object value, Long selfId) {
         Long count = this.baseMapper.selectCount(new LambdaQueryWrapper<MemberEntity>()

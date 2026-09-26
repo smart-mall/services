@@ -18,12 +18,18 @@ import java.util.Map;
 
 import common.query.PageQuery;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+/**
+ * 会员登录记录的落库与查询实现。
+ *
+ * <p>无状态、线程安全；记录只追加不修改，登录时间取写入时刻。
+ */
 @Service("memberLoginLogService")
 public class MemberLoginLogServiceImpl extends ServiceImpl<MemberLoginLogDao, MemberLoginLogEntity> implements MemberLoginLogService {
 
     private static final int DEFAULT_PAGE_SIZE = 10;
     private static final int MAX_PAGE_SIZE = 100;
 
+    /** {@inheritDoc} */
     @Override
     public PageVO<MemberLoginLogEntity> queryPage(PageQuery query) {
         IPage<MemberLoginLogEntity> page = this.page(query.toPage());
@@ -31,6 +37,7 @@ public class MemberLoginLogServiceImpl extends ServiceImpl<MemberLoginLogDao, Me
         return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
+    /** {@inheritDoc} */
     @Override
     public void record(LoginLogTo to) {
         MemberLoginLogEntity entity = new MemberLoginLogEntity();
@@ -43,6 +50,7 @@ public class MemberLoginLogServiceImpl extends ServiceImpl<MemberLoginLogDao, Me
         this.save(entity);
     }
 
+    /** {@inheritDoc} */
     @Override
     public PageVO<MemberLoginLogEntity> queryMine(Long memberId, PageQuery query) {
         IPage<MemberLoginLogEntity> page = this.page(
