@@ -3,23 +3,17 @@ package product.vo;
 import lombok.Data;
 
 /**
- * 2021/1/11 18:36
+ * 商品详情页规格参数（基本属性）中的一条，属性值为单个值。
  *
- * 商品规格参数(基本属性)VO
+ * <p>当前前台商品详情页的规格参数由 {@link SpuItemAttrGroupVo} 与 {@link Attr} 承载，本类无调用方。
  */
 @Data
 public class ItemAttrVO {
 
-    /**
-     * attr_id
-     */
+    /** 属性 ID，指向 {@code pms_attr.attr_id}。 */
     private Long attrId;
-    /**
-     * 属性名
-     */
+    /** 属性名。 */
     private String attrName;
-    /**
-     * 属性值，规格参数(基本属性)里面，他是单个值
-     */
+    /** 当前 spu 在该属性上的取值；规格参数（基本属性）为单值，不是逗号分隔的列表。 */
     private String attrValue;
 }

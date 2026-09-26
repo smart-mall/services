@@ -11,15 +11,13 @@ import java.util.List;
 /**
  * 前台（首页、全局导航）使用的商品三级分类树节点。
  *
- * 三个层级复用同一个类：
- * 一级分类的 children 是二级分类，二级分类的 children 是三级分类，三级分类的 children 为空列表。
+ * <p>三个层级复用同一个类：一级分类的 {@code children} 是二级分类，二级分类的 {@code children}
+ * 是三级分类，三级分类的 {@code children} 为空列表。子分类必须是数组而不是以父分类 ID 为 key 的映射：
+ * 数组元素自带分类名与图标，顺序也能固定；映射的 key 只能携带一级分类 ID，一级分类的 name/icon
+ * 无处存放，且顺序不保证，前端菜单会漂移。
  *
- * 之所以不再用 Map<一级id, List<二级>> 那种结构：
- * 1、Map 的 key 只能携带一级分类的 id，一级分类的 name/icon 会丢失，前端必须额外再请求一次才能拿到；
- * 2、Map（HashMap）不保证顺序，前端 v-for 渲染时菜单顺序会漂移。
- * 改成有序数组 + 嵌套 children 之后，一次请求就拿到完整且有序的菜单。
- *
- * 必须实现 Serializable：spring.cache.type=redis 且没有自定义序列化器，@Cacheable 的缓存值走 JDK 序列化。
+ * <p>本类实例作为 {@code CategoryService#getCatalogTree} 的返回值写入 {@code category} 缓存，
+ * 缓存的 value 由 {@code CacheConfig} 以 JSON 序列化到 Redis。
  */
 @Data
 @AllArgsConstructor
@@ -28,10 +26,10 @@ public class CategoryVo implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    /** 分类id */
+    /** 分类 ID，指向 {@code pms_category.cat_id}。 */
     private Long catId;
 
-    /** 分类名称 */
+    /** 分类名。 */
     private String name;
 
     /**
@@ -40,6 +38,6 @@ public class CategoryVo implements Serializable {
      */
     private String icon;
 
-    /** 子分类，三级分类为空列表 */
+    /** 子分类；三级分类为空列表。 */
     private List<CategoryVo> children;
 }

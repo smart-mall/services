@@ -3,17 +3,16 @@ package product.vo;
 import lombok.Data;
 
 /**
- * 2021/1/12 11:31
- * <p>
- * /**
- * * 每种属性值和skuIds的对应关系
- * * 比如1号商品销售属性有，颜色：绿色；内存8G
- * * 那么颜色为绿色涉及的sku中就有1号，内存为8g涉及的sku中就有1号
- * * 这样方便于对不同属性值进行组合时快速确定这个组合对应的是哪一个商品
+ * 商品详情页中一个销售属性取值与拥有该取值的 sku 集合。
+ *
+ * <p>用于把用户选中的属性取值组合映射到具体 sku：例如颜色取值「绿色」与内存取值「8G」都关联了
+ * 1 号 sku，选中这两个取值就能确定商品是 1 号。
  */
 @Data
 public class ItemSaleAttrValueWithSkuVO {
 
+    /** 销售属性的一个取值，如「绿色」。 */
     String attrValue;
-    String skuIds; // 逗号分隔的多个skuId
+    /** 拥有该取值的全部 sku ID，逗号分隔。 */
+    String skuIds;
 }
