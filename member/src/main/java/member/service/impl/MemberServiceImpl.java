@@ -36,6 +36,7 @@ import java.util.function.Consumer;
 
 
 import common.query.PageQuery;
+import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 @Service("memberService")
 @Slf4j
 public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> implements MemberService {
@@ -47,10 +48,7 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
 
     @Override
     public PageVO<MemberEntity> queryPage(PageQuery query) {
-        IPage<MemberEntity> page = this.page(
-                query.toPage(),
-                new QueryWrapper<MemberEntity>()
-        );
+        IPage<MemberEntity> page = this.page(query.toPage());
 
         return new PageVO<>(page.getTotal(), page.getRecords());
     }
@@ -74,7 +72,7 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
     public MemberEntity loginByUsername(String username, String password) {
 
         MemberEntity memberEntity = this.baseMapper.selectOne(
-                new QueryWrapper<MemberEntity>().eq("username", username));
+                new LambdaQueryWrapper<MemberEntity>().eq(MemberEntity::getUsername, username));
 
         if (memberEntity == null) {
             //账号不存在
@@ -99,13 +97,13 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
 
     @Override
     public MemberEntity loginOrRegisterByEmail(String username, String email) {
-        return loginOrRegister(username, new QueryWrapper<MemberEntity>().eq("email", email),
+        return loginOrRegister(username, new LambdaQueryWrapper<MemberEntity>().eq(MemberEntity::getEmail, email),
                 member -> member.setEmail(email));
     }
 
     @Override
     public MemberEntity loginOrRegisterByMobile(String username, String mobile) {
-        return loginOrRegister(username, new QueryWrapper<MemberEntity>().eq("mobile", mobile),
+        return loginOrRegister(username, new LambdaQueryWrapper<MemberEntity>().eq(MemberEntity::getMobile, mobile),
                 member -> member.setMobile(mobile));
     }
 
@@ -121,7 +119,7 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
      * @param byContact 按联系方式查询的条件
      * @param bindContact 新建时把联系方式落到实体上
      */
-    private MemberEntity loginOrRegister(String username, QueryWrapper<MemberEntity> byContact,
+    private MemberEntity loginOrRegister(String username, LambdaQueryWrapper<MemberEntity> byContact,
                                          Consumer<MemberEntity> bindContact) {
 
         MemberEntity memberEntity = this.baseMapper.selectOne(byContact);
@@ -145,7 +143,7 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
     private void checkUsernameAvailable(String userName) {
 
         Long usernameCount = this.baseMapper.selectCount(
-                new QueryWrapper<MemberEntity>().eq("username", userName));
+                new LambdaQueryWrapper<MemberEntity>().eq(MemberEntity::getUsername, userName));
 
         if (usernameCount > 0) {
             throw new UsernameException();
@@ -178,7 +176,7 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
         String uid = socialUser.getUid();
 
         //1、判断当前社交用户是否已经登录过系统
-        MemberEntity memberEntity = this.baseMapper.selectOne(new QueryWrapper<MemberEntity>().eq("social_uid", uid));
+        MemberEntity memberEntity = this.baseMapper.selectOne(new LambdaQueryWrapper<MemberEntity>().eq(MemberEntity::getSocialUid, uid));
 
         if (memberEntity != null) {
             //这个用户已经注册过
@@ -274,7 +272,7 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
     @Transactional(rollbackFor = Exception.class)
     @Override
     public void changeMobile(Long memberId, String mobile) {
-        if (existsOnOther("mobile", mobile, memberId)) {
+        if (existsOnOther(MemberEntity::getMobile, mobile, memberId)) {
             throw new BaseException(BaseCodeEnum.MOBILE_IN_USE);
         }
         this.update(new LambdaUpdateWrapper<MemberEntity>()
@@ -285,7 +283,7 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
     @Transactional(rollbackFor = Exception.class)
     @Override
     public void changeEmail(Long memberId, String email) {
-        if (existsOnOther("email", email, memberId)) {
+        if (existsOnOther(MemberEntity::getEmail, email, memberId)) {
             throw new BaseException(BaseCodeEnum.EMAIL_IN_USE);
         }
         this.update(new LambdaUpdateWrapper<MemberEntity>()
@@ -304,10 +302,10 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
      *
      * <p>邮箱不用单独处理大小写：表是 utf8mb4_unicode_ci，比较本身就忽略大小写。</p>
      */
-    private boolean existsOnOther(String column, String value, Long selfId) {
-        Long count = this.baseMapper.selectCount(new QueryWrapper<MemberEntity>()
+    private boolean existsOnOther(SFunction<MemberEntity, ?> column, Object value, Long selfId) {
+        Long count = this.baseMapper.selectCount(new LambdaQueryWrapper<MemberEntity>()
                 .eq(column, value)
-                .ne("id", selfId));
+                .ne(MemberEntity::getId, selfId));
         return count != null && count > 0;
     }
 

@@ -2,7 +2,6 @@ package coupon.service.impl;
 
 import org.springframework.stereotype.Service;
 import java.util.Map;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.vo.PageVO;
@@ -18,10 +17,7 @@ public class HomeAdvServiceImpl extends ServiceImpl<HomeAdvDao, HomeAdvEntity> i
 
     @Override
     public PageVO<HomeAdvEntity> queryPage(PageQuery query) {
-        IPage<HomeAdvEntity> page = this.page(
-                query.toPage(),
-                new QueryWrapper<HomeAdvEntity>()
-        );
+        IPage<HomeAdvEntity> page = this.page(query.toPage());
 
         return new PageVO<>(page.getTotal(), page.getRecords());
     }

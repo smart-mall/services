@@ -79,6 +79,7 @@ import java.util.stream.Collectors;
 
 import common.query.PageQuery;
 import order.vo.OrderPageQuery;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import static com.lly835.bestpay.enums.BestPayTypeEnum.WXPAY_NATIVE;
 import static common.constant.CartConstant.CART_PREFIX;
 
@@ -122,10 +123,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
     @Override
     public PageVO<OrderEntity> queryPage(PageQuery query) {
-        IPage<OrderEntity> page = this.page(
-                query.toPage(),
-                new QueryWrapper<OrderEntity>()
-        );
+        IPage<OrderEntity> page = this.page(query.toPage());
 
         return new PageVO<>(page.getTotal(), page.getRecords());
     }
@@ -362,15 +360,15 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     public PageVO<OrderEntity> queryMemberOrders(MemberResponseVo user, OrderPageQuery query) {
         Long memberId = user.getId();
 
-        QueryWrapper<OrderEntity> wrapper = new QueryWrapper<OrderEntity>()
-                .eq("member_id", memberId)
+        LambdaQueryWrapper<OrderEntity> wrapper = new LambdaQueryWrapper<OrderEntity>()
+                .eq(OrderEntity::getMemberId, memberId)
                 // 已删除的不展示。老的 queryPageWithItem 没有这个过滤，用户删过的订单还会再列出来
-                .eq("delete_status", 0)
-                .orderByDesc("create_time");
+                .eq(OrderEntity::getDeleteStatus, 0)
+                .orderByDesc(OrderEntity::getCreateTime);
 
         String status = query.getStatus();
         if (status != null && !status.toString().isBlank()) {
-            wrapper.eq("status", status);
+            wrapper.eq(OrderEntity::getStatus, status);
         }
 
         IPage<OrderEntity> page = this.page(query.toPage(), wrapper);
@@ -380,7 +378,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         if (!records.isEmpty()) {
             List<String> orderSns = records.stream().map(OrderEntity::getOrderSn).collect(Collectors.toList());
             Map<String, List<OrderItemEntity>> itemsByOrderSn = orderItemService
-                    .list(new QueryWrapper<OrderItemEntity>().in("order_sn", orderSns))
+                    .list(new LambdaQueryWrapper<OrderItemEntity>().in(OrderItemEntity::getOrderSn, orderSns))
                     .stream()
                     .collect(Collectors.groupingBy(OrderItemEntity::getOrderSn));
             records.forEach(order -> order.setOrderItemEntityList(
@@ -396,14 +394,14 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     public OrderEntity getOrderDetail(MemberResponseVo user, String orderSn) {
         OrderEntity order = requireOwnOrder(user, orderSn);
         order.setOrderItemEntityList(
-                orderItemService.list(new QueryWrapper<OrderItemEntity>().eq("order_sn", orderSn)));
+                orderItemService.list(new LambdaQueryWrapper<OrderItemEntity>().eq(OrderItemEntity::getOrderSn, orderSn)));
         order.setStatusText(statusText(order.getStatus()));
         return order;
     }
 
     @Override
     public OrderEntity getOrderByOrderSn(String orderSn) {
-        return this.baseMapper.selectOne(new QueryWrapper<OrderEntity>().eq("order_sn", orderSn));
+        return this.baseMapper.selectOne(new LambdaQueryWrapper<OrderEntity>().eq(OrderEntity::getOrderSn, orderSn));
     }
 
 
@@ -502,7 +500,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
         // 订单项可能为空（异常数据），原来的 get(0) 会直接 IndexOutOfBounds
         List<OrderItemEntity> orderItemInfo = orderItemService.list(
-                new QueryWrapper<OrderItemEntity>().eq("order_sn", orderSn));
+                new LambdaQueryWrapper<OrderItemEntity>().eq(OrderItemEntity::getOrderSn, orderSn));
         if (!orderItemInfo.isEmpty()) {
             OrderItemEntity first = orderItemInfo.get(0);
             payVo.setSubject(first.getSkuName());
@@ -549,8 +547,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     @Override
     public void closeOrder(OrderEntity orderEntity) {
         // 关闭订单之前先查询一下数据库，判断此订单状态是否已支付
-        OrderEntity orderInfo = this.getOne(new QueryWrapper<OrderEntity>()
-                .eq("order_sn", orderEntity.getOrderSn()));
+        OrderEntity orderInfo = this.getOne(new LambdaQueryWrapper<OrderEntity>()
+                .eq(OrderEntity::getOrderSn, orderEntity.getOrderSn()));
 
         if (orderInfo == null) {
             // 订单不存在就跳过。原来这里直接 orderInfo.getStatus() 会 NPE，

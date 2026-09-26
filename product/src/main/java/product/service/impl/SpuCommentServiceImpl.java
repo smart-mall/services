@@ -1,6 +1,5 @@
 package product.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.vo.PageVO;
@@ -18,10 +17,7 @@ public class SpuCommentServiceImpl extends ServiceImpl<SpuCommentDao, SpuComment
 
     @Override
     public PageVO<SpuCommentEntity> queryPage(PageQuery query) {
-        IPage<SpuCommentEntity> page = this.page(
-                query.toPage(),
-                new QueryWrapper<SpuCommentEntity>()
-        );
+        IPage<SpuCommentEntity> page = this.page(query.toPage());
 
         return new PageVO<>(page.getTotal(), page.getRecords());
     }

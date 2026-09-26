@@ -225,10 +225,10 @@ public class PurchaseServiceImpl extends ServiceImpl<PurchaseDao, PurchaseEntity
             throw new BaseException(BaseCodeEnum.PURCHASE_STATUS_INVALID);
         }
 
-        // purchase_id 要显式置成 null，所以用 setSql —— set(column, null) 对 null 的处理不好赌
+        // purchase_id 要显式置成 null：set(column, null) 走 #{} 占位符，生成的就是 SET purchase_id = NULL
         LambdaUpdateWrapper<PurchaseDetailEntity> updateWrapper = new LambdaUpdateWrapper<>(PurchaseDetailEntity.class);
         updateWrapper.set(PurchaseDetailEntity::getStatus, PurchaseDetailEnum.CREATED.getCode())
-                .setSql("purchase_id = null")
+                .set(PurchaseDetailEntity::getPurchaseId, null)
                 .in(PurchaseDetailEntity::getId, distinctIds);
         purchaseDetailDao.update(updateWrapper);
 
@@ -339,7 +339,7 @@ public class PurchaseServiceImpl extends ServiceImpl<PurchaseDao, PurchaseEntity
         if (!openPurchaseIds.isEmpty()) {
             LambdaUpdateWrapper<PurchaseDetailEntity> backToNew = new LambdaUpdateWrapper<>(PurchaseDetailEntity.class);
             backToNew.set(PurchaseDetailEntity::getStatus, PurchaseDetailEnum.CREATED.getCode())
-                    .setSql("purchase_id = null")
+                    .set(PurchaseDetailEntity::getPurchaseId, null)
                     .in(PurchaseDetailEntity::getPurchaseId, openPurchaseIds);
             purchaseDetailDao.update(backToNew);
         }
@@ -514,7 +514,7 @@ public class PurchaseServiceImpl extends ServiceImpl<PurchaseDao, PurchaseEntity
                 .set(PurchaseEntity::getAmount, amount)
                 .set(PurchaseEntity::getUpdateTime, new Date());
         if (details.isEmpty()) {
-            updateWrapper.setSql("ware_id = null");
+            updateWrapper.set(PurchaseEntity::getWareId, null);
         } else {
             updateWrapper.set(PurchaseEntity::getWareId, details.get(0).getWareId());
         }

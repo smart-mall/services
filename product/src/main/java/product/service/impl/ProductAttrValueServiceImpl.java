@@ -34,10 +34,7 @@ public class ProductAttrValueServiceImpl extends ServiceImpl<ProductAttrValueDao
 
     @Override
     public PageVO<ProductAttrValueEntity> queryPage(PageQuery query) {
-        IPage<ProductAttrValueEntity> page = this.page(
-                query.toPage(),
-                new QueryWrapper<>()
-        );
+        IPage<ProductAttrValueEntity> page = this.page(query.toPage());
 
         return new PageVO<>(page.getTotal(), page.getRecords());
     }

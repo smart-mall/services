@@ -51,10 +51,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
 
     @Override
     public PageVO<CategoryEntity> queryPage(PageQuery query) {
-        IPage<CategoryEntity> page = this.page(
-                query.toPage(),
-                new QueryWrapper<>()
-        );
+        IPage<CategoryEntity> page = this.page(query.toPage());
 
         return new PageVO<>(page.getTotal(), page.getRecords());
     }

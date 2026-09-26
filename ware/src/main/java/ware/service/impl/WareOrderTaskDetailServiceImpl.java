@@ -2,7 +2,6 @@ package ware.service.impl;
 
 import org.springframework.stereotype.Service;
 import java.util.Map;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.vo.PageVO;
@@ -18,10 +17,7 @@ public class WareOrderTaskDetailServiceImpl extends ServiceImpl<WareOrderTaskDet
 
     @Override
     public PageVO<WareOrderTaskDetailEntity> queryPage(PageQuery query) {
-        IPage<WareOrderTaskDetailEntity> page = this.page(
-                query.toPage(),
-                new QueryWrapper<WareOrderTaskDetailEntity>()
-        );
+        IPage<WareOrderTaskDetailEntity> page = this.page(query.toPage());
 
         return new PageVO<>(page.getTotal(), page.getRecords());
     }

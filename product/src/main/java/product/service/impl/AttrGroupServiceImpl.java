@@ -49,10 +49,7 @@ public class AttrGroupServiceImpl extends ServiceImpl<AttrGroupDao, AttrGroupEnt
 
     @Override
     public PageVO<AttrGroupEntity> queryPage(PageQuery query) {
-        IPage<AttrGroupEntity> page = this.page(
-                query.toPage(),
-                new QueryWrapper<>()
-        );
+        IPage<AttrGroupEntity> page = this.page(query.toPage());
 
         return new PageVO<>(page.getTotal(), page.getRecords());
     }

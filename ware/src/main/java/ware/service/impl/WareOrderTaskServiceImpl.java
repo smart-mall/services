@@ -13,15 +13,13 @@ import java.util.Map;
 
 
 import common.query.PageQuery;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 @Service("wareOrderTaskService")
 public class WareOrderTaskServiceImpl extends ServiceImpl<WareOrderTaskDao, WareOrderTaskEntity> implements WareOrderTaskService {
 
     @Override
     public PageVO<WareOrderTaskEntity> queryPage(PageQuery query) {
-        IPage<WareOrderTaskEntity> page = this.page(
-                query.toPage(),
-                new QueryWrapper<>()
-        );
+        IPage<WareOrderTaskEntity> page = this.page(query.toPage());
 
         return new PageVO<>(page.getTotal(), page.getRecords());
     }
@@ -30,7 +28,7 @@ public class WareOrderTaskServiceImpl extends ServiceImpl<WareOrderTaskDao, Ware
     public WareOrderTaskEntity getOrderTaskByOrderSn(String orderSn) {
 
         return this.baseMapper.selectOne(
-                new QueryWrapper<WareOrderTaskEntity>().eq("order_sn", orderSn));
+                new LambdaQueryWrapper<WareOrderTaskEntity>().eq(WareOrderTaskEntity::getOrderSn, orderSn));
     }
 
 }

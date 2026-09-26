@@ -58,8 +58,8 @@ public class SeckillSessionServiceImpl extends ServiceImpl<SeckillSessionDao, Se
         //计算最近三天
         //查出这三天参与秒杀活动
         List<SeckillSessionEntity> list = this.baseMapper.selectList(
-                new QueryWrapper<SeckillSessionEntity>()
-                        .between("start_time", startTime(), endTime()));
+                new LambdaQueryWrapper<SeckillSessionEntity>()
+                        .between(SeckillSessionEntity::getStartTime, startTime(), endTime()));
 
 //        查询活动参加秒杀的商品
         if (list != null && !list.isEmpty()) {
@@ -71,8 +71,8 @@ public class SeckillSessionServiceImpl extends ServiceImpl<SeckillSessionDao, Se
                 Long id = session.getId();
                 //查出sms_seckill_sku_relation表中关联的skuId
                 List<SeckillSkuRelationEntity> relationSkus = seckillSkuRelationService.list(
-                        new QueryWrapper<SeckillSkuRelationEntity>()
-                                .eq("promotion_session_id", id));
+                        new LambdaQueryWrapper<SeckillSkuRelationEntity>()
+                                .eq(SeckillSkuRelationEntity::getPromotionSessionId, id));
 //                设置所有参加活动的商品
                 session.setRelationSkus(relationSkus);
             }).collect(Collectors.toList());

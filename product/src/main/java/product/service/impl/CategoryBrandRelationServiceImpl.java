@@ -32,10 +32,7 @@ public class CategoryBrandRelationServiceImpl extends ServiceImpl<CategoryBrandR
 
     @Override
     public PageVO<CategoryBrandRelationEntity> queryPage(PageQuery query) {
-        IPage<CategoryBrandRelationEntity> page = this.page(
-                query.toPage(),
-                new QueryWrapper<>()
-        );
+        IPage<CategoryBrandRelationEntity> page = this.page(query.toPage());
 
         return new PageVO<>(page.getTotal(), page.getRecords());
     }

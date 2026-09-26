@@ -31,10 +31,7 @@ public class MemberReceiveAddressServiceImpl extends ServiceImpl<MemberReceiveAd
 
     @Override
     public PageVO<MemberReceiveAddressEntity> queryPage(PageQuery query) {
-        IPage<MemberReceiveAddressEntity> page = this.page(
-                query.toPage(),
-                new QueryWrapper<MemberReceiveAddressEntity>()
-        );
+        IPage<MemberReceiveAddressEntity> page = this.page(query.toPage());
 
         return new PageVO<>(page.getTotal(), page.getRecords());
     }
@@ -43,7 +40,7 @@ public class MemberReceiveAddressServiceImpl extends ServiceImpl<MemberReceiveAd
     public List<MemberReceiveAddressEntity> getAddress(Long memberId) {
 
         List<MemberReceiveAddressEntity> addressList = this.baseMapper.selectList
-                (new QueryWrapper<MemberReceiveAddressEntity>().eq("member_id", memberId));
+                (new LambdaQueryWrapper<MemberReceiveAddressEntity>().eq(MemberReceiveAddressEntity::getMemberId, memberId));
 
         return addressList;
     }

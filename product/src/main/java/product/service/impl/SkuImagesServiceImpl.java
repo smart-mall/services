@@ -20,10 +20,7 @@ public class SkuImagesServiceImpl extends ServiceImpl<SkuImagesDao, SkuImagesEnt
 
     @Override
     public PageVO<SkuImagesEntity> queryPage(PageQuery query) {
-        IPage<SkuImagesEntity> page = this.page(
-                query.toPage(),
-                new QueryWrapper<SkuImagesEntity>()
-        );
+        IPage<SkuImagesEntity> page = this.page(query.toPage());
 
         return new PageVO<>(page.getTotal(), page.getRecords());
     }

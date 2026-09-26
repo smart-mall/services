@@ -2,7 +2,6 @@ package order.service.impl;
 
 import org.springframework.stereotype.Service;
 import java.util.Map;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.vo.PageVO;
@@ -18,10 +17,7 @@ public class OrderItemServiceImpl extends ServiceImpl<OrderItemDao, OrderItemEnt
 
     @Override
     public PageVO<OrderItemEntity> queryPage(PageQuery query) {
-        IPage<OrderItemEntity> page = this.page(
-                query.toPage(),
-                new QueryWrapper<OrderItemEntity>()
-        );
+        IPage<OrderItemEntity> page = this.page(query.toPage());
 
         return new PageVO<>(page.getTotal(), page.getRecords());
     }

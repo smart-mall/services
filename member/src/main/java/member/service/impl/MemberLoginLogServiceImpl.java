@@ -17,6 +17,7 @@ import java.util.Map;
 
 
 import common.query.PageQuery;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 @Service("memberLoginLogService")
 public class MemberLoginLogServiceImpl extends ServiceImpl<MemberLoginLogDao, MemberLoginLogEntity> implements MemberLoginLogService {
 
@@ -25,10 +26,7 @@ public class MemberLoginLogServiceImpl extends ServiceImpl<MemberLoginLogDao, Me
 
     @Override
     public PageVO<MemberLoginLogEntity> queryPage(PageQuery query) {
-        IPage<MemberLoginLogEntity> page = this.page(
-                query.toPage(),
-                new QueryWrapper<MemberLoginLogEntity>()
-        );
+        IPage<MemberLoginLogEntity> page = this.page(query.toPage());
 
         return new PageVO<>(page.getTotal(), page.getRecords());
     }
@@ -49,9 +47,9 @@ public class MemberLoginLogServiceImpl extends ServiceImpl<MemberLoginLogDao, Me
     public PageVO<MemberLoginLogEntity> queryMine(Long memberId, PageQuery query) {
         IPage<MemberLoginLogEntity> page = this.page(
                 query.toPage(),
-                new QueryWrapper<MemberLoginLogEntity>()
-                        .eq("member_id", memberId)
-                        .orderByDesc("create_time")
+                new LambdaQueryWrapper<MemberLoginLogEntity>()
+                        .eq(MemberLoginLogEntity::getMemberId, memberId)
+                        .orderByDesc(MemberLoginLogEntity::getCreateTime)
         );
 
         return new PageVO<>(page.getTotal(), page.getRecords());

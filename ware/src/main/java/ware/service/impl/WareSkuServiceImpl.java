@@ -289,8 +289,8 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
 
         //按照工作单的id找到所有 没有解锁的库存，进行解锁
         Long id = orderTaskEntity.getId();
-        List<WareOrderTaskDetailEntity> list = wareOrderTaskDetailService.list(new QueryWrapper<WareOrderTaskDetailEntity>()
-                .eq("task_id", id).eq("lock_status", 1));
+        List<WareOrderTaskDetailEntity> list = wareOrderTaskDetailService.list(new LambdaQueryWrapper<WareOrderTaskDetailEntity>()
+                .eq(WareOrderTaskDetailEntity::getTaskId, id).eq(WareOrderTaskDetailEntity::getLockStatus, 1));
 
         for (WareOrderTaskDetailEntity taskDetailEntity : list) {
             unLockStock(taskDetailEntity.getSkuId(),

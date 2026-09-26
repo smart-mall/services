@@ -1,6 +1,5 @@
 package product.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.vo.PageVO;
@@ -18,10 +17,7 @@ public class CommentReplayServiceImpl extends ServiceImpl<CommentReplayDao, Comm
 
     @Override
     public PageVO<CommentReplayEntity> queryPage(PageQuery query) {
-        IPage<CommentReplayEntity> page = this.page(
-                query.toPage(),
-                new QueryWrapper<CommentReplayEntity>()
-        );
+        IPage<CommentReplayEntity> page = this.page(query.toPage());
 
         return new PageVO<>(page.getTotal(), page.getRecords());
     }
