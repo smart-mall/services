@@ -18,6 +18,11 @@ import common.utils.R;
 
 
 import common.query.PageQuery;
+/**
+ * 回滚日志（{@code undo_log} 表）的后台管理接口：分页列表、详情、新增、修改、删除。
+ *
+ * <p>路径不在 {@code /front} 下，经网关访问时按管理端接口鉴权。
+ */
 @RestController
 @RequestMapping("member/undolog")
 public class UndoLogController {
@@ -25,7 +30,10 @@ public class UndoLogController {
     private UndoLogService undoLogService;
 
     /**
-     * 列表
+     * 分页查询回滚日志。
+     *
+     * @param query 分页参数，{@code page} 为页码、{@code limit} 为每页条数
+     * @return 分页结果，{@code rows} 为日志列表
      */
     @RequestMapping("/list")
     public R<PageVO<UndoLogEntity>> list(PageQuery query){
@@ -36,7 +44,10 @@ public class UndoLogController {
 
 
     /**
-     * 信息
+     * 按主键查询单条回滚日志。
+     *
+     * @param id 日志主键
+     * @return 日志详情；id 不存在时 {@code data} 为 {@code null}
      */
     @RequestMapping("/info/{id}")
     public R<UndoLogEntity> info(@PathVariable("id") Long id){
@@ -46,7 +57,10 @@ public class UndoLogController {
     }
 
     /**
-     * 保存
+     * 新增一条回滚日志。
+     *
+     * @param undoLog 日志内容，主键由数据库生成
+     * @return 统一成功响应，不含业务数据
      */
     @RequestMapping("/save")
     public R<Void> save(@RequestBody UndoLogEntity undoLog){
@@ -56,7 +70,10 @@ public class UndoLogController {
     }
 
     /**
-     * 修改
+     * 按主键修改一条回滚日志。
+     *
+     * @param undoLog 日志内容，主键必填；为 {@code null} 的字段不参与更新
+     * @return 统一成功响应，不含业务数据
      */
     @RequestMapping("/update")
     public R<Void> update(@RequestBody UndoLogEntity undoLog){
@@ -66,7 +83,10 @@ public class UndoLogController {
     }
 
     /**
-     * 删除
+     * 按主键批量删除回滚日志。
+     *
+     * @param ids 待删除的日志主键数组
+     * @return 统一成功响应，不含业务数据
      */
     @RequestMapping("/delete")
     public R<Void> delete(@RequestBody Long[] ids){

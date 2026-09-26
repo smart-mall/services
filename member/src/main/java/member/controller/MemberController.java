@@ -25,7 +25,10 @@ import java.util.function.Supplier;
 
 import common.query.PageQuery;
 /**
- * 会员
+ * 会员账号接口：账号密码注册与登录、验证码与社交登录、换绑手机号 / 邮箱，以及会员的后台 CRUD。
+ *
+ * <p>注册与各登录接口由 auth 经 Feign 调用，调用方没有登录态；换绑接口的会员 id 取自请求头
+ * {@code X-Member-Claims}。路径不在 {@code /front} 下，经网关访问时按管理端接口鉴权。
  */
 @Slf4j
 @RestController
@@ -33,12 +36,20 @@ import common.query.PageQuery;
 public class MemberController {
     private final MemberService memberService;
 
+    /**
+     * 构造控制器，依赖由容器注入，创建后即可使用。
+     *
+     * @param memberService 会员业务服务
+     */
     public MemberController(MemberService memberService) {
         this.memberService = memberService;
     }
 
     /**
-     * 账号密码注册。只有账号和密码，手机号/邮箱不在这条链路里。
+     * 按账号密码注册会员，手机号与邮箱不在这条链路上。
+     *
+     * @param vo 注册入参，含账号与密码
+     * @return 成功返回 {@code code:0}；账号已被占用时返回 15001
      */
     @PostMapping(value = "/register")
     public R<Void> register(@RequestBody MemberUserRegisterVo vo) {
@@ -54,7 +65,13 @@ public class MemberController {
 
 
     /**
-     * 账号密码登录。只按 username 查，不再把手机号当账号（{@code username = ? OR mobile = ?} 已去掉）。
+     * 按账号密码登录会员。
+     *
+     * <p>只按 {@code username} 匹配账号，手机号不能当作账号使用；账号不存在、没设过密码、
+     * 密码不对三种情况统一返回 15003，不区分是其中哪一种。
+     *
+     * @param vo 登录入参，含账号与密码
+     * @return 成功时 {@code data} 为会员信息；账号不存在或密码不对返回 15003
      */
     @PostMapping(value = "/login")
     public R<MemberEntity> login(@RequestBody MemberUserLoginVo vo) {
@@ -70,11 +87,13 @@ public class MemberController {
 
 
     /**
-     * 邮箱验证码登录。
+     * 邮箱验证码登录：按邮箱取会员，取不到就用 {@code username} 新建账号。
      *
-     * <p>验证码是 auth 侧校验的（存在 Redis 里），这里只负责按邮箱找人；
-     * 找不到就用 {@code username} 建一个新账号（自动注册），所以这个接口既是登录也是注册。
-     * 账号被占用时返回 15001。</p>
+     * <p>验证码由 auth 校验（存 Redis），本接口不参与；查不到就建号，所以它同时是登录与注册。
+     *
+     * @param username 新建账号时使用的用户名，已有账号时忽略
+     * @param email 收码邮箱，也是识别账号的依据
+     * @return 成功时 {@code data} 为会员信息；新建时账号被占用返回 15001
      */
     @PostMapping(value = "/email/login")
     public R<MemberEntity> emailLogin(@RequestParam("username") String username,
@@ -85,6 +104,10 @@ public class MemberController {
 
     /**
      * 手机验证码登录，语义同 {@link #emailLogin}，把邮箱换成手机号。
+     *
+     * @param username 新建账号时使用的用户名，已有账号时忽略
+     * @param mobile 收码手机号，也是识别账号的依据
+     * @return 成功时 {@code data} 为会员信息；新建时账号被占用返回 15001
      */
     @PostMapping(value = "/mobile/login")
     public R<MemberEntity> mobileLogin(@RequestParam("username") String username,
@@ -93,7 +116,12 @@ public class MemberController {
     }
 
 
-    /** 两条验证码链路共用的收尾：新建时账号撞了就转 15001，其余直接返回会员 */
+    /**
+     * 两条验证码登录链路共用的收尾：新建账号撞名时转成 15001，其余原样返回会员。
+     *
+     * @param action 实际的登录或注册动作
+     * @return 成功时 {@code data} 为会员信息；账号被占用时为 15001
+     */
     private R<MemberEntity> loginOrRegister(Supplier<MemberEntity> action) {
         try {
             return R.ok(action.get());
@@ -103,6 +131,13 @@ public class MemberController {
     }
 
 
+    /**
+     * 微博社交登录：按 {@code uid} 取会员，取不到就自动注册。
+     *
+     * @param socialUser 微博返回的令牌与用户标识
+     * @return 成功时 {@code data} 为会员信息；服务返回空时按 15003 处理
+     * @throws Exception 调用微博接口失败时抛出
+     */
     @PostMapping(value = "/oauth2/login")
     public R<MemberEntity> oauthLogin(@RequestBody SocialUser socialUser) throws Exception {
 
@@ -115,6 +150,12 @@ public class MemberController {
         }
     }
 
+    /**
+     * QQ 社交登录：按 {@code openId} 取会员，取不到就自动注册。
+     *
+     * @param qqUserInfo QQ 用户信息，{@code openId} 不能为空
+     * @return 成功时 {@code data} 为会员信息；服务返回空时按 15003 处理
+     */
     @PostMapping(value = "/qq/login")
     public R<MemberEntity> qqLogin(@RequestBody QQUserInfo qqUserInfo) {
         log.info("进入qq登录: {}", JSON.toJSONString(qqUserInfo, SerializerFeature.PrettyFormat));
@@ -128,7 +169,10 @@ public class MemberController {
     }
 
     /**
-     * 列表
+     * 分页查询会员。
+     *
+     * @param query 分页参数，{@code page} 为页码、{@code limit} 为每页条数
+     * @return 分页结果，{@code rows} 为会员列表
      */
     @RequestMapping("/list")
     public R<PageVO<MemberEntity>> list(PageQuery query){
@@ -139,10 +183,13 @@ public class MemberController {
 
 
     /**
-     * 信息。
+     * 按主键查询单个会员。
      *
-     * <p>注意返回的键是 {@code member} 而不是 {@code data}（这是代码生成器留下的习惯），
-     * auth 的 UserController 取完整用户信息走的就是这个接口，别取错了键。</p>
+     * <p>auth 的 {@code UserController} 取完整用户信息走的就是这个接口，会员数据在 {@code R.data} 下；
+     * id 不存在时 {@code data} 为 {@code null}，不报错。
+     *
+     * @param id 会员 ID
+     * @return 会员信息；id 不存在时 {@code data} 为 {@code null}
      */
     @RequestMapping("/info/{id}")
     public R<MemberEntity> info(@PathVariable("id") Long id){
@@ -152,7 +199,10 @@ public class MemberController {
     }
 
     /**
-     * 保存
+     * 新增一个会员。
+     *
+     * @param member 会员内容，主键由数据库生成
+     * @return 统一成功响应，不含业务数据
      */
     @RequestMapping("/save")
     public R<Void> save(@RequestBody MemberEntity member){
@@ -162,7 +212,10 @@ public class MemberController {
     }
 
     /**
-     * 修改
+     * 按主键修改一个会员。
+     *
+     * @param member 会员内容，主键必填；为 {@code null} 的字段不参与更新
+     * @return 统一成功响应，不含业务数据
      */
     @RequestMapping("/update")
     public R<Void> update(@RequestBody MemberEntity member){
@@ -172,7 +225,10 @@ public class MemberController {
     }
 
     /**
-     * 删除
+     * 按主键批量删除会员。
+     *
+     * @param ids 待删除的会员主键数组
+     * @return 统一成功响应，不含业务数据
      */
     @RequestMapping("/delete")
     public R<Void> delete(@RequestBody Long[] ids){
@@ -182,7 +238,15 @@ public class MemberController {
     }
 
 
-    /** 换绑手机号，由 auth 在验证码校验通过后调用；号码已被别人绑定返回 15006 */
+    /**
+     * 换绑当前登录会员的手机号，由 auth 在验证码校验通过后调用。
+     *
+     * <p>会员 id 只取自请求头 {@code X-Member-Claims}，不接受调用方指定。
+     *
+     * @param mobile 新手机号
+     * @param request 当前请求，会员身份从它携带的 {@code X-Member-Claims} 头解析
+     * @return 成功返回 {@code code:0}；号码已被别人绑定返回 15006
+     */
     @PutMapping("/mobile/update")
     public R<Void> changeMobile(@RequestParam("mobile") String mobile, HttpServletRequest request) {
         memberService.changeMobile(LoginUserUtils.requireCurrentUser(request).getId(), mobile);
@@ -190,7 +254,13 @@ public class MemberController {
     }
 
 
-    /** 换绑邮箱，语义同 {@link #changeMobile}；被占用返回 15007 */
+    /**
+     * 换绑当前登录会员的邮箱，语义同 {@link #changeMobile}。
+     *
+     * @param email 新邮箱
+     * @param request 当前请求，会员身份从它携带的 {@code X-Member-Claims} 头解析
+     * @return 成功返回 {@code code:0}；邮箱已被别人绑定返回 15007
+     */
     @PutMapping("/email/update")
     public R<Void> changeEmail(@RequestParam("email") String email, HttpServletRequest request) {
         memberService.changeEmail(LoginUserUtils.requireCurrentUser(request).getId(), email);
