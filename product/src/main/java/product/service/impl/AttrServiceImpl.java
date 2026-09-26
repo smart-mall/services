@@ -39,6 +39,12 @@ import java.util.stream.Collectors;
 import product.entity.AttrEntity;
 import common.query.PageQuery;
 import common.query.KeyPageQuery;
+/**
+ * 商品属性服务的默认实现，基于 MyBatis-Plus 的 {@code ServiceImpl} 读写 {@code pms_attr}。
+ *
+ * <p>基本属性额外在 {@code pms_attr_attrgroup_relation} 里记一条归属；属性图标存在 MinIO，
+ * 换图与删除属性时同步清理对象。
+ */
 @Service("attrService")
 @Slf4j
 public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements AttrService {
@@ -56,6 +62,17 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
 
     private final SkuSaleAttrValueDao skuSaleAttrValueDao;
 
+    /**
+     * 由容器注入各关联 Mapper、分类服务与三方文件客户端构造。
+     *
+     * @param relationDao 属性分组关联 Mapper，基本属性新增或改绑时写关联行
+     * @param attrGroupDao 属性分组 Mapper，属性详情与待绑定列表里取分组名
+     * @param categoryDao 分类 Mapper，属性详情与列表里回填分类名
+     * @param categoryService 分类服务，取分类的完整路径
+     * @param thirdPartyFeignService 三方文件客户端，换图标与删属性时清理 MinIO 对象
+     * @param productAttrValueDao 商品规格参数值 Mapper，删除属性前查是否被商品引用
+     * @param skuSaleAttrValueDao sku 销售属性值 Mapper，删除属性前查是否被 sku 引用
+     */
     public AttrServiceImpl(AttrAttrgroupRelationDao relationDao, AttrGroupDao attrGroupDao, CategoryDao categoryDao, CategoryService categoryService, ThirdPartyFeignService thirdPartyFeignService, ProductAttrValueDao productAttrValueDao, SkuSaleAttrValueDao skuSaleAttrValueDao) {
         this.relationDao = relationDao;
         this.attrGroupDao = attrGroupDao;
@@ -66,6 +83,7 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
         this.skuSaleAttrValueDao = skuSaleAttrValueDao;
     }
 
+    /** {@inheritDoc} */
     @Override
     public PageVO<AttrEntity> queryPage(PageQuery query) {
         IPage<AttrEntity> page = this.page(query.toPage());
@@ -73,6 +91,7 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
         return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
+    /** {@inheritDoc} */
     @Override
     public void saveAttr(AttrVO attr) {
         AttrEntity attrEntity = new AttrEntity();
@@ -87,6 +106,7 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
         }
     }
 
+    /** {@inheritDoc} */
     @Override
     public PageVO<AttrRespVO> queryBaseAttrPage(KeyPageQuery query, Long categoryId, String attrType) {
 
@@ -119,9 +139,7 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
         List<AttrRespVO> list = page.getRecords().stream().map(attr -> {
             AttrRespVO attrRespVO = new AttrRespVO();
             BeanUtils.copyProperties(attr, attrRespVO);
-            // 先获取组id
             Optional<AttrAttrgroupRelationEntity> first = relationEntities.stream().filter(relation -> relation.getAttrId().equals(attr.getAttrId())).findFirst();
-            // 找到 组
             if (first.isPresent()) {
                 AttrAttrgroupRelationEntity relation = first.get();
                 Optional<AttrGroupEntity> first1 = attrGroupEntities.stream().filter(attrGroup -> attrGroup.getAttrGroupId().equals(relation.getAttrGroupId())).findFirst();
@@ -143,6 +161,7 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
         return new PageVO<>(page.getTotal(), list);
     }
 
+    /** {@inheritDoc} */
     @Override
     public AttrRespVO getAttrInfo(Long attrId) {
         AttrRespVO attrRespVO = new AttrRespVO();
@@ -166,6 +185,7 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
         return attrRespVO;
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public void updateAttr(AttrVO attr) {
@@ -191,7 +211,6 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
         relation.setAttrId(attrEntity.getAttrId());
         relation.setAttrGroupId(attr.getAttrGroupId());
 
-        // 查询是否存在
         AttrAttrgroupRelationEntity relationEntity = relationDao.selectOne(
                 new LambdaQueryWrapper<>(AttrAttrgroupRelationEntity.class)
                         .eq(AttrAttrgroupRelationEntity::getAttrId, attr.getAttrId())
@@ -208,6 +227,7 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
         log.debug("更新关联信息");
     }
 
+    /** {@inheritDoc} */
     @Override
     public List<AttrEntity> getRelationAttr(Long attrGroupId) {
         List<AttrAttrgroupRelationEntity> relations = relationDao.selectList(
@@ -222,6 +242,7 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
         return this.listByIds(attrIds);
     }
 
+    /** {@inheritDoc} */
     @Override
     public PageVO<AttrEntity> getNoRelationAttr(Long attrGroupId, KeyPageQuery query) {
         AttrGroupEntity attrGroupEntity = attrGroupDao.selectById(attrGroupId);
@@ -265,15 +286,13 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
         return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
+    /** {@inheritDoc} */
     @Override
     public List<Long> selectSearchAttrs(List<Long> attrIds) {
         return this.baseMapper.selectSearchAttrs(attrIds);
     }
 
-    /**
-     * 删除属性。属性还被商品规格参数或 sku 销售属性引用时整批拒绝；
-     * 属性组关联跟着一起删 —— 那只是归属关系，属性行本身才承载值。
-     */
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public void deleteByIds(List<Long> list) {
@@ -304,8 +323,13 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
     }
 
     /**
-     * 属性还被商品引用时拒绝删除。两张值表都查，不按 attr_type 分开 —— 成本一样，
-     * 但省得历史数据里 attr_type 被改过的行漏网。
+     * 校验这些属性没有被商品规格参数或 sku 销售属性引用，被引用则整批拒绝删除。
+     *
+     * <p>两张值表都查，不按 {@code attrType} 分开：分开查省不了成本，而 {@code attrType} 被改过的
+     * 行会从对应分支里漏掉。
+     *
+     * @param attrs 待删除的属性实体，用于拼错误信息里的属性名
+     * @param attrIds 待删除的属性 ID 列表
      */
     private void ensureNoReference(List<AttrEntity> attrs, List<Long> attrIds) {
         List<String> blockers = new ArrayList<>();

@@ -33,6 +33,12 @@ import java.util.Objects;
 
 import common.query.KeyPageQuery;
 import common.query.PageQuery;
+/**
+ * 属性分组服务的默认实现，基于 MyBatis-Plus 的 {@code ServiceImpl} 读写 {@code pms_attr_group}。
+ *
+ * <p>分组图标存在 MinIO，换图与删除分组时同步清理对象；分组与属性的绑定关系记在
+ * {@code pms_attr_attrgroup_relation}，删除分组时一并清掉。
+ */
 @Service("attrGroupService")
 public class AttrGroupServiceImpl extends ServiceImpl<AttrGroupDao, AttrGroupEntity> implements AttrGroupService {
     private final AttrAttrgroupRelationDao relationDao;
@@ -40,6 +46,14 @@ public class AttrGroupServiceImpl extends ServiceImpl<AttrGroupDao, AttrGroupEnt
     private final CategoryService categoryService;
     private final ThirdPartyFeignService thirdPartyFeignService;
 
+    /**
+     * 由容器注入关联 Mapper、属性服务、分类服务与三方文件客户端构造。
+     *
+     * @param relationDao 属性分组关联 Mapper，删除分组与解绑时清关联行
+     * @param attrService 属性服务，按分组取已绑定的属性
+     * @param categoryService 分类服务，分页结果里回填分组所属分类名
+     * @param thirdPartyFeignService 三方文件客户端，换图标与删分组时清理 MinIO 对象
+     */
     public AttrGroupServiceImpl(AttrAttrgroupRelationDao relationDao, AttrService attrService, CategoryService categoryService, ThirdPartyFeignService thirdPartyFeignService) {
         this.relationDao = relationDao;
         this.attrService = attrService;
@@ -47,6 +61,7 @@ public class AttrGroupServiceImpl extends ServiceImpl<AttrGroupDao, AttrGroupEnt
         this.thirdPartyFeignService = thirdPartyFeignService;
     }
 
+    /** {@inheritDoc} */
     @Override
     public PageVO<AttrGroupEntity> queryPage(PageQuery query) {
         IPage<AttrGroupEntity> page = this.page(query.toPage());
@@ -54,6 +69,7 @@ public class AttrGroupServiceImpl extends ServiceImpl<AttrGroupDao, AttrGroupEnt
         return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
+    /** {@inheritDoc} */
     @Override
     public PageVO<AttrGroupRespVO> queryPage(KeyPageQuery query, Long categoryId) {
         List<CategoryEntity> list = categoryService.list();
@@ -86,8 +102,10 @@ public class AttrGroupServiceImpl extends ServiceImpl<AttrGroupDao, AttrGroupEnt
     }
 
     /**
-     * 移除属性组与属性的关联。每条单独建 wrapper —— 复用同一个的话条件会累积成
-     * attr_id=a1 AND attr_group_id=g1 AND attr_id=a2 AND ...，第 2 条之后永远匹配不到行。
+     * {@inheritDoc}
+     *
+     * <p>每条关联单独建 wrapper：复用同一个会把条件累积成
+     * {@code attr_id=a1 AND attr_group_id=g1 AND attr_id=a2 ...}，第二条起永远匹配不到行。
      */
     @Override
     @Transactional
@@ -103,6 +121,7 @@ public class AttrGroupServiceImpl extends ServiceImpl<AttrGroupDao, AttrGroupEnt
         }
     }
 
+    /** {@inheritDoc} */
     @Override
     public List<AttrGroupWithAttrsVO> getAttrGroupWithAttrs(Long catalogId) {
         List<AttrGroupEntity> attrGroupEntities = baseMapper.selectList(new LambdaQueryWrapper<>(AttrGroupEntity.class).eq(AttrGroupEntity::getCatalogId, catalogId));
@@ -116,10 +135,10 @@ public class AttrGroupServiceImpl extends ServiceImpl<AttrGroupDao, AttrGroupEnt
         }).toList();
     }
 
+    /** {@inheritDoc} */
     @Override
     public List<SpuItemAttrGroupVo> getAttrGroupWithAttrsBySpuId(Long spuId, Long catalogId) {
 
-        //1、查出当前spu对应的所有属性的分组信息以及当前分组下的所有属性对应的值
         AttrGroupDao baseMapper = this.getBaseMapper();
         List<SpuItemAttrGroupVo> vos = baseMapper.getAttrGroupWithAttrsBySpuId(spuId,catalogId);
 
@@ -127,8 +146,9 @@ public class AttrGroupServiceImpl extends ServiceImpl<AttrGroupDao, AttrGroupEnt
     }
 
     /**
-     * 删除属性组。属性组与属性的关联行跟着一起删 —— 组没了，这层归属关系本身就没有意义了，
-     * 属性行不受影响。没有别的数据引用属性组，所以这里不需要拦截。
+     * {@inheritDoc}
+     *
+     * <p>没有别的数据引用属性分组，所以不做引用校验，直接连关联行与图标对象一起删。
      */
     @Override
     @Transactional
@@ -156,6 +176,11 @@ public class AttrGroupServiceImpl extends ServiceImpl<AttrGroupDao, AttrGroupEnt
         this.removeByIds(existingIds);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>先删被替换的图标、再更新分组行，本地不加事务：图标删除失败时更新还没执行，分组行仍是原值。
+     */
     @Override
     public void updateDetail(AttrGroupEntity attrGroup) {
         log.debug("修改文件");

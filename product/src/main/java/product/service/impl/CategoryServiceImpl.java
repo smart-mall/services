@@ -29,6 +29,12 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import common.query.PageQuery;
+/**
+ * 商品三级分类服务的默认实现，基于 MyBatis-Plus 的 {@code ServiceImpl} 读写 {@code pms_category}。
+ *
+ * <p>分类树由 {@code parent_cid} 自关联拼出，删除时连同整棵子树物理删除；前台分类树带
+ * {@code category} 缓存，删除分类后整体清除。
+ */
 @Slf4j
 @Service("categoryService")
 public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity> implements CategoryService {
@@ -39,6 +45,14 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
     private final AttrDao attrDao;
     private final AttrGroupDao attrGroupDao;
 
+    /**
+     * 由容器注入品牌分类关联服务与三张引用表的 Mapper 构造。
+     *
+     * @param categoryBrandRelationService 品牌分类关联服务，分类改名后回写关联表里的分类名
+     * @param spuInfoDao spu 主表 Mapper，删除分类前查子树下是否还有商品
+     * @param attrDao 属性 Mapper，删除分类前查子树下是否还有属性
+     * @param attrGroupDao 属性分组 Mapper，删除分类前查子树下是否还有属性分组
+     */
     public CategoryServiceImpl(CategoryBrandRelationService categoryBrandRelationService,
                                SpuInfoDao spuInfoDao,
                                AttrDao attrDao,
@@ -49,6 +63,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
         this.attrGroupDao = attrGroupDao;
     }
 
+    /** {@inheritDoc} */
     @Override
     public PageVO<CategoryEntity> queryPage(PageQuery query) {
         IPage<CategoryEntity> page = this.page(query.toPage());
@@ -56,27 +71,26 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
         return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
+    /** {@inheritDoc} */
     @Override
     public List<CategoryEntity> listWithTree() {
-        // 先获取所有分类
+        // 1. 查出全部分类，按 id 建索引：下面每个节点都要找父节点，逐个扫列表是 O(n²)
         List<CategoryEntity> categoryEntities = baseMapper.selectList(null);
 
-        // 获取一级分类id映射表
         Map<Long, CategoryEntity> categoryEntityMap = categoryEntities.stream()
                 .collect(Collectors.toMap(CategoryEntity::getCatId, v -> v));
 
-        // 一级菜单list（按sort升序排序）
+        // 2. 一级分类（parent_cid = 0）就是返回的根列表
         List<CategoryEntity> level1Menus = categoryEntities.stream()
                 .filter(categoryEntity -> categoryEntity.getParentCid() == 0)
                 .sorted(Comparator.comparingInt(CategoryEntity::getSort))
                 .collect(Collectors.toList());
 
-        // 构建父子关系
+        // 3. 把每个非一级分类挂到父节点的 children 上
         categoryEntities.forEach(categoryEntity -> {
             if (categoryEntity.getParentCid() == 0) {
                 return;
             }
-            // 先找到父菜单
             CategoryEntity categoryParent = categoryEntityMap.get(categoryEntity.getParentCid());
             if (categoryParent != null) {
                 if (categoryParent.getChildren() == null) {
@@ -86,27 +100,25 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
             }
         });
 
-        // 对所有层级的子菜单进行排序
+        // 4. 子节点是按入库顺序挂上的，逐层按 sort 重排
         level1Menus.forEach(this::sortChildren);
 
         return level1Menus;
     }
 
     /**
-     * 递归排序子节点
+     * 递归把子节点按 {@code sort} 升序重排。
+     *
+     * @param category 当前节点，{@code children} 为 {@code null} 或空时直接返回
      */
     private void sortChildren(CategoryEntity category) {
         if (category.getChildren() != null && !category.getChildren().isEmpty()) {
-            // 按 sort 升序排序
             category.getChildren().sort(Comparator.comparingInt(CategoryEntity::getSort));
-            // 递归排序子节点的子节点
             category.getChildren().forEach(this::sortChildren);
         }
     }
 
-    /**
-     * 删除分类，连同子分类一起物理删除；子树下还挂着品牌关联、商品、属性组或属性时整批拒绝。
-     */
+    /** {@inheritDoc} */
     @Override
     @Transactional
     @CacheEvict(value = "category", allEntries = true)
@@ -138,8 +150,14 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
     }
 
     /**
-     * 收集这些分类及其全部后代的实体。引用分类的数据都挂在叶子上，所以校验要覆盖整棵子树。
-     * 用队列而非递归：parent_cid 没有外键约束，成环时递归会栈溢出；visited 兼做去重。
+     * 收集这些分类及其全部后代的实体，引用分类的数据都挂在叶子上，所以校验要覆盖整棵子树。
+     *
+     * <p>用队列而非递归：{@code parent_cid} 没有外键约束，成环时递归会栈溢出；{@code visited}
+     * 兼做去重。
+     *
+     * @param rootIds 待删除的根分类 ID，不能为空
+     * @param allById 全部分类，按 {@code catId} 建索引
+     * @return 这些分类连同全部后代的实体；查不到的 ID 会被跳过
      */
     private List<CategoryEntity> collectSubtree(List<Long> rootIds, Map<Long, CategoryEntity> allById) {
         // groupingBy 不接受 null key，parent_cid 为空的脏行先剔掉
@@ -166,9 +184,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
      * 分类下挂着品牌关联、商品、属性组或属性时拒绝删除。
      *
      * <p>品牌关联也拦而不是清：那些品牌还活着，静默清掉就等于让它们悄悄丢掉"归属哪个分类"，
-     * 之后建商品时选不出来，而这中间没有任何人被告知。</p>
-     *
-     * <p>子分类是唯一的例外，它是这个分类自己的组合子记录，跟着一起删。</p>
+     * 之后建商品时选不出来。子分类是唯一的例外，它是这个分类自己的组合子记录，跟着一起删。
      */
     private void ensureNoReference(List<Long> rootIds, List<Long> subtreeIds,
                                    Map<Long, CategoryEntity> allById) {
@@ -201,14 +217,20 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
         }
     }
 
+    /** {@inheritDoc} */
     @Override
     public List<Long> findcatalogIds(Long catId) {
-        // 初始化可变集合（LinkedList支持addFirst操作，效率高）
+        // 路径由递归逐级 add 拼出：父级先追加、本级最后追加，所以必须是可变集合
         List<Long> path = new LinkedList<>();
         findParentPath(catId, path);
         return path;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>分类表与品牌分类关联表的更新在同一个事务里，不会只改一半。
+     */
     @Override
     @Transactional
     public void updateDetail(CategoryEntity category) {
@@ -218,9 +240,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
         categoryBrandRelationService.updateCategory(category.getCatId(), category.getName());
     }
 
-    /**
-     * 前台首页/全局导航的分类树，只含 show_status = 1 的分类。
-     */
+    /** {@inheritDoc} */
     @Cacheable(value = "category", key = "#root.method.name", sync = true)
     @Override
     public List<CategoryVo> getCatalogTree() {
@@ -237,10 +257,11 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
     }
 
     /**
-     * 递归把分类实体组装成 CategoryVo 树，每一层都按 sort 升序排序
+     * 递归把分类实体组装成 {@link CategoryVo} 树，每一层都按 {@code sort} 升序。
      *
-     * @param childrenByParentCid 已经按 parentCid 分好组的全部分类
-     * @param parentCid           当前要组装的父分类id，一级分类传 0
+     * @param childrenByParentCid 已经按 {@code parentCid} 分好组的全部分类
+     * @param parentCid 当前要组装的父分类 ID，一级分类传 0
+     * @return 该父分类下的子节点列表；没有子分类时返回空列表
      */
     private List<CategoryVo> buildTree(Map<Long, List<CategoryEntity>> childrenByParentCid, Long parentCid) {
         return childrenByParentCid.getOrDefault(parentCid, List.of()).stream()
@@ -256,12 +277,13 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
 
 
     /**
-     * 递归填充父路径（使用可变集合作为参数传递，避免创建不可变集合）
-     * @param catalogId 当前分类ID
-     * @param path 用于存储完整路径的可变集合
+     * 递归把从一级分类到 {@code catalogId} 的分类 ID 追加进 {@code path}。
+     *
+     * @param catalogId 当前分类 ID，为 {@code null} 或查不到时直接返回
+     * @param path 承接路径的可变集合，父级先追加、本级最后追加
      */
     private void findParentPath(Long catalogId, List<Long> path) {
-        // 1. 查询当前分类信息（确保catalogId有效，避免空指针）
+        // 1. 分类不存在就没有路径可拼，直接返回
         if (catalogId == null) {
             return;
         }
@@ -270,12 +292,12 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
             return;
         }
 
-        // 2. 递归查找父分类（先找父级，再添加当前级，保证路径从顶级到当前级）
+        // 2. 先递归父级：父级全部追加完再追加本级，路径顺序才是顶级到本级
         if (categoryEntity.getParentCid() != 0) {
             findParentPath(categoryEntity.getParentCid(), path);
         }
 
-        // 3. 将当前分类ID添加到路径中（此时父级已全部添加完成）
+        // 3. 追加本级
         path.add(categoryEntity.getCatId());
     }
 }

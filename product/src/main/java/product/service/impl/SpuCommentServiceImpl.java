@@ -12,9 +12,15 @@ import java.util.Map;
 
 
 import common.query.PageQuery;
+/**
+ * 商品评价服务的默认实现，基于 MyBatis-Plus 的 {@code ServiceImpl} 读写 {@code pms_spu_comment}。
+ *
+ * <p>本模块内没有业务逻辑读写这张表，本类只实现分页查询，增删改由继承的 {@code IService} 提供。
+ */
 @Service("spuCommentService")
 public class SpuCommentServiceImpl extends ServiceImpl<SpuCommentDao, SpuCommentEntity> implements SpuCommentService {
 
+    /** {@inheritDoc} */
     @Override
     public PageVO<SpuCommentEntity> queryPage(PageQuery query) {
         IPage<SpuCommentEntity> page = this.page(query.toPage());

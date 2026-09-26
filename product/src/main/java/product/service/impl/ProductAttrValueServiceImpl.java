@@ -23,15 +23,27 @@ import java.util.Objects;
 
 
 import common.query.PageQuery;
+/**
+ * 商品规格参数值服务的默认实现，基于 MyBatis-Plus 的 {@code ServiceImpl} 读写
+ * {@code pms_product_attr_value}。
+ *
+ * <p>改规格参数前要回查 spu 的发布状态：取值在上架时被快照进 Elasticsearch，改完索引不会跟着变。
+ */
 @Service("productAttrValueService")
 public class ProductAttrValueServiceImpl extends ServiceImpl<ProductAttrValueDao, ProductAttrValueEntity> implements ProductAttrValueService {
 
     private final SpuInfoDao spuInfoDao;
 
+    /**
+     * 由容器注入 spu 主表 Mapper 构造。
+     *
+     * @param spuInfoDao spu 主表 Mapper，改规格参数前用它回查发布状态
+     */
     public ProductAttrValueServiceImpl(SpuInfoDao spuInfoDao) {
         this.spuInfoDao = spuInfoDao;
     }
 
+    /** {@inheritDoc} */
     @Override
     public PageVO<ProductAttrValueEntity> queryPage(PageQuery query) {
         IPage<ProductAttrValueEntity> page = this.page(query.toPage());
@@ -39,6 +51,7 @@ public class ProductAttrValueServiceImpl extends ServiceImpl<ProductAttrValueDao
         return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
+    /** {@inheritDoc} */
     @Override
     public List<ProductAttrValueEntity> baseAttrListForSpu(Long spuId) {
         LambdaQueryWrapper<ProductAttrValueEntity> queryWrapper = new LambdaQueryWrapper<>();
@@ -47,6 +60,11 @@ public class ProductAttrValueServiceImpl extends ServiceImpl<ProductAttrValueDao
         return baseMapper.selectList(queryWrapper);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>删旧值与插新值在同一个事务里，中途失败不会留下"参数被删光"的中间状态。
+     */
     @Override
     @Transactional
     public void updateSpuAttr(Long spuId, List<ProductAttrValueEntity> entities) {

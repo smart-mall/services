@@ -20,16 +20,30 @@ import java.util.Map;
 
 
 import common.query.PageQuery;
+/**
+ * 品牌分类关联服务的默认实现，基于 MyBatis-Plus 的 {@code ServiceImpl} 读写
+ * {@code pms_category_brand_relation}。
+ *
+ * <p>关联行里冗余了品牌名与分类名：新增时回查两张主表填入，品牌或分类改名时由
+ * {@code BrandServiceImpl} 与 {@code CategoryServiceImpl} 回写。
+ */
 @Service("categoryBrandRelationService")
 public class CategoryBrandRelationServiceImpl extends ServiceImpl<CategoryBrandRelationDao, CategoryBrandRelationEntity> implements CategoryBrandRelationService {
     private final CategoryDao categoryDao;
     private final BrandDao brandDao;
 
+    /**
+     * 由容器注入分类与品牌 Mapper 构造。
+     *
+     * @param categoryDao 分类 Mapper，新增关联时回查分类名
+     * @param brandDao 品牌 Mapper，新增关联时回查品牌名，按分类取品牌时批量查品牌
+     */
     public CategoryBrandRelationServiceImpl(CategoryDao categoryDao, BrandDao brandDao) {
         this.categoryDao = categoryDao;
         this.brandDao = brandDao;
     }
 
+    /** {@inheritDoc} */
     @Override
     public PageVO<CategoryBrandRelationEntity> queryPage(PageQuery query) {
         IPage<CategoryBrandRelationEntity> page = this.page(query.toPage());
@@ -37,11 +51,13 @@ public class CategoryBrandRelationServiceImpl extends ServiceImpl<CategoryBrandR
         return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
+    /** {@inheritDoc} */
     @Override
     public List<CategoryBrandRelationEntity> listCategoryBrandRelation(Long brandId) {
         return this.list(new LambdaQueryWrapper<>(CategoryBrandRelationEntity.class).eq(CategoryBrandRelationEntity::getBrandId, brandId));
     }
 
+    /** {@inheritDoc} */
     @Override
     public void saveDetail(CategoryBrandRelationEntity categoryBrandRelation) {
         Long brandId = categoryBrandRelation.getBrandId();
@@ -56,6 +72,7 @@ public class CategoryBrandRelationServiceImpl extends ServiceImpl<CategoryBrandR
         this.save(categoryBrandRelation);
     }
 
+    /** {@inheritDoc} */
     @Override
     public void updateBrand(Long brandId, String name) {
         LambdaUpdateWrapper<CategoryBrandRelationEntity> set = new LambdaUpdateWrapper<CategoryBrandRelationEntity>()
@@ -64,6 +81,7 @@ public class CategoryBrandRelationServiceImpl extends ServiceImpl<CategoryBrandR
         this.update(set);
     }
 
+    /** {@inheritDoc} */
     @Override
     public void updateCategory(Long catId, String name) {
         LambdaUpdateWrapper<CategoryBrandRelationEntity> set = new LambdaUpdateWrapper<CategoryBrandRelationEntity>()
@@ -72,6 +90,7 @@ public class CategoryBrandRelationServiceImpl extends ServiceImpl<CategoryBrandR
         this.update(set);
     }
 
+    /** {@inheritDoc} */
     @Override
     public void deleteByBrandIds(List<Long> brandIds) {
         if (brandIds == null || brandIds.isEmpty()) {
@@ -81,6 +100,7 @@ public class CategoryBrandRelationServiceImpl extends ServiceImpl<CategoryBrandR
                 .in(CategoryBrandRelationEntity::getBrandId, brandIds));
     }
 
+    /** {@inheritDoc} */
     @Override
     public List<BrandEntity> getBrandByCatId(Long catId) {
         List<CategoryBrandRelationEntity> list = this.list(new LambdaQueryWrapper<>(CategoryBrandRelationEntity.class).eq(CategoryBrandRelationEntity::getCatalogId, catId));

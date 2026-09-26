@@ -26,6 +26,12 @@ import java.util.stream.Collectors;
 
 
 import common.query.KeyPageQuery;
+/**
+ * 品牌服务的默认实现，基于 MyBatis-Plus 的 {@code ServiceImpl} 读写 {@code pms_brand}。
+ *
+ * <p>logo 存在 MinIO：换图时删掉被替换的对象，删除品牌时删掉全部 logo。品牌名冗余在
+ * {@code pms_category_brand_relation} 里，改名要顺带回写。
+ */
 @Service("brandService")
 @Slf4j
 public class BrandServiceImpl extends ServiceImpl<BrandDao, BrandEntity> implements BrandService {
@@ -35,6 +41,13 @@ public class BrandServiceImpl extends ServiceImpl<BrandDao, BrandEntity> impleme
     // 注入 DAO 而不是 SpuInfoService：SpuInfoServiceImpl 依赖 BrandService，会构造器循环
     private final SpuInfoDao spuInfoDao;
 
+    /**
+     * 由容器注入品牌分类关联服务、三方文件客户端与 spu 主表 Mapper 构造。
+     *
+     * @param categoryBrandRelationService 品牌分类关联服务，改名后回写关联表里的品牌名
+     * @param thirdPartyFeignService 三方文件客户端，换 logo 与删品牌时清理 MinIO 对象
+     * @param spuInfoDao spu 主表 Mapper，删除品牌前判断品牌下是否还有商品
+     */
     public BrandServiceImpl(CategoryBrandRelationService categoryBrandRelationService,
                             ThirdPartyFeignService thirdPartyFeignService,
                             SpuInfoDao spuInfoDao) {
@@ -43,6 +56,7 @@ public class BrandServiceImpl extends ServiceImpl<BrandDao, BrandEntity> impleme
         this.spuInfoDao = spuInfoDao;
     }
 
+    /** {@inheritDoc} */
     @Override
     public PageVO<BrandEntity> queryPage(KeyPageQuery query) {
         String key = query.getKey();
@@ -62,6 +76,7 @@ public class BrandServiceImpl extends ServiceImpl<BrandDao, BrandEntity> impleme
         return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public void updateDetail(BrandEntity brand) {
@@ -80,9 +95,7 @@ public class BrandServiceImpl extends ServiceImpl<BrandDao, BrandEntity> impleme
 
     }
 
-    /**
-     * 删除品牌。品牌下还有商品时整批拒绝；品牌与分类的关联行跟着一起删。
-     */
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public void deleteByIds(List<Long> list) {
@@ -113,7 +126,12 @@ public class BrandServiceImpl extends ServiceImpl<BrandDao, BrandEntity> impleme
     }
 
     /**
-     * 品牌下还有商品时拒绝删除。pms_sku_info.brand_id 是跟随 spu 的冗余列，不用单独查。
+     * 校验这些品牌下没有商品，有则整批拒绝删除。
+     *
+     * <p>只查 spu 主表：{@code pms_sku_info.brand_id} 是跟随 spu 的冗余列，不用单独查。
+     *
+     * @param brands 待删除的品牌实体，用于拼错误信息里的品牌名
+     * @param brandIds 待删除的品牌 ID 列表
      */
     private void ensureNoSpu(List<BrandEntity> brands, List<Long> brandIds) {
         Long spuCount = spuInfoDao.selectCount(

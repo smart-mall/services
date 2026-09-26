@@ -27,6 +27,12 @@ import java.util.stream.Collectors;
 
 import common.query.PageQuery;
 import product.vo.SkuInfoPageQuery;
+/**
+ * sku 服务的默认实现，基于 MyBatis-Plus 的 {@code ServiceImpl} 读写 {@code pms_sku_info}。
+ *
+ * <p>商品详情页的数据组装走构造器注入的线程池：本地查询与秒杀、库存两个远程调用并行；库存服务
+ * 异常只记日志，按默认的「有货」返回。
+ */
 @Slf4j
 @Service("skuInfoService")
 public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> implements SkuInfoService {
@@ -38,6 +44,17 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
     private final ThreadPoolExecutor executor;
     private final SkuImagesService skuImagesService;
 
+    /**
+     * 由容器注入详情页各数据源、两个远程客户端与线程池构造。
+     *
+     * @param spuInfoDescService spu 介绍服务，取商品描述图
+     * @param attrGroupService 属性分组服务，取规格参数分组及取值
+     * @param skuSaleAttrValueService sku 销售属性值服务，取销售属性组合
+     * @param seckillFeignService 秒杀服务客户端，查当前 sku 是否参与秒杀
+     * @param wareFeignService 库存服务客户端，查当前 sku 是否有货
+     * @param executor 详情页并行加载各数据块用的线程池
+     * @param skuImagesService sku 图片服务，取 sku 图集
+     */
     public SkuInfoServiceImpl(SpuInfoDescService spuInfoDescService, AttrGroupService attrGroupService, SkuSaleAttrValueService skuSaleAttrValueService, SeckillFeignService seckillFeignService, WareFeignService wareFeignService, ThreadPoolExecutor executor, SkuImagesService skuImagesService) {
         this.spuInfoDescService = spuInfoDescService;
         this.attrGroupService = attrGroupService;
@@ -48,6 +65,7 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
         this.skuImagesService = skuImagesService;
     }
 
+    /** {@inheritDoc} */
     @Override
     public PageVO<SkuInfoEntity> queryPage(PageQuery query) {
         IPage<SkuInfoEntity> page = this.page(query.toPage());
@@ -55,6 +73,7 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
         return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
+    /** {@inheritDoc} */
     @Override
     public PageVO<SkuInfoEntity> queryPageByCondition(SkuInfoPageQuery query) {
         LambdaQueryWrapper<SkuInfoEntity> queryWrapper = new LambdaQueryWrapper<>();
@@ -89,13 +108,20 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
         return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>只有 sku 基本信息是串行的：主线程 {@code join} 等它返回，拿到 {@code spuId} 才能发起
+     * 后面的查询，商品不存在时也靠它提前返回。其余六段在线程池里并行 —— 图集、秒杀、库存三段
+     * 不依赖基本信息；销售属性、商品介绍、规格参数三段挂在基本信息完成后执行。
+     */
     @Override
     public SkuItemVo item(Long skuId) throws ExecutionException, InterruptedException {
 
         SkuItemVo skuItemVo = new SkuItemVo();
 
         CompletableFuture<SkuInfoEntity> infoFuture = CompletableFuture.supplyAsync(() -> {
-            //1、sku基本信息的获取  pms_sku_info
+            // 1. sku 基本信息：主线程要等它返回，后面的查询都要用它的 spuId
             SkuInfoEntity info = this.getById(skuId);
             skuItemVo.setInfo(info);
             return info;
@@ -107,39 +133,34 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
             return skuItemVo;
         }
 
+        // 2. 依赖 spuId 的三段，在基本信息完成后并行：销售属性、商品介绍、规格参数
         CompletableFuture<Void> saleAttrFuture = infoFuture.thenAcceptAsync((res) -> {
-            //3、获取spu的销售属性组合
             List<SkuItemSaleAttrVo> saleAttrVos = skuSaleAttrValueService.getSaleAttrBySpuId(res.getSpuId());
             skuItemVo.setSaleAttr(saleAttrVos);
         }, executor);
 
 
         CompletableFuture<Void> descFuture = infoFuture.thenAcceptAsync((res) -> {
-            //4、获取spu的介绍    pms_spu_info_desc
             SpuInfoDescEntity spuInfoDescEntity = spuInfoDescService.getById(res.getSpuId());
             skuItemVo.setDesc(spuInfoDescEntity);
         }, executor);
 
 
         CompletableFuture<Void> baseAttrFuture = infoFuture.thenAcceptAsync((res) -> {
-            //5、获取spu的规格参数信息
             List<SpuItemAttrGroupVo> attrGroupVos = attrGroupService.getAttrGroupWithAttrsBySpuId(res.getSpuId(), res.getCatalogId());
             skuItemVo.setGroupAttrs(attrGroupVos);
         }, executor);
 
 
-//        创建第二个异步任务
-        //2、sku的图片信息    pms_sku_images
+        // 3. 不依赖基本信息的三段，与上面并行：sku 图集、秒杀、库存
         CompletableFuture<Void> imageFuture = CompletableFuture.runAsync(() -> {
             List<SkuImagesEntity> imagesEntities = skuImagesService.getImagesBySkuId(skuId);
             skuItemVo.setImages(imagesEntities);
         }, executor);
 
-        //3、远程调用查询当前sku是否参与秒杀优惠活动
         CompletableFuture<Void> seckillFuture = CompletableFuture.runAsync(() -> {
             R<SeckillSkuVo> skuSeckillInfo = seckillFeignService.getSkuSeckilInfo(skuId);
             if (skuSeckillInfo.getCode() == 0) {
-                //查询成功
                 SeckillSkuVo seckillInfoData = skuSeckillInfo.getData();
                 skuItemVo.setSeckillSkuVo(seckillInfoData);
 
@@ -153,7 +174,6 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
         }, executor);
 
 
-        //4、远程调用库存服务，查询当前sku是否有货
         CompletableFuture<Void> stockFuture = CompletableFuture.runAsync(() -> {
             try {
                 R<List<SkuHasStockVo>> skuStockInfo = wareFeignService.getSkusHasStock(List.of(skuId));
@@ -171,7 +191,7 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
         }, executor);
 
 
-        //等到所有任务都完成
+        // 4. 等全部任务结束；任一段抛出的异常都在这里以 ExecutionException 冒给调用方
         CompletableFuture
                 .allOf(saleAttrFuture,descFuture,baseAttrFuture,imageFuture,seckillFuture,stockFuture)
                 .get();
@@ -179,6 +199,7 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
         return skuItemVo;
     }
 
+    /** {@inheritDoc} */
     @Override
     public List<SkuSelectVO> getSkuSelect() {
         List<SkuInfoEntity> spuInfoEntities = baseMapper.selectList(null);
@@ -190,12 +211,19 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
         }).toList();
     }
 
+    /** {@inheritDoc} */
     @Override
     public Map<Long, String> getUserNames(List<Long> list) {
         List<SkuInfoEntity> spuInfoEntities = baseMapper.selectByIds(list);
         return spuInfoEntities.stream().collect(Collectors.toMap(SkuInfoEntity::getSkuId, SkuInfoEntity::getSkuName));
     }
 
+    /**
+     * 查询某个 spu 下的全部 sku，供商品上架时组装索引文档。
+     *
+     * @param spuId spu ID，不能为 {@code null}
+     * @return 该 spu 的 sku 列表；没有 sku 时返回空列表
+     */
     public List<SkuInfoEntity> getSkusBySpuId(Long spuId) {
         return this.list(new LambdaQueryWrapper<SkuInfoEntity>().eq(SkuInfoEntity::getSpuId, spuId));
     }

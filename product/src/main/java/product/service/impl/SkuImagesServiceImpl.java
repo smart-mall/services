@@ -15,9 +15,16 @@ import java.util.Map;
 
 
 import common.query.PageQuery;
+/**
+ * sku 图片服务的默认实现，基于 MyBatis-Plus 的 {@code ServiceImpl} 读写 {@code pms_sku_images}。
+ *
+ * <p>新增商品时会连带写入 sku 图集；本类实现分页查询与按 sku 取图集，增删改由继承的
+ * {@code IService} 提供。
+ */
 @Service("skuImagesService")
 public class SkuImagesServiceImpl extends ServiceImpl<SkuImagesDao, SkuImagesEntity> implements SkuImagesService {
 
+    /** {@inheritDoc} */
     @Override
     public PageVO<SkuImagesEntity> queryPage(PageQuery query) {
         IPage<SkuImagesEntity> page = this.page(query.toPage());
@@ -25,12 +32,7 @@ public class SkuImagesServiceImpl extends ServiceImpl<SkuImagesDao, SkuImagesEnt
         return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
-    /**
-     * 查询某个 sku 的图集
-     *
-     * 表 pms_sku_images 里 default_img = 1 的那一条是主图，和图集第一张通常是同一个地址，
-     * 前端做缩略图列表时要展示全部图片，不要只展示默认图。
-     */
+    /** {@inheritDoc} */
     @Override
     public List<SkuImagesEntity> getImagesBySkuId(Long skuId) {
         return this.list(new LambdaQueryWrapper<SkuImagesEntity>()
