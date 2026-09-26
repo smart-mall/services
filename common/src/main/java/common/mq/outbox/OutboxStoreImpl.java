@@ -8,6 +8,11 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * 本地消息表读写的 MyBatis-Plus 实现，条件与更新全部用 Wrapper 拼装。
+ *
+ * <p>无状态、线程安全：只持有 Mapper，抢占与状态流转都靠带条件的 UPDATE 在数据库侧完成。
+ */
 @Slf4j
 public class OutboxStoreImpl implements OutboxStore {
 
@@ -23,6 +28,7 @@ public class OutboxStoreImpl implements OutboxStore {
         this.outboxDao = outboxDao;
     }
 
+    /** {@inheritDoc} */
     @Override
     public String savePending(String toExchange, String routingKey, String classType, String content) {
         OutboxMessage message = new OutboxMessage();
@@ -39,17 +45,20 @@ public class OutboxStoreImpl implements OutboxStore {
         return message.getMessageId();
     }
 
+    /** {@inheritDoc} */
     @Override
     public OutboxMessage getById(String messageId) {
         return outboxDao.selectById(messageId);
     }
 
+    /** {@inheritDoc} */
     @Override
     public List<OutboxMessage> listForResend(int limit) {
         Date now = new Date();
         Date createdBefore = new Date(now.getTime() - RESEND_DELAY_MILLIS);
         Date claimedBefore = new Date(now.getTime() - CLAIM_TIMEOUT_MILLIS);
         return outboxDao.selectList(new LambdaQueryWrapper<OutboxMessage>()
+                // 两段条件必须用 and(...) 包成一个整体，否则 or 会与外层条件平铺，拼出的 SQL 语义会变
                 .and(w -> w
                         .in(OutboxMessage::getMessageStatus,
                                 OutboxStatus.PENDING.getCode(), OutboxStatus.ERROR.getCode())
@@ -58,9 +67,12 @@ public class OutboxStoreImpl implements OutboxStore {
                                 .eq(OutboxMessage::getMessageStatus, OutboxStatus.CLAIMED.getCode())
                                 .le(OutboxMessage::getUpdateTime, claimedBefore)))
                 .orderByAsc(OutboxMessage::getCreateTime)
+                // 只取一批候选、不需要总数：分页插件会额外发一次 count 查询
+                // limit 取自 OutboxResendTask.RESEND_BATCH 常量，无外部输入
                 .last("limit " + limit));
     }
 
+    /** {@inheritDoc} */
     @Override
     public boolean claim(String messageId) {
         return outboxDao.update(null, new LambdaUpdateWrapper<OutboxMessage>()
@@ -71,6 +83,7 @@ public class OutboxStoreImpl implements OutboxStore {
                 .set(OutboxMessage::getUpdateTime, new Date())) > 0;
     }
 
+    /** {@inheritDoc} */
     @Override
     public void markSent(String messageId) {
         boolean updated = outboxDao.update(null, new LambdaUpdateWrapper<OutboxMessage>()
@@ -84,6 +97,7 @@ public class OutboxStoreImpl implements OutboxStore {
         }
     }
 
+    /** {@inheritDoc} */
     @Override
     public void markError(String messageId, String cause) {
         outboxDao.update(null, new LambdaUpdateWrapper<OutboxMessage>()
@@ -96,6 +110,7 @@ public class OutboxStoreImpl implements OutboxStore {
         log.error("消息投递失败，等待重投，messageId={}，原因={}", messageId, cause);
     }
 
+    /** {@inheritDoc} */
     @Override
     public int removeSentBefore(Date deadline) {
         return outboxDao.delete(new LambdaQueryWrapper<OutboxMessage>()

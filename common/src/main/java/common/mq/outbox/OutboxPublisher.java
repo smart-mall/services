@@ -11,8 +11,12 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.util.List;
 
 /**
- * 本地消息表的投递端。投递状态由模板上的 confirm / returns 回调决定（回调在
- * {@code OutboxAutoConfiguration} 里设置），不由 convertAndSend 的返回决定。
+ * 本地消息表的投递端：先落库，事务提交之后再投递。
+ *
+ * <p>投递状态由模板上的 confirm / returns 回调决定（回调在 {@link OutboxAutoConfiguration} 里设置），
+ * 不由 {@code convertAndSend} 的返回决定。
+ *
+ * <p>无状态、线程安全：只持有模板、存储与序列化器，每条消息各自独立处理。
  */
 @Slf4j
 public class OutboxPublisher {
@@ -30,6 +34,13 @@ public class OutboxPublisher {
 
     /**
      * 落库 + 投递。落库发生在调用方的事务里，投递等事务提交之后。
+     *
+     * <p>没有活动事务时立即投递；消息体序列化失败直接抛异常，此时记录还没落库。
+     *
+     * @param toExchange 目标交换机名，取 {@link common.mq.MqConstant.Exchanges}
+     * @param routingKey 目标路由键，取 {@link common.mq.MqConstant.RoutingKeys}
+     * @param payload    消息体，必须能被 Jackson 序列化
+     * @throws IllegalStateException 消息体序列化失败时抛出
      */
     public void publish(String toExchange, String routingKey, Object payload) {
         String classType = payload.getClass().getName();
@@ -54,7 +65,11 @@ public class OutboxPublisher {
         }
     }
 
-    /** 按 id 投一条。投递失败不改状态，留给重投任务 */
+    /**
+     * 按 id 投一条。投递失败不改状态，留给重投任务。
+     *
+     * @param messageId 消息 id
+     */
     public void send(String messageId) {
         OutboxMessage message = outboxStore.getById(messageId);
         if (message == null) {
@@ -78,7 +93,14 @@ public class OutboxPublisher {
         }
     }
 
-    /** 扫一轮待投递 / 错误消息重投，返回本轮处理条数 */
+    /**
+     * 扫一轮待投递 / 错误消息重投。
+     *
+     * <p>每条先 CAS 抢占再投，抢不到的说明别的实例正在处理，跳过。
+     *
+     * @param limit 单轮最多处理的条数，必须为正数
+     * @return 本轮抢占成功并尝试投递的条数
+     */
     public int resendPending(int limit) {
         List<OutboxMessage> pending = outboxStore.listForResend(limit);
         int count = 0;
