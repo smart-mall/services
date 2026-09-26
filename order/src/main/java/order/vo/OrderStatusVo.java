@@ -9,6 +9,7 @@ import lombok.Data;
 @Data
 public class OrderStatusVo {
 
+    /** 订单号，业务主键，非自增 ID。 */
     private String orderSn;
 
     /** 取值见 {@link order.enume.OrderStatusEnum} */
