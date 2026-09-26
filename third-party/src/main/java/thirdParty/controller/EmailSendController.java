@@ -18,21 +18,14 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 邮箱验证码的发送，走 Resend 的 HTTP API。
+ * 邮箱验证码发送接口，通过 Resend 的 HTTP API 投递；验证码本身的生成与校验在 auth 服务。
  *
- * <p>和 {@code SmsSendController} 是同一个定位：auth 负责生成/存取/校验验证码，
- * 这里只负责"把验证码真正发出去"。</p>
+ * <p>必须用 {@link HttpUtils#doPost(String, String, String, Map, Map, byte[])} 的 byte[] 重载：
+ * String 重载内部是 {@code new StringEntity(body, "utf-8")}，会把 Content-Type 强制设成
+ * {@code text/plain; charset=UTF-8}；ByteArrayEntity 不设置 contentType，header 里的
+ * {@code application/json} 才不会被覆盖。</p>
  *
- * <p>调用方式是 {@code POST https://api.resend.com/emails}，body 是 JSON。
- * 这里用的是 {@link HttpUtils#doPost(String, String, String, Map, Map, byte[])} 这个 byte[] 重载，
- * 而不是 String 重载 —— 后者内部是 {@code new StringEntity(body, "utf-8")}，
- * 会把 Content-Type 强制设成 {@code text/plain; charset=UTF-8}，和我们要的 application/json 打架；
- * ByteArrayEntity 不设置 contentType，所以下面 header 里那个 application/json 才是唯一的。</p>
- *
- * <p><b>发件人</b>：配置项 {@code resend.from} 用的是自有域名下的 {@code notify@lxpavilion.top}，
- * 前提是该域名已在 Resend 后台验证通过（SPF/DKIM 那几条 DNS 记录配好），没验证过会返回 403。
- * 验证过的域名可以发给任意收件人；如果哪天换回 Resend 自带的 {@code onboarding@resend.dev}，
- * 则会被限制成只能发给你注册 Resend 时用的那个邮箱。</p>
+ * <p>发件人取自 {@code resend.from}，需为已在 Resend 后台完成 SPF/DKIM 验证的域名邮箱，否则返回 403。</p>
  */
 @Slf4j
 @RestController
@@ -45,6 +38,13 @@ public class EmailSendController {
     private final String apiKey;
     private final String from;
 
+    /**
+     * 注入 Resend 凭据与发件人地址。
+     *
+     * @param apiKey Resend API Key，作为 {@code Authorization: Bearer} 的值
+     * @param from   发件人地址；未配置 {@code resend.from} 时默认 {@code onboarding@resend.dev}，
+     *               该地址只能发往注册 Resend 时使用的邮箱
+     */
     public EmailSendController(@Value("${resend.api-key}") String apiKey,
                                @Value("${resend.from:onboarding@resend.dev}") String from) {
         this.apiKey = apiKey;
@@ -54,9 +54,13 @@ public class EmailSendController {
     /**
      * 发送邮箱验证码。
      *
-     * <p>返回 {@code R.error} 而不是像短信那样一律 {@code R.ok()}：auth 那边是靠
-     * {@code r.getCode() != 0} 判断远程调用是否成功的，短信那个实现把异常吞掉、
-     * 永远返回成功，导致发信失败时前端还以为验证码已经发出去了。</p>
+     * <p>失败时返回 {@code R.error}：auth 靠 {@code r.getCode() != 0} 判断远程调用是否成功，
+     * 一律返回成功会让发信失败时前端误以为验证码已发出。
+     *
+     * @param email 收件人邮箱，直接作为 Resend 请求体的 {@code to} 字段
+     * @param code  验证码明文，会被拼进邮件 HTML 正文
+     * @return 发送成功返回 {@code R.ok()}；HTTP 状态非 200 或调用异常时返回
+     *         {@link BaseCodeEnum#EMAIL_SEND_EXCEPTION}
      */
     @GetMapping(value = "/sendCode")
     public R<Void> sendCode(@RequestParam("email") String email, @RequestParam("code") String code) {
@@ -73,7 +77,7 @@ public class EmailSendController {
         headers.put("Content-Type", "application/json");
 
         try {
-            // byte[] 重载：ByteArrayEntity 不设置 contentType，Content-Type 完全由上面的 header 决定
+            // 用 byte[] 重载：Content-Type 完全由上面的 header 决定，不会被请求实体覆盖
             HttpResponse response = HttpUtils.doPost(RESEND_HOST, RESEND_PATH, "POST",
                     headers, new HashMap<>(), JSON.toJSONBytes(payload));
             String responseBody = EntityUtils.toString(response.getEntity(), "UTF-8");
@@ -81,7 +85,7 @@ public class EmailSendController {
             log.info("Resend 响应: status={}, body={}", status, responseBody);
 
             if (status != 200) {
-                // 401 一般是 key 不对；403 通常是上面那段测试限制；422 是参数不合法；429 是限流
+                // 401 多为 key 无效；403 多为发件域名未验证；422 为参数不合法；429 为触发限流
                 log.error("邮件发送失败: status={}, body={}", status, responseBody);
                 return R.error(BaseCodeEnum.EMAIL_SEND_EXCEPTION);
             }

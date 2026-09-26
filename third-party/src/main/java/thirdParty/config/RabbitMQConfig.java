@@ -9,21 +9,29 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * third-party 侧消费 {@code product.deleted} 所需的交换机与队列，用来清 MinIO 里的孤儿文件。
+ * third-party 侧消费 {@code product.deleted} 所需的交换机、队列与绑定，用于清理 MinIO 中的孤儿文件。
  *
- * <p>结构和 coupon 侧完全对称（业务队列 → DLX → TTL 重试队列 → 回到业务队列；重试到上限由
- * 监听器投进死信队列），只是换了前缀。<b>两个服务各自一个队列、各自消费同一条消息</b>，
- * 互不阻塞：coupon 挂了不影响清文件，反过来的道理也一样。</p>
+ * <p>拓扑为业务队列 → DLX → TTL 重试队列 → 回到业务交换机，重试到上限由监听器投进死信队列。
+ * 每个消费方各持一个业务队列，同一条消息被各服务独立消费，互不阻塞。</p>
  */
 @Configuration
 public class RabbitMQConfig {
 
+    /**
+     * 商品事件交换机，topic 类型，商品域的所有事件都投到这里。
+     *
+     * @return 持久化的 topic 交换机
+     */
     @Bean
     public Exchange productEventExchange() {
         return MqBuilder.topicExchange(MqConstant.Exchanges.PRODUCT_EVENT);
     }
 
-    /** 业务队列。消费失败 nack 后由自己的 DLX 接走 */
+    /**
+     * 业务队列，消费失败 nack 后由自己的 DLX 接走。
+     *
+     * @return 绑定了死信交换机的业务队列
+     */
     @Bean
     public Queue thirdPartyProductDeletedQueue() {
         return MqBuilder.deadLetterQueue(
@@ -32,6 +40,11 @@ public class RabbitMQConfig {
                 MqConstant.RoutingKeys.THIRDPARTY_PRODUCT_DELETED_RETRY);
     }
 
+    /**
+     * 把业务队列绑到商品事件交换机上，只接收路由键 {@code product.deleted} 的消息。
+     *
+     * @return 队列与交换机的绑定
+     */
     @Bean
     public Binding thirdPartyProductDeletedBinding() {
         return MqBuilder.bind(
@@ -40,12 +53,21 @@ public class RabbitMQConfig {
                 MqConstant.RoutingKeys.PRODUCT_DELETED);
     }
 
+    /**
+     * 业务队列的死信交换机，direct 类型。
+     *
+     * @return 持久化的 direct 交换机
+     */
     @Bean
     public Exchange thirdPartyProductDeletedDlx() {
         return MqBuilder.directExchange(MqConstant.Exchanges.THIRDPARTY_PRODUCT_DELETED_DLX);
     }
 
-    /** 消息在这里躺 1 分钟，到期死信回业务交换机，等于延迟重投 */
+    /**
+     * 重试队列，消息在此滞留 1 分钟后死信回业务交换机，等价于延迟重投。
+     *
+     * @return 带 TTL 的重试队列
+     */
     @Bean
     public Queue thirdPartyProductDeletedRetryQueue() {
         return MqBuilder.ttlQueue(
@@ -55,6 +77,11 @@ public class RabbitMQConfig {
                 MqConstant.TtlMillis.PRODUCT_DELETED_RETRY);
     }
 
+    /**
+     * 把重试队列绑到 DLX 上，路由键与重试队列同名。
+     *
+     * @return 重试队列与 DLX 的绑定
+     */
     @Bean
     public Binding thirdPartyProductDeletedRetryBinding() {
         return MqBuilder.bind(
@@ -63,13 +90,21 @@ public class RabbitMQConfig {
                 MqConstant.RoutingKeys.THIRDPARTY_PRODUCT_DELETED_RETRY);
     }
 
-    /** 死信队列。没有消费者，等人工处理 */
+    /**
+     * 死信队列，没有消费者，堆积的消息等人工处理。
+     *
+     * @return 持久化死信队列
+     */
     @Bean
     public Queue thirdPartyProductDeletedDlq() {
         return MqBuilder.durableQueue(MqConstant.Queues.THIRDPARTY_PRODUCT_DELETED_DLQ);
     }
 
-    /** 死信队列的绑定，路由键与队列名同值 */
+    /**
+     * 把死信队列绑到 DLX 上，路由键与队列名同值。
+     *
+     * @return 死信队列与 DLX 的绑定
+     */
     @Bean
     public Binding thirdPartyProductDeletedDlqBinding() {
         return MqBuilder.bind(

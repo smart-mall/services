@@ -14,11 +14,26 @@ import java.util.HashMap;
 import java.util.Map;
 
 
+/**
+ * 短信验证码发送接口，通过国阳云短信 API 投递；验证码本身的生成与校验在 auth 服务。
+ *
+ * <p>发送结果不影响响应：异常只记日志，一律返回 {@code R.ok()}，调用方无法从返回值判断短信是否送达。</p>
+ */
 @RestController
 @RequestMapping(value = "/thirdParty/sms")
 @Slf4j
 public class SmsSendController {
 
+    /**
+     * 发送短信验证码。
+     *
+     * <p>捕获异常后只记日志并返回 {@code R.ok()}，因此 {@code r.getCode()} 为 0 只代表接口被调用过。
+     *
+     * @param mobile 接收短信的手机号
+     * @param code   验证码明文，作为模板参数 {@code **code**} 传入
+     * @param time   验证码有效期，单位分钟，作为模板参数 {@code **minute**} 传入
+     * @return 恒返回 {@code R.ok()}，不代表短信已实际送达
+     */
     @GetMapping(value = "/sendCode")
     public R<Void> sendCode(@RequestParam("mobile") String mobile, @RequestParam("code") String code, @RequestParam("time") Integer time) {
         log.info("发送验证码: {}--{}--{}",  mobile, code, time);
@@ -28,14 +43,12 @@ public class SmsSendController {
         String method = "POST";
         String appcode = "9450540793294f108804896a6d4e2e5b";
         Map<String, String> headers = new HashMap<>();
-        //最后在header中的格式(中间是英文空格)为Authorization:APPCODE 83359fd73fe94948385f570e3c139105
         headers.put("Authorization", "APPCODE " + appcode);
         Map<String, String> querys = new HashMap<>();
         querys.put("mobile", mobile);
         querys.put("param", "**code**:" + code + ",**minute**:" + time);
 
-//smsSignId（短信前缀）和templateId（短信模板），可登录国阳云控制台自助申请。参考文档：http://help.guoyangyun.com/Problem/Qm.html
-
+        // smsSignId 是短信签名 ID，templateId 是短信模板 ID，均需在国阳云控制台申请
         querys.put("smsSignId", "2e65b1bb3d054466b82f0c9d125465e2");
         querys.put("templateId", "908e94ccf08b4476ba6c876d13f084ad");
         Map<String, String> bodys = new HashMap<>();

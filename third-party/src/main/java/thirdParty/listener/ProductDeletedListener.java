@@ -16,18 +16,15 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * 消费 {@code product.deleted}，删掉 MinIO 里这个商品引用过的文件。
+ * 消费 {@code product.deleted}，删除该商品在 MinIO 中引用过的文件。
  *
- * <p>失败处理和 coupon 侧一致：nack（requeue=false）→ DLX → 重试队列延迟 1 分钟 → 重投，
- * 重试满 {@value #MAX_RETRY} 次仍失败则投进死信队列。</p>
+ * <p>失败处理：nack（requeue=false）→ DLX → 重试队列延迟 1 分钟 → 重投；重试满
+ * {@value #MAX_RETRY} 次仍失败则投进死信队列。</p>
  *
- * <p><b>为什么 {@code failed} 非空必须抛异常：</b>{@code MediaService.deleteBatch} 是
- * "单个失败不中断"的尽力而为语义，返回的是没删掉的地址清单。如果这里只打日志就 ack，
- * 那些文件就<b>永久孤儿</b>了 —— 消息已经被确认，没有任何机制会再回来处理它们。</p>
- *
- * <p>代价是：一个永远删不掉的地址（比如管理员手填的外站 URL，{@code resolveKey} 认不出来）
- * 会走满重试次数然后进死信队列，而不是自动消失。这是刻意的 —— 让它暴露给人看，
- * 比静默留在桶里强。</p>
+ * <p>{@code failed} 非空必须抛异常而不能 ack：{@code MediaService.deleteBatch} 是"单个失败不中断"
+ * 的尽力而为语义，返回的是没删掉的地址，一旦 ack 这些文件就永久成为孤儿，没有任何机制会再处理它们。
+ * 代价是永远删不掉的地址（如管理员手填的外站 URL，{@code resolveKey} 认不出来）会走满重试后进
+ * 死信队列，这是刻意让它暴露给人看，而不是静默留在桶里。</p>
  */
 @Slf4j
 @Component
@@ -45,6 +42,16 @@ public class ProductDeletedListener {
         this.mqPublisher = mqPublisher;
     }
 
+    /**
+     * 处理商品删除事件，清理消息中携带的全部图片地址。
+     *
+     * <p>清理不完整时不确认消息，交由 DLX 重试；达到上限后转入死信队列并确认消息。
+     *
+     * @param to      商品删除消息，{@code imageUrls} 可为 {@code null}
+     * @param message 原始消息，用于取 deliveryTag 与重试次数
+     * @param channel 消费通道，用于 ack 与 nack
+     * @throws IOException 与 broker 通信失败时抛出
+     */
     @RabbitHandler
     public void onProductDeleted(ProductDeletedTo to, Message message, Channel channel) throws IOException {
         long deliveryTag = message.getMessageProperties().getDeliveryTag();

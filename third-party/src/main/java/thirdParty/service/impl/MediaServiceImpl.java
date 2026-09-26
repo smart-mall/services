@@ -36,11 +36,13 @@ public class MediaServiceImpl implements MediaService {
         this.properties = properties;
     }
 
+    /** {@inheritDoc} */
     @Override
     public MediaFileVo upload(MultipartFile file) {
         return store(read(file));
     }
 
+    /** {@inheritDoc} */
     @Override
     public List<MediaFileVo> uploadBatch(MultipartFile[] files) {
         if (files == null || files.length == 0) {
@@ -53,7 +55,7 @@ public class MediaServiceImpl implements MediaService {
             pending.add(read(file));
         }
 
-        // 第二遍才真正写对象
+        // 全部校验通过后才写对象，保证整批原子
         List<MediaFileVo> result = new ArrayList<>(pending.size());
         for (Pending item : pending) {
             result.add(store(item));
@@ -61,6 +63,7 @@ public class MediaServiceImpl implements MediaService {
         return result;
     }
 
+    /** {@inheritDoc} */
     @Override
     public void delete(String url) {
         String key = resolveKey(url);
@@ -70,6 +73,7 @@ public class MediaServiceImpl implements MediaService {
         minIOUtil.removeObject(properties.getBucket(), key);
     }
 
+    /** {@inheritDoc} */
     @Override
     public List<String> deleteBatch(List<String> urls) {
         List<String> failed = new ArrayList<>();
@@ -95,20 +99,24 @@ public class MediaServiceImpl implements MediaService {
     }
 
 
-    /** 一批文件在写对象之前的中间态 */
+    /** 已通过校验、尚未写入对象存储的文件，暂存内容与目标格式 */
     private record Pending(byte[] content, ImageFormat format, String originalName) {
     }
 
     /**
      * 校验并读出文件内容。
      *
-     * <p>这里把整份内容读进堆，是有意的取舍：单文件上限 10MB（{@code minio.max-size}，
-     * multipart 那一层也挡了一遍），调用方是后台管理端的人工上传，一次几十张，总量有界。
-     * 换来的是<b>可以在写任何对象之前把"非空、大小、真实格式"三项校验完</b>，
+     * <p>整份内容读进堆是有意取舍：单文件上限 10MB（{@code minio.max-size}，multipart 那一层
+     * 也挡了一遍），换来的是能在写任何对象前把"非空、大小、真实格式"三项校验完，
      * 从而做到整批成功或整批失败。</p>
      *
-     * <p>如果以后要接高频 UGC，这里得换成流式（{@code file.getInputStream()} 直接交给
-     * MinIO），代价是校验只能放到写之后，并且需要引入两阶段确认来防孤儿对象。</p>
+     * <p>若采用流式（{@code file.getInputStream()} 直接交给 MinIO），校验只能放到写之后，
+     * 并且需要两阶段确认来防孤儿对象。</p>
+     *
+     * @param file 上传的文件，不能为 {@code null}
+     * @return 校验通过的中间态，含完整内容、识别出的格式与原始文件名
+     * @throws BaseException 文件为空、超出大小上限或格式不被支持时抛出
+     * @throws MinIOException 读取文件内容失败时抛出
      */
     private Pending read(MultipartFile file) {
         if (file == null || file.isEmpty()) {
@@ -135,6 +143,12 @@ public class MediaServiceImpl implements MediaService {
         return new Pending(content, format, file.getOriginalFilename());
     }
 
+    /**
+     * 把中间态写入对象存储，并组装成对外返回结果。
+     *
+     * @param pending 已通过校验的文件
+     * @return 上传结果，地址由 {@code clientPoint} 前缀拼出
+     */
     private MediaFileVo store(Pending pending) {
         String key = buildKey(pending.format());
         minIOUtil.putObject(properties.getBucket(), key,
@@ -146,9 +160,11 @@ public class MediaServiceImpl implements MediaService {
     /**
      * 生成 object key：{@code {年}/{月}/{日}/{uuid}.{扩展名}}。
      *
-     * <p>日期和文件名都用服务端的。改造前这两段都是前端产出的 —— {@code new Date()} 取的
-     * 是客户端时钟和时区，系统时间不准就写到别的"目录"；{@code getUUID()} 是
-     * {@code Math.random()} 拼的；扩展名来自原始文件名。三者都是调用方说了算。</p>
+     * <p>日期取服务端时钟，扩展名取识别出的真实格式，均不采用调用方提供的文件名或客户端时钟，
+     * 避免存储路径被外部指定。</p>
+     *
+     * @param format 已识别的图片格式，决定扩展名
+     * @return object key，不含 bucket 前缀
      */
     private String buildKey(ImageFormat format) {
         LocalDate today = LocalDate.now();
@@ -158,6 +174,12 @@ public class MediaServiceImpl implements MediaService {
                 format.extension);
     }
 
+    /**
+     * 用对外前缀拼出完整可访问地址。
+     *
+     * @param key object key
+     * @return 完整地址，可直接存库
+     */
     private String buildUrl(String key) {
         return urlPrefix() + key;
     }
@@ -165,9 +187,11 @@ public class MediaServiceImpl implements MediaService {
     /**
      * 把库里存的完整 URL 还原成 object key。
      *
-     * <p>只认 {@code clientPoint/bucket/} 这个前缀。对不上的（历史遗留的外站地址、
-     * 手填的随便一个 URL）返回 null —— 这条判断同时回答了"这个地址是不是我们自己签发的"，
-     * 所以在删除路径上不能省。</p>
+     * <p>只认 {@code clientPoint/bucket/} 前缀，对不上的（外站地址、手填的任意 URL）返回
+     * {@code null}；这条判断同时回答了"地址是否由本服务签发"，删除路径上不能省。</p>
+     *
+     * @param url 业务表里存的完整地址
+     * @return object key；地址为空、前缀不匹配或 key 为空白时返回 {@code null}
      */
     private String resolveKey(String url) {
         if (!StringUtils.hasText(url)) {
@@ -181,7 +205,11 @@ public class MediaServiceImpl implements MediaService {
         return key.isBlank() ? null : key;
     }
 
-    /** {@code clientPoint} 末尾的斜杠可有可无，统一归一化后再拼，避免出现双斜杠 */
+    /**
+     * 归一化出 URL 前缀：{@code clientPoint} 末尾的斜杠可有可无，统一去掉后再拼，避免双斜杠。
+     *
+     * @return 形如 {@code {clientPoint}/{bucket}/} 的前缀
+     */
     private String urlPrefix() {
         String base = properties.getClientPoint();
         if (base.endsWith("/")) {
@@ -191,20 +219,29 @@ public class MediaServiceImpl implements MediaService {
     }
 
     /**
-     * 允许的图片格式。
+     * 允许上传的图片格式，按文件头魔数判定。
      *
-     * <p>按<b>文件头魔数</b>判定，不看扩展名、也不看客户端发来的 Content-Type ——
-     * 那两个都是调用方随便写的，而改造前的 {@code getFileType} 正是拿扩展名去查 MIME 表，
-     * 等于"内容到底是什么"完全没验。</p>
+     * <p>不看扩展名、也不看客户端发来的 Content-Type：二者都由调用方提供，
+     * 无法证明内容的真实类型。</p>
      */
     private enum ImageFormat {
 
+        /** JPEG：文件头为 {@code FF D8 FF}，扩展名 jpg。 */
         JPEG("image/jpeg", "jpg"),
+
+        /** PNG：8 字节签名为 {@code 89 50 4E 47 0D 0A 1A 0A}，扩展名 png。 */
         PNG("image/png", "png"),
+
+        /** GIF：以 {@code GIF87a} 或 {@code GIF89a} 开头，扩展名 gif。 */
         GIF("image/gif", "gif"),
+
+        /** WEBP：RIFF 容器，偏移 0 为 {@code RIFF}、偏移 8 为 {@code WEBP}，扩展名 webp。 */
         WEBP("image/webp", "webp");
 
+        /** 写入对象存储的 Content-Type */
         final String contentType;
+
+        /** object key 使用的扩展名，不带点 */
         final String extension;
 
         ImageFormat(String contentType, String extension) {
@@ -212,6 +249,12 @@ public class MediaServiceImpl implements MediaService {
             this.extension = extension;
         }
 
+        /**
+         * 按文件头魔数识别图片格式。
+         *
+         * @param content 文件内容
+         * @return 识别出的格式；不在支持列表内时返回 {@code null}
+         */
         static ImageFormat detect(byte[] content) {
             if (startsWith(content, 0xFF, 0xD8, 0xFF)) {
                 return JPEG;
@@ -234,6 +277,7 @@ public class MediaServiceImpl implements MediaService {
             return null;
         }
 
+        /** 比较内容开头若干字节；长度不足时返回 {@code false} */
         private static boolean startsWith(byte[] content, int... magic) {
             if (content.length < magic.length) {
                 return false;
@@ -246,6 +290,7 @@ public class MediaServiceImpl implements MediaService {
             return true;
         }
 
+        /** 读取指定偏移的字节；越界返回 -1，让后续格式判断自然落空 */
         private static int at(byte[] content, int index) {
             return index < content.length ? content[index] & 0xFF : -1;
         }

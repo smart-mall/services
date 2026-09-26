@@ -10,16 +10,10 @@ import thirdParty.exception.MinIOException;
 import java.io.InputStream;
 
 /**
- * MinIO 存储适配层。只做两件事：写一个对象、删一个对象。
+ * MinIO 存储适配层，只提供写对象与删对象两个能力。
  *
- * <p>改造前这个类有 1448 行，而真正被调用的只有十来个方法。其余是桶重命名
- * （手写"列举全部对象 → 逐个 copy → 删旧桶"）、文件夹递归上传/下载/复制、
- * {@code createEmptyFile}、{@code writeStringToFile}、{@code readFileToString} 这类
- * 和项目无关的能力 —— 更像一份 MinIO SDK 的练习集。桶重命名那段尤其危险：
- * 中途失败会在存储上留下半个桶，而没有任何地方会清理它。</p>
- *
- * <p>现在 key 的生成、类型校验、URL 拼装都在 {@code MediaService}，这一层不参与
- * 任何业务判断，所以它也不再需要知道 bucket 名应该是什么。</p>
+ * <p>本层不做业务判断：object key 的生成、类型校验、URL 拼装都在 {@code MediaService} 完成，
+ * 因此它不需要知道 bucket 名应该是什么。</p>
  */
 @Slf4j
 @Component
@@ -34,8 +28,15 @@ public class MinIOUtil {
     /**
      * 上传对象。
      *
-     * <p>用 {@code stream(in, size, -1)} 而不是 {@code filename(...)}：调用方已经持有
-     * 内容（见 {@code MediaServiceImpl#read} 里为什么这么做），这里不再落地临时文件。</p>
+     * <p>用 {@code stream(in, size, -1)} 而不是 {@code filename(...)}：调用方已经持有完整内容，
+     * 这里不再落地临时文件。</p>
+     *
+     * @param bucket      桶名
+     * @param objectName  对象 key，由调用方生成
+     * @param in          内容流，SDK 会读取完整内容
+     * @param size        内容字节数，必须与实际长度一致
+     * @param contentType MIME 类型，作为对象的 Content-Type 写入
+     * @throws MinIOException MinIO 写入失败时抛出，异常原文只进日志
      */
     public void putObject(String bucket, String objectName, InputStream in, long size, String contentType) {
         try {
@@ -56,9 +57,12 @@ public class MinIOUtil {
     /**
      * 删除对象。
      *
-     * <p>S3/MinIO 的 removeObject 对不存在的 key 也返回成功，所以这个操作天然幂等，
-     * 调用方不需要先判断对象在不在（改造前要先 {@code statObject} 再删，多一次 RTT
-     * 而且把"权限不足""网络错误"和"对象真不存在"混成了同一个 false）。</p>
+     * <p>S3/MinIO 的 removeObject 对不存在的 key 也返回成功，因此本操作天然幂等，
+     * 调用方不需要先判断对象是否存在。</p>
+     *
+     * @param bucket     桶名
+     * @param objectName 对象 key
+     * @throws MinIOException MinIO 删除失败时抛出，异常原文只进日志
      */
     public void removeObject(String bucket, String objectName) {
         try {
