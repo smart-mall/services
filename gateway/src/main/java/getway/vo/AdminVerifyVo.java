@@ -8,7 +8,9 @@ import lombok.Data;
 @Data
 public class AdminVerifyVo {
 
+    /** 管理员 ID。 */
     private Long userId;
 
+    /** 管理员登录名。 */
     private String username;
 }

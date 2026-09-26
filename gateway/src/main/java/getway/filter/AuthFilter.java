@@ -39,21 +39,24 @@ import static common.constant.AuthServerConstant.MEMBER_CLAIMS_HEADER;
 
 /**
  * 网关统一鉴权：{@code /api/{模块}/front/jwt/**} 要会员凭证，{@code /api/{模块}/front/**} 公开，
- * 其余 {@code /api/**} 要管理端凭证。校验通过后把身份写进请求头往下传。
+ * 其余 {@code /api/**} 要管理端凭证，校验通过后把身份写进请求头往下传。
+ *
+ * <p>客户端自带的同名身份头会被抹掉，下游只信任网关写入的值。
  */
 @Slf4j
 @Component
 public class AuthFilter extends OncePerRequestFilter {
 
-    /** 规则只作用于这一段 */
+    /** 鉴权规则只作用于该前缀下的请求。 */
     private static final String API_PREFIX = "/api";
 
-    /** 管理端 token 的请求头名，和 renren 一致 */
+    /** 管理端 token 的请求头名，必须与 renren-fast 读取的一致。 */
     private static final String ADMIN_TOKEN_HEADER = "token";
 
-    /** 必须先于 FRONT 判定：它是后者的子集 */
+    /** 必须先于 {@link #FRONT} 判定：它是后者的子集。 */
     private static final Pattern FRONT_JWT = Pattern.compile("^/api/[^/]+/front/jwt(/.*)?$");
 
+    /** 前台接口路径规则：{@code /api/{模块}/front/**}。 */
     private static final Pattern FRONT = Pattern.compile("^/api/[^/]+/front(/.*)?$");
 
     private final AuthRuleProperties properties;
@@ -64,6 +67,13 @@ public class AuthFilter extends OncePerRequestFilter {
 
     private final AntPathMatcher antPathMatcher = new AntPathMatcher();
 
+    /**
+     * 创建网关鉴权过滤器。
+     *
+     * @param properties 匿名路径白名单配置
+     * @param jwtUtils 会员凭证验签工具
+     * @param adminAuthFeignService 管理端 token 校验的远程调用接口
+     */
     public AuthFilter(AuthRuleProperties properties,
                       JwtUtils jwtUtils,
                       AdminAuthFeignService adminAuthFeignService) {
@@ -72,6 +82,11 @@ public class AuthFilter extends OncePerRequestFilter {
         this.adminAuthFeignService = adminAuthFeignService;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>OPTIONS 预检与匿名白名单直接放行，其余请求按前台、后台规则分别校验，不通过时写好响应即返回。
+     */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
@@ -98,7 +113,7 @@ public class AuthFilter extends OncePerRequestFilter {
         filterChain.doFilter(new TrustedHeadersRequest(request, identity), response);
     }
 
-    /** 后台接口：{@code /api/**} 里除前台公开接口之外的那些 */
+    /** 后台接口：{@code /api/**} 里除前台公开接口之外的那些。 */
     private boolean isAdminPath(String uri) {
         boolean api = uri.equals(API_PREFIX) || uri.startsWith(API_PREFIX + "/");
         return api && !FRONT.matcher(uri).matches();
@@ -114,9 +129,13 @@ public class AuthFilter extends OncePerRequestFilter {
     }
 
     /**
-     * 会员凭证：网关和 auth 共用同一份密钥，本地验签，不问别的服务。
+     * 校验会员凭证：网关与 auth 共用同一份密钥，本地验签，不调用其他服务。
      *
+     * @param request 当前请求，从 {@code Authorization} 头取 Bearer token
+     * @param response 校验不通过时写入错误响应
+     * @param identity 身份头容器，校验通过时写入会员信息
      * @return 是否放行；不通过时已经写好响应
+     * @throws IOException 写响应体失败时抛出
      */
     private boolean verifyMember(HttpServletRequest request, HttpServletResponse response,
                                  Map<String, String> identity) throws IOException {
@@ -127,7 +146,7 @@ public class AuthFilter extends OncePerRequestFilter {
 
         MemberResponseVo user;
         try {
-            // 验签 + 校验 exp
+            // 验签与 exp 校验都在 parse 内部完成，这里只按异常类型分流
             user = jwtUtils.parse(token);
         } catch (ExpiredJwtException e) {
             // 过期单独给 15005，前端据此提示"登录已过期"而不是"请先登录"
@@ -147,9 +166,13 @@ public class AuthFilter extends OncePerRequestFilter {
     }
 
     /**
-     * 管理端凭证：token 是不透明串、只存在 renren 的库里，只能问它。
+     * 校验管理端凭证：token 是不透明串、只存在 renren 的库里，只能委托 {@link AdminAuthFeignService} 校验。
      *
+     * @param request 当前请求，token 可能放在请求头或查询参数里
+     * @param response 校验不通过时写入错误响应
+     * @param identity 身份头容器，校验通过时写入管理员信息
      * @return 是否放行；不通过时已经写好响应
+     * @throws IOException 写响应体失败时抛出
      */
     private boolean verifyAdmin(HttpServletRequest request, HttpServletResponse response,
                                 Map<String, String> identity) throws IOException {
@@ -179,7 +202,7 @@ public class AuthFilter extends OncePerRequestFilter {
         return true;
     }
 
-    /** 管理端 token 也可能在查询参数里：OSS 上传是浏览器直连的 el-upload，只能把 token 拼在 URL 上 */
+    /** 管理端 token 也可能放在查询参数里：OSS 上传是浏览器直连的 el-upload，只能把 token 拼在 URL 上。 */
     private String resolveAdminToken(HttpServletRequest request) {
         String token = request.getHeader(ADMIN_TOKEN_HEADER);
         if (token == null || token.isBlank()) {
@@ -188,13 +211,13 @@ public class AuthFilter extends OncePerRequestFilter {
         return token == null || token.isBlank() ? null : token.trim();
     }
 
-    /** 校验不通过：写好响应并返回 false，调用方直接结束 */
+    /** 校验不通过：写好响应并返回 false，调用方直接结束。 */
     private boolean fail(HttpServletResponse response, BaseCodeEnum codeEnum) throws IOException {
         write(response, codeEnum.getCode(), codeEnum.getMsg());
         return false;
     }
 
-    /** 拒绝和报错都用这个：状态码恒为 200，结果看 body 的 code */
+    /** 拒绝与报错统一走这里：状态码恒为 200，结果看 body 的 code。 */
     private void write(HttpServletResponse response, int code, String msg) throws IOException {
         response.setStatus(HttpServletResponse.SC_OK);
         response.setContentType("application/json;charset=UTF-8");
@@ -202,12 +225,14 @@ public class AuthFilter extends OncePerRequestFilter {
         response.getWriter().write(JSON.toJSONString(R.error(code, msg)));
     }
 
-    /** 只暴露网关自己产出的身份头，客户端传的同名头一律抹掉 */
+    /** 请求包装器：只暴露网关自己产出的身份头，客户端传的同名头一律抹掉。 */
     private static class TrustedHeadersRequest extends HttpServletRequestWrapper {
 
+        /** 网关产出的身份头名，其余请求头原样透传。 */
         private static final List<String> TRUSTED = List.of(
                 MEMBER_CLAIMS_HEADER, ADMIN_HEADER, CLIENT_IP_HEADER);
 
+        /** 待下发的身份头，值为 {@code null} 表示该头不下发。 */
         private final Map<String, String> identity;
 
         TrustedHeadersRequest(HttpServletRequest request, Map<String, String> identity) {
@@ -215,11 +240,13 @@ public class AuthFilter extends OncePerRequestFilter {
             this.identity = identity;
         }
 
+        /** {@inheritDoc} */
         @Override
         public String getHeader(String name) {
             return isTrusted(name) ? value(name) : super.getHeader(name);
         }
 
+        /** {@inheritDoc} */
         @Override
         public Enumeration<String> getHeaders(String name) {
             if (!isTrusted(name)) {
@@ -231,6 +258,7 @@ public class AuthFilter extends OncePerRequestFilter {
                     : Collections.enumeration(List.of(value));
         }
 
+        /** {@inheritDoc} */
         @Override
         public Enumeration<String> getHeaderNames() {
             List<String> names = new ArrayList<>();
