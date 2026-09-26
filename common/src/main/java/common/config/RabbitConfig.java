@@ -6,7 +6,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * 消息转换器。模板与门面的装配见 {@code common.mq.MqAutoConfiguration}。
+ * 消息转换器装配：把消息体按 JSON 收发。
+ *
+ * <p>不带配置前缀，由 common 的 {@code AutoConfiguration.imports} 注册；
+ * 模板与门面的装配见 {@code common.mq.MqAutoConfiguration}。
  */
 @Configuration
 public class RabbitConfig {

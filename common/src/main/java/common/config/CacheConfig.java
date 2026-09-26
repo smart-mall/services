@@ -10,11 +10,25 @@ import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSeriali
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
+/**
+ * Spring Cache 的 Redis 装配：key 用字符串、value 用 JSON 序列化。
+ *
+ * <p>绑定前缀 {@code spring.cache}，由类上的 {@code @EnableConfigurationProperties} 引入
+ * {@link CacheProperties}；TTL、key 前缀、空值缓存策略都取自该配置。
+ *
+ * <p>value 不用默认的 JDK 序列化：写出来是二进制，redis-cli 不可读，跨服务也解不开。
+ */
 @Configuration
 @EnableCaching
 @EnableConfigurationProperties(CacheProperties.class)
 public class CacheConfig {
 
+    /**
+     * 定制缓存配置：序列化方式以及 TTL、key 前缀、空值缓存策略。
+     *
+     * @param cacheProperties {@code spring.cache} 前缀绑定的配置
+     * @return 供 Spring Cache 创建 RedisCache 的配置对象
+     */
     @Bean
     RedisCacheConfiguration redisCacheConfiguration(CacheProperties cacheProperties) {
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig();

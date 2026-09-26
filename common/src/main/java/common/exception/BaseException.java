@@ -1,41 +1,60 @@
 package common.exception;
 
 /**
- * 业务异常。
+ * 业务异常，携带 {@link BaseCodeEnum} 中定义的错误码。
  *
- * <p>带 code 的原因：以前所有 BaseException 都被 GlobalExceptionHandler 统一返回硬编码的
- * {@code 444} —— 那个数字既不在 BaseCodeEnum 里也没有任何语义，而同样是"入参不合法"，
- * 参数校验走的却是 {@code 10001}，前端得为同一类错误写两个分支。
- * 现在 code 由抛出方指定，不指定时用 {@link BaseCodeEnum#UNKNOWN_EXCEPTION}。</p>
+ * <p>code 由抛出方指定，未指定时按 {@link BaseCodeEnum#UNKNOWN_EXCEPTION} 处理；
+ * 由 {@code GlobalExceptionHandler} 统一转成 {@code R}，HTTP 状态码保持 200。
  */
 public class BaseException extends RuntimeException {
 
+    /** 业务状态码，取值见 {@link BaseCodeEnum} */
     private final int code;
 
     /**
-     * 不指定 code，按"未知异常"处理。适用于"删除失败""远程服务调用失败"这类兜底场景。
+     * 不指定 code，按"未知异常"处理，适用于"删除失败""远程服务调用失败"这类兜底场景。
+     *
+     * @param message 提示文案
      */
     public BaseException(String message) {
         this(BaseCodeEnum.UNKNOWN_EXCEPTION.getCode(), message);
     }
 
     /**
-     * code 和 message 都取自枚举。文案已经固定的错误用这个，
-     * 省得在每个调用点把枚举里的 message 再抄一遍 —— 抄一遍就有抄错的那天。
+     * code 与 message 都取自枚举，适用于文案已经固定的错误。
+     *
+     * @param baseCodeEnum 错误码枚举
      */
     public BaseException(BaseCodeEnum baseCodeEnum) {
         this(baseCodeEnum.getCode(), baseCodeEnum.getMsg());
     }
 
+    /**
+     * code 取自枚举，message 由调用方补充上下文。
+     *
+     * @param baseCodeEnum 错误码枚举
+     * @param message      提示文案
+     */
     public BaseException(BaseCodeEnum baseCodeEnum, String message) {
         this(baseCodeEnum.getCode(), message);
     }
 
+    /**
+     * code 与 message 都由调用方给出，用于转发下游服务的错误码。
+     *
+     * @param code    业务状态码
+     * @param message 提示文案
+     */
     public BaseException(int code, String message) {
         super(message);
         this.code = code;
     }
 
+    /**
+     * 返回业务状态码。
+     *
+     * @return 业务状态码
+     */
     public int getCode() {
         return code;
     }

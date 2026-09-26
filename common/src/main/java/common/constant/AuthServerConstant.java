@@ -1,8 +1,12 @@
 package common.constant;
 
 
+/**
+ * 认证相关常量：验证码缓存 key 前缀，以及网关向下游注入的身份请求头。
+ */
 public class AuthServerConstant {
 
+    /** 短信验证码的 Redis key 前缀，拼上手机号使用 */
     public static final String SMS_CODE_CACHE_PREFIX = "sms:code:";
 
     /** 邮箱验证码的 key 前缀，用法同 {@link #SMS_CODE_CACHE_PREFIX} */

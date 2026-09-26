@@ -11,10 +11,20 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
-/** Sentinel 限流被拦时的响应体，和正常接口保持同一个形状 */
+/**
+ * Sentinel 限流的兜底响应：被拦截时按统一的 {@link R} 结构返回 {@code 10003}。
+ *
+ * <p>不带配置前缀，由 common 的 {@code AutoConfiguration.imports} 注册；
+ * 限流规则本身不在此配置。
+ */
 @Component
 public class SentinelConfig implements BlockExceptionHandler {
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>HTTP 状态码保持 200，限流码只放在响应体的 {@code code} 里，字符集固定 UTF-8。
+     */
     @Override
     public void handle(HttpServletRequest request, HttpServletResponse response, BlockException ex) throws IOException {
         R<Void> error = R.error(BaseCodeEnum.TO_MANY_REQUEST);
