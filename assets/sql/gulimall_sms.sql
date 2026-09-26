@@ -270,7 +270,7 @@ INSERT INTO `sms_seckill_sku_relation` VALUES (2, NULL, 2, 1, 6666, 200, 1, 0);
 DROP TABLE IF EXISTS `sms_sku_full_reduction`;
 CREATE TABLE `sms_sku_full_reduction`  (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `sku_id` bigint(20) NULL DEFAULT NULL COMMENT 'spu_id',
+  `sku_id` bigint(20) NULL DEFAULT NULL COMMENT 'sku_id',
   `full_price` decimal(18, 4) NULL DEFAULT NULL COMMENT '满多少',
   `reduce_price` decimal(18, 4) NULL DEFAULT NULL COMMENT '减多少',
   `add_other` tinyint(1) NULL DEFAULT NULL COMMENT '是否参与其他优惠',
@@ -296,7 +296,7 @@ INSERT INTO `sms_sku_full_reduction` VALUES (9, 9, 6666.0000, 200.0000, NULL);
 DROP TABLE IF EXISTS `sms_sku_ladder`;
 CREATE TABLE `sms_sku_ladder`  (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `sku_id` bigint(20) NULL DEFAULT NULL COMMENT 'spu_id',
+  `sku_id` bigint(20) NULL DEFAULT NULL COMMENT 'sku_id',
   `full_count` int(11) NULL DEFAULT NULL COMMENT '满几件',
   `discount` decimal(4, 2) NULL DEFAULT NULL COMMENT '打几折',
   `price` decimal(18, 4) NULL DEFAULT NULL COMMENT '折后价',

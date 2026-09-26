@@ -7,7 +7,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.io.Serial;import java.io.Serializable;
+import java.io.Serial;
+import java.io.Serializable;
 
 /**
  * 库存工作单明细，对应 {@code wms_ware_order_task_detail} 表，一行记录一次成功的库存锁定：

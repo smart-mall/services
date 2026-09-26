@@ -24,7 +24,7 @@
         <result property="skuPrice" column="sku_price"/>
         <result property="skuRealPrice" column="sku_real_price"/>
         <result property="reason" column="reason"/>
-        <result property="description述" column="description述"/>
+        <result property="description" column="description"/>
         <result property="descPics" column="desc_pics"/>
         <result property="handleNote" column="handle_note"/>
         <result property="handleMan" column="handle_man"/>

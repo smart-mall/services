@@ -4,7 +4,8 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
 import java.math.BigDecimal;
-import java.io.Serial;import java.io.Serializable;
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.Date;
 import lombok.Data;
 
@@ -84,7 +85,7 @@ public class OrderReturnApplyEntity implements Serializable {
 	/** 退货原因。 */
 	private String reason;
 	/** 退货问题的补充描述。 */
-	private String description述;
+	private String description;
 	/**
 	 * 凭证图片，以逗号隔开
 	 */

@@ -26,9 +26,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 @Service("memberLoginLogService")
 public class MemberLoginLogServiceImpl extends ServiceImpl<MemberLoginLogDao, MemberLoginLogEntity> implements MemberLoginLogService {
 
-    private static final int DEFAULT_PAGE_SIZE = 10;
-    private static final int MAX_PAGE_SIZE = 100;
-
     /** {@inheritDoc} */
     @Override
     public PageVO<MemberLoginLogEntity> queryPage(PageQuery query) {

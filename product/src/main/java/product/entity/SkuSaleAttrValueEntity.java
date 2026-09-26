@@ -4,7 +4,8 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
-import java.io.Serial;import java.io.Serializable;
+import java.io.Serial;
+import java.io.Serializable;
 
 /**
  * SKU 销售属性取值，对应 {@code pms_sku_sale_attr_value} 表：记录每个 SKU 在销售属性（如颜色、套餐）上的取值。

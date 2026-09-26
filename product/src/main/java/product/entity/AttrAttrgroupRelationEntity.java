@@ -4,7 +4,8 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
-import java.io.Serial;import java.io.Serializable;
+import java.io.Serial;
+import java.io.Serializable;
 
 /**
  * 属性与属性分组的关联，对应 {@code pms_attr_attrgroup_relation} 表：指定基本属性归入哪个属性分组以及组内顺序。

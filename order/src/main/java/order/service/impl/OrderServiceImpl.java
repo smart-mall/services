@@ -374,7 +374,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         }).collect(Collectors.toList());
         lockVo.setLocks(orderItemVos);
 
-        R<Void> r = wmsFeignService.orderLockStock(lockVo);
+        R<Boolean> r = wmsFeignService.orderLockStock(lockVo);
         if (r.getCode() != 0) {
             // 必须转成 BaseException：NoStockException 没有 @ExceptionHandler 接，抛出去会落到
             // Spring 默认错误页（无 code/msg），前端只能显示"请求失败"
@@ -933,7 +933,14 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         orderEntity.setStatus(OrderStatusEnum.CREATE_NEW.getCode());
 
         List<MemberAddressVo> address = memberFeignService.getAddress(orderTo.getMemberId());
-        MemberAddressVo addressVo = address.stream().filter(add -> add.getDefaultStatus() != null).collect(Collectors.toList()).get(0);
+        if (address == null || address.isEmpty()) {
+            throw new BaseException(BaseCodeEnum.ADDRESS_NOT_FOUND);
+        }
+        // 与 confirmOrder 同一套选法：优先默认地址，没有就退化为第一个
+        MemberAddressVo addressVo = address.stream()
+                .filter(add -> Integer.valueOf(1).equals(add.getDefaultStatus()))
+                .findFirst()
+                .orElse(address.get(0));
         orderEntity.setReceiverName(addressVo.getName());
         orderEntity.setReceiverPhone(addressVo.getPhone());
         orderEntity.setReceiverProvince(addressVo.getProvince());
@@ -960,10 +967,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         SkuInfoVo skuInfoVo = skuInfo.getData();
         orderItem.setSkuName(skuInfoVo.getSkuName());
         orderItem.setSkuPic(skuInfoVo.getSkuDefaultImg());
-        orderItem.setSkuPic(skuInfoVo.getSkuDefaultImg());
         orderItem.setSkuPrice(skuInfoVo.getPrice());
-        orderItem.setSkuPrice(skuInfoVo.getPrice());
-        orderItem.setSkuAttrsVals(orderItem.getSkuAttrsVals());
         orderItem.setPromotionAmount(new BigDecimal(0));
         orderItem.setCouponAmount(new BigDecimal(0));
         orderItem.setIntegrationAmount(new BigDecimal(0));

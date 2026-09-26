@@ -4,7 +4,8 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
-import java.io.Serial;import java.io.Serializable;
+import java.io.Serial;
+import java.io.Serializable;
 
 /**
  * SKU 图片，对应 {@code pms_sku_images} 表：保存每个 SKU 的图集，其中一张标记为默认图。

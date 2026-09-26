@@ -4,7 +4,8 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
-import java.io.Serial;import java.io.Serializable;
+import java.io.Serial;
+import java.io.Serializable;
 
 /**
  * 商品评价的回复关系，对应 {@code pms_comment_replay} 表：记录一条回复对应的是哪条评论。

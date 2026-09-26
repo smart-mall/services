@@ -35,10 +35,9 @@ public interface MemberFeignService {
      * <p>member 侧按入参里的 {@code memberId} 落库，并把新地址强制置为默认地址。
      *
      * @param memberAddressVo 地址内容，必须带 {@code memberId}；不能为 {@code null}
-     * @return 统一响应，仅用 {@code code} 判断是否保存成功；{@code code} 非 0 时 {@code data} 为 {@code null}，
-     *         本接口不读取 {@code data}
+     * @return 统一响应；{@code data} 为新增后的地址（含落库生成的 id），调用方只用 {@code code} 判断是否成功
      */
     @PostMapping("/member/memberreceiveaddress/addLocation")
-    public R<Void> addLocation(@RequestBody MemberAddressVo memberAddressVo);
+    R<MemberAddressVo> addLocation(@RequestBody MemberAddressVo memberAddressVo);
 
 }

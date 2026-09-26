@@ -86,6 +86,11 @@ public class SeckillServiceImpl implements SeckillService {
         // code 非 0 表示 coupon 查询失败，此时 data 不可用，本轮直接放弃上架
         if (lates3DaySession.getCode() == 0) {
             List<SeckillSessionWithSkusVo> sessionData = lates3DaySession.getData();
+            // coupon 侧查不到场次时返回 null 而不是空集合，这里必须判空
+            if (sessionData == null || sessionData.isEmpty()) {
+                log.info("最近三天没有秒杀场次，本轮跳过上架");
+                return;
+            }
 
             saveSessionInfos(sessionData);
             saveSessionSkuInfo(sessionData);

@@ -221,7 +221,7 @@ CREATE TABLE IF NOT EXISTS `pms_spu_info` (
   `catalog_id` bigint DEFAULT NULL COMMENT '所属分类id',
   `brand_id` bigint DEFAULT NULL COMMENT '品牌id',
   `weight` decimal(18,4) DEFAULT NULL,
-  `publish_status` tinyint DEFAULT NULL COMMENT '上架状态[0 - 下架，1 - 上架]',
+  `publish_status` tinyint DEFAULT NULL COMMENT '上架状态[0-新建，1-上架，2-下架]',
   `create_time` datetime DEFAULT NULL,
   `update_time` datetime DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE
@@ -410,7 +410,7 @@ CREATE TABLE IF NOT EXISTS `oms_order_return_apply` (
   `sku_price` decimal(18,4) DEFAULT NULL COMMENT '商品单价',
   `sku_real_price` decimal(18,4) DEFAULT NULL COMMENT '商品实际支付单价',
   `reason` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '原因',
-  `description述` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '描述',
+  `description` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '描述',
   `desc_pics` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '凭证图片，以逗号隔开',
   `handle_note` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '处理备注',
   `handle_man` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '处理人员',
@@ -690,7 +690,7 @@ CREATE TABLE IF NOT EXISTS `sms_seckill_sku_relation` (
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `sms_sku_full_reduction` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `sku_id` bigint DEFAULT NULL COMMENT 'spu_id',
+  `sku_id` bigint DEFAULT NULL COMMENT 'sku_id',
   `full_price` decimal(18,4) DEFAULT NULL COMMENT '满多少',
   `reduce_price` decimal(18,4) DEFAULT NULL COMMENT '减多少',
   `add_other` tinyint(1) DEFAULT NULL COMMENT '是否参与其他优惠',
@@ -701,7 +701,7 @@ CREATE TABLE IF NOT EXISTS `sms_sku_full_reduction` (
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `sms_sku_ladder` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `sku_id` bigint DEFAULT NULL COMMENT 'spu_id',
+  `sku_id` bigint DEFAULT NULL COMMENT 'sku_id',
   `full_count` int DEFAULT NULL COMMENT '满几件',
   `discount` decimal(4,2) DEFAULT NULL COMMENT '打几折',
   `price` decimal(18,4) DEFAULT NULL COMMENT '折后价',

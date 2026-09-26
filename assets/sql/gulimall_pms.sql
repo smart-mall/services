@@ -1844,7 +1844,7 @@ CREATE TABLE `pms_spu_info`  (
   `catalog_id` bigint(20) NULL DEFAULT NULL COMMENT '所属分类id',
   `brand_id` bigint(20) NULL DEFAULT NULL COMMENT '品牌id',
   `weight` decimal(18, 4) NULL DEFAULT NULL,
-  `publish_status` tinyint(4) NULL DEFAULT NULL COMMENT '上架状态[0 - 下架，1 - 上架]',
+  `publish_status` tinyint(4) NULL DEFAULT NULL COMMENT '上架状态[0-新建，1-上架，2-下架]',
   `create_time` datetime(0) NULL DEFAULT NULL,
   `update_time` datetime(0) NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE

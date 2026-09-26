@@ -43,9 +43,9 @@ public interface WmsFeignService {
      * 锁定订单占用的库存。
      *
      * @param vo 锁库存请求，{@code orderSn} 与 {@code locks} 不能为空
-     * @return 统一响应；{@code code} 为 0 表示锁定成功，非 0 表示库存不足
-     *         （{@code NO_STOCK_EXCEPTION}）；{@code data} 无业务含义，本接口不使用
+     * @return {@code code} 为 0 表示锁定成功，非 0 表示库存不足（{@code NO_STOCK_EXCEPTION}）；
+     *         ware 侧把锁定结果放在 {@code data} 里，但调用方只用 {@code code} 判断
      */
     @PostMapping(value = "/ware/waresku/lock/order")
-    R<Void> orderLockStock(@RequestBody WareSkuLockVo vo);
+    R<Boolean> orderLockStock(@RequestBody WareSkuLockVo vo);
 }

@@ -230,9 +230,12 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
      * {@inheritDoc}
      *
      * <p>分类表与品牌分类关联表的更新在同一个事务里，不会只改一半。
+     *
+     * <p>改名会让 {@code category} 缓存里的分类树过期，所以同时清空该缓存。
      */
     @Override
     @Transactional
+    @CacheEvict(value = "category", allEntries = true)
     public void updateDetail(CategoryEntity category) {
         log.debug("先修改分类表");
         this.updateById(category);

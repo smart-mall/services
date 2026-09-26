@@ -5,7 +5,8 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.io.Serial;
-import java.io.Serial;import java.io.Serializable;
+import java.io.Serial;
+import java.io.Serializable;
 
 /**
  * 品牌与分类的关联，对应 {@code pms_category_brand_relation} 表：记录某个分类下有哪些品牌可供选择。
