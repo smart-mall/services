@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 
+import common.query.KeyPageQuery;
 /**
  * 仓库信息
  *
@@ -43,8 +44,8 @@ public class WareInfoController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<WareInfoEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<WareInfoEntity> page = wareInfoService.queryPage(params);
+    public R<PageVO<WareInfoEntity>> list(KeyPageQuery query){
+        PageVO<WareInfoEntity> page = wareInfoService.queryPage(query);
 
         return R.ok(page);
     }

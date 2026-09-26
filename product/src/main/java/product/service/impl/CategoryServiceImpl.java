@@ -7,7 +7,6 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
 import common.vo.PageVO;
-import common.utils.Query;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -29,6 +28,7 @@ import product.vo.CategoryVo;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import common.query.PageQuery;
 @Slf4j
 @Service("categoryService")
 public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity> implements CategoryService {
@@ -50,9 +50,9 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
     }
 
     @Override
-    public PageVO<CategoryEntity> queryPage(Map<String, Object> params) {
+    public PageVO<CategoryEntity> queryPage(PageQuery query) {
         IPage<CategoryEntity> page = this.page(
-                new Query<CategoryEntity>().getPage(params),
+                query.toPage(),
                 new QueryWrapper<>()
         );
 

@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 
+import common.query.PageQuery;
 /**
  * 品牌分类关联
  *
@@ -69,9 +70,9 @@ public class CategoryBrandRelationController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<CategoryBrandRelationEntity>> list(@RequestParam Map<String, Object> params){
-        log.info("获取分类品牌关联表；{}", JSON.toJSONString(params, SerializerFeature.PrettyFormat));
-        PageVO<CategoryBrandRelationEntity> page = categoryBrandRelationService.queryPage(params);
+    public R<PageVO<CategoryBrandRelationEntity>> list(PageQuery query){
+        log.info("获取分类品牌关联表；{}", JSON.toJSONString(query, SerializerFeature.PrettyFormat));
+        PageVO<CategoryBrandRelationEntity> page = categoryBrandRelationService.queryPage(query);
 
         return R.ok(page);
     }

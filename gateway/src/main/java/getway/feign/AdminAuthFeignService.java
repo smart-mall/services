@@ -1,5 +1,6 @@
 package getway.feign;
 
+import common.utils.R;
 import getway.vo.AdminVerifyVo;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,6 +11,6 @@ import org.springframework.web.bind.annotation.RequestHeader;
 public interface AdminAuthFeignService {
 
     @GetMapping("/renren-fast/sys/usertoken/verify")
-    AdminVerifyVo verify(@RequestHeader("token") String token);
+    R<AdminVerifyVo> verify(@RequestHeader("token") String token);
 
 }

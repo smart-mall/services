@@ -8,7 +8,6 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
 import common.vo.PageVO;
-import common.utils.Query;
 import member.dao.MemberReceiveAddressDao;
 import member.entity.MemberReceiveAddressEntity;
 import member.service.MemberReceiveAddressService;
@@ -20,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 
 
+import common.query.PageQuery;
 @Service("memberReceiveAddressService")
 public class MemberReceiveAddressServiceImpl extends ServiceImpl<MemberReceiveAddressDao, MemberReceiveAddressEntity> implements MemberReceiveAddressService {
 
@@ -30,9 +30,9 @@ public class MemberReceiveAddressServiceImpl extends ServiceImpl<MemberReceiveAd
     private static final int DEFAULT_NO = 0;
 
     @Override
-    public PageVO<MemberReceiveAddressEntity> queryPage(Map<String, Object> params) {
+    public PageVO<MemberReceiveAddressEntity> queryPage(PageQuery query) {
         IPage<MemberReceiveAddressEntity> page = this.page(
-                new Query<MemberReceiveAddressEntity>().getPage(params),
+                query.toPage(),
                 new QueryWrapper<MemberReceiveAddressEntity>()
         );
 

@@ -8,6 +8,7 @@ import member.vo.MemberSelectVO;
 import java.util.List;
 import java.util.Map;
 
+import common.query.KeyPageQuery;
 /**
  * 会员等级
  *
@@ -17,7 +18,7 @@ import java.util.Map;
  */
 public interface MemberLevelService extends IService<MemberLevelEntity> {
 
-    PageVO<MemberLevelEntity> queryPage(Map<String, Object> params);
+    PageVO<MemberLevelEntity> queryPage(KeyPageQuery query);
 
     List<MemberSelectVO> getMemberSelect();
 }

@@ -17,6 +17,7 @@ import common.utils.R;
 
 
 
+import common.query.PageQuery;
 /**
  * 会员统计信息
  *
@@ -34,8 +35,8 @@ public class MemberStatisticsInfoController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<MemberStatisticsInfoEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<MemberStatisticsInfoEntity> page = memberStatisticsInfoService.queryPage(params);
+    public R<PageVO<MemberStatisticsInfoEntity>> list(PageQuery query){
+        PageVO<MemberStatisticsInfoEntity> page = memberStatisticsInfoService.queryPage(query);
 
         return R.ok(page);
     }

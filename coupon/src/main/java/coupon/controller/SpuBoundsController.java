@@ -14,6 +14,7 @@ import java.util.Map;
 
 
 
+import common.query.KeyPageQuery;
 /**
  * 商品spu积分设置
  *
@@ -35,9 +36,9 @@ public class SpuBoundsController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<SpuBoundsEntity>> list(@RequestParam Map<String, Object> params){
-        log.info("列表查询spuBounds：{}", JSON.toJSONString( params, SerializerFeature.PrettyFormat));
-        PageVO<SpuBoundsEntity> page = spuBoundsService.queryPage(params);
+    public R<PageVO<SpuBoundsEntity>> list(KeyPageQuery query){
+        log.info("列表查询spuBounds：{}", JSON.toJSONString( query, SerializerFeature.PrettyFormat));
+        PageVO<SpuBoundsEntity> page = spuBoundsService.queryPage(query);
 
         return R.ok(page);
     }

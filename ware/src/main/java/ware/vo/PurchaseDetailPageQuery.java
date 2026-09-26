@@ -1,0 +1,19 @@
+package ware.vo;
+
+import common.query.PageQuery;
+import lombok.Getter;
+import lombok.Setter;
+
+/** 采购需求列表的查询条件 */
+@Getter
+@Setter
+public class PurchaseDetailPageQuery extends PageQuery {
+
+    private String key;
+
+    private String status;
+
+    private String wareId;
+
+    private String purchaseId;
+}

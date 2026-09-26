@@ -16,6 +16,7 @@ import java.util.Map;
 
 
 import order.vo.OrderStatusVo;
+import common.query.PageQuery;
 /**
  * 订单
  *
@@ -34,9 +35,9 @@ public class OrderController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<OrderEntity>> list(@RequestParam Map<String, Object> params){
-        log.info("查询订单列表: {}", JSON.toJSONString( params, SerializerFeature.PrettyFormat));
-        PageVO<OrderEntity> page = orderService.queryPage(params);
+    public R<PageVO<OrderEntity>> list(PageQuery query){
+        log.info("查询订单列表: {}", JSON.toJSONString( query, SerializerFeature.PrettyFormat));
+        PageVO<OrderEntity> page = orderService.queryPage(query);
 
         return R.ok(page);
     }

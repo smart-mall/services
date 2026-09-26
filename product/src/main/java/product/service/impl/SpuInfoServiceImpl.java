@@ -18,7 +18,6 @@ import common.to.mq.ProductDownTo;
 import es.SkuEsModel;
 import lombok.extern.slf4j.Slf4j;
 import common.vo.PageVO;
-import common.utils.Query;
 import common.utils.R;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -40,6 +39,8 @@ import java.util.stream.Collectors;
 
 
 import product.entity.SpuInfoEntity;
+import common.query.PageQuery;
+import product.vo.SpuInfoPageQuery;
 @Service("spuInfoService")
 @Slf4j
 public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> implements SpuInfoService {
@@ -90,9 +91,9 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
 
 
     @Override
-    public PageVO<SpuInfoEntity> queryPage(Map<String, Object> params) {
+    public PageVO<SpuInfoEntity> queryPage(PageQuery query) {
         IPage<SpuInfoEntity> page = this.page(
-                new Query<SpuInfoEntity>().getPage(params),
+                query.toPage(),
                 new QueryWrapper<>()
         );
 
@@ -423,32 +424,32 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
     }
 
     @Override
-    public PageVO<SpuInfoEntity> queryPageByCondition(Map<String, Object> params) {
+    public PageVO<SpuInfoEntity> queryPageByCondition(SpuInfoPageQuery query) {
         LambdaQueryWrapper<SpuInfoEntity> queryWrapper = new LambdaQueryWrapper<>();
 
-        String key = (String) params.get("key");
+        String key = query.getKey();
         if (key != null && !key.isEmpty()) {
             queryWrapper.and(item -> item.eq(SpuInfoEntity::getId, key).or().like(SpuInfoEntity::getSpuName, key));
         }
 
-        String status = (String) params.get("status");
+        String status = query.getStatus();
         if (status != null && !status.isEmpty()) {
             queryWrapper.eq(SpuInfoEntity::getPublishStatus, status);
         }
 
-        String brandId = (String) params.get("brandId");
+        String brandId = query.getBrandId();
         if (brandId != null && !brandId.isEmpty() && !"0".equals(brandId)) {
             queryWrapper.eq(SpuInfoEntity::getBrandId, brandId);
         }
 
-        String catalogId = (String) params.get("catalogId");
+        String catalogId = query.getCatalogId();
         if (catalogId != null && !catalogId.isEmpty()  && !"0".equals(catalogId)) {
             queryWrapper.eq(SpuInfoEntity::getCatalogId, catalogId);
         }
 
 
         IPage<SpuInfoEntity> page = this.page(
-                new Query<SpuInfoEntity>().getPage(params),
+                query.toPage(),
                 queryWrapper
         );
 

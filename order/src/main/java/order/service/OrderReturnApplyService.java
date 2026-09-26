@@ -6,6 +6,7 @@ import order.entity.OrderReturnApplyEntity;
 
 import java.util.Map;
 
+import common.query.PageQuery;
 /**
  * 订单退货申请
  *
@@ -15,6 +16,6 @@ import java.util.Map;
  */
 public interface OrderReturnApplyService extends IService<OrderReturnApplyEntity> {
 
-    PageVO<OrderReturnApplyEntity> queryPage(Map<String, Object> params);
+    PageVO<OrderReturnApplyEntity> queryPage(PageQuery query);
 }
 

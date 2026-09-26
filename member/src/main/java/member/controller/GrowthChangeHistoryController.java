@@ -17,6 +17,7 @@ import common.utils.R;
 
 
 
+import common.query.PageQuery;
 /**
  * 成长值变化历史记录
  *
@@ -34,8 +35,8 @@ public class GrowthChangeHistoryController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<GrowthChangeHistoryEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<GrowthChangeHistoryEntity> page = growthChangeHistoryService.queryPage(params);
+    public R<PageVO<GrowthChangeHistoryEntity>> list(PageQuery query){
+        PageVO<GrowthChangeHistoryEntity> page = growthChangeHistoryService.queryPage(query);
 
         return R.ok(page);
     }

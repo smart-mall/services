@@ -6,6 +6,7 @@ import member.entity.IntegrationChangeHistoryEntity;
 
 import java.util.Map;
 
+import common.query.PageQuery;
 /**
  * 积分变化历史记录
  *
@@ -15,6 +16,6 @@ import java.util.Map;
  */
 public interface IntegrationChangeHistoryService extends IService<IntegrationChangeHistoryEntity> {
 
-    PageVO<IntegrationChangeHistoryEntity> queryPage(Map<String, Object> params);
+    PageVO<IntegrationChangeHistoryEntity> queryPage(PageQuery query);
 }
 

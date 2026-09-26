@@ -13,6 +13,7 @@ import java.util.Map;
 
 
 
+import common.query.KeyPageQuery;
 /**
  * 商品满减信息
  *
@@ -40,8 +41,8 @@ public class SkuFullReductionController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<SkuFullReductionEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<SkuFullReductionEntity> page = skuFullReductionService.queryPage(params);
+    public R<PageVO<SkuFullReductionEntity>> list(KeyPageQuery query){
+        PageVO<SkuFullReductionEntity> page = skuFullReductionService.queryPage(query);
 
         return R.ok(page);
     }

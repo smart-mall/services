@@ -8,6 +8,7 @@ import product.entity.CategoryBrandRelationEntity;
 import java.util.List;
 import java.util.Map;
 
+import common.query.PageQuery;
 /**
  * 品牌分类关联
  *
@@ -17,7 +18,7 @@ import java.util.Map;
  */
 public interface CategoryBrandRelationService extends IService<CategoryBrandRelationEntity> {
 
-    PageVO<CategoryBrandRelationEntity> queryPage(Map<String, Object> params);
+    PageVO<CategoryBrandRelationEntity> queryPage(PageQuery query);
 
     List<CategoryBrandRelationEntity> listCategoryBrandRelation(Long brandId);
 

@@ -17,6 +17,7 @@ import java.util.Map;
 
 
 import common.exception.BaseCodeEnum;
+import common.query.PageQuery;
 /**
  * 会员收货地址
  *
@@ -61,8 +62,8 @@ public class MemberReceiveAddressController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<MemberReceiveAddressEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<MemberReceiveAddressEntity> page = memberReceiveAddressService.queryPage(params);
+    public R<PageVO<MemberReceiveAddressEntity>> list(PageQuery query){
+        PageVO<MemberReceiveAddressEntity> page = memberReceiveAddressService.queryPage(query);
 
         return R.ok(page);
     }

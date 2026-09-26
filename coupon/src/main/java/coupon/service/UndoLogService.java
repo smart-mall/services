@@ -6,6 +6,7 @@ import coupon.entity.UndoLogEntity;
 
 import java.util.Map;
 
+import common.query.PageQuery;
 /**
  * 
  *
@@ -15,6 +16,6 @@ import java.util.Map;
  */
 public interface UndoLogService extends IService<UndoLogEntity> {
 
-    PageVO<UndoLogEntity> queryPage(Map<String, Object> params);
+    PageVO<UndoLogEntity> queryPage(PageQuery query);
 }
 

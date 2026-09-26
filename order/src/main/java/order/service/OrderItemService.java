@@ -6,6 +6,7 @@ import order.entity.OrderItemEntity;
 
 import java.util.Map;
 
+import common.query.PageQuery;
 /**
  * 订单项信息
  *
@@ -15,6 +16,6 @@ import java.util.Map;
  */
 public interface OrderItemService extends IService<OrderItemEntity> {
 
-    PageVO<OrderItemEntity> queryPage(Map<String, Object> params);
+    PageVO<OrderItemEntity> queryPage(PageQuery query);
 }
 

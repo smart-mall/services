@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.exception.BaseException;
 import common.vo.PageVO;
-import common.utils.Query;
 import common.utils.R;
 import coupon.dao.SpuBoundsDao;
 import coupon.entity.SpuBoundsEntity;
@@ -20,6 +19,7 @@ import java.util.Map;
 import java.util.Objects;
 
 
+import common.query.KeyPageQuery;
 @Service("spuBoundsService")
 @Slf4j
 public class SpuBoundsServiceImpl extends ServiceImpl<SpuBoundsDao, SpuBoundsEntity> implements SpuBoundsService {
@@ -30,11 +30,11 @@ public class SpuBoundsServiceImpl extends ServiceImpl<SpuBoundsDao, SpuBoundsEnt
     }
 
     @Override
-    public PageVO<SpuBoundsEntity> queryPage(Map<String, Object> params) {
-        String key = (String) params.get("key");
+    public PageVO<SpuBoundsEntity> queryPage(KeyPageQuery query) {
+        String key = query.getKey();
 
         IPage<SpuBoundsEntity> page = this.page(
-                new Query<SpuBoundsEntity>().getPage(params),
+                query.toPage(),
                 new LambdaQueryWrapper<>()
         );
 

@@ -8,7 +8,6 @@ import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
 import common.exception.ValidationException;
 import common.vo.PageVO;
-import common.utils.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -36,6 +35,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 
+import ware.vo.PurchasePageQuery;
+import common.query.PageQuery;
 @Service("purchaseService")
 public class PurchaseServiceImpl extends ServiceImpl<PurchaseDao, PurchaseEntity> implements PurchaseService {
 
@@ -53,22 +54,22 @@ public class PurchaseServiceImpl extends ServiceImpl<PurchaseDao, PurchaseEntity
     }
 
     @Override
-    public PageVO<PurchaseEntity> queryPage(Map<String, Object> params) {
+    public PageVO<PurchaseEntity> queryPage(PurchasePageQuery query) {
         LambdaQueryWrapper<PurchaseEntity> queryWrapper = new LambdaQueryWrapper<>();
 
-        String key = (String) params.get("key");
+        String key = query.getKey();
         if (key != null && !key.isEmpty()) {
             queryWrapper.and(item -> item.eq(PurchaseEntity::getId, key)
                     .or().like(PurchaseEntity::getAssigneeName, key));
         }
 
-        String status = (String) params.get("status");
+        String status = query.getStatus();
         if (status != null && !status.isEmpty()) {
             queryWrapper.eq(PurchaseEntity::getStatus, status);
         }
 
         IPage<PurchaseEntity> page = this.page(
-                new Query<PurchaseEntity>().getPage(params),
+                query.toPage(),
                 queryWrapper
         );
 
@@ -86,12 +87,12 @@ public class PurchaseServiceImpl extends ServiceImpl<PurchaseDao, PurchaseEntity
     }
 
     @Override
-    public PageVO<PurchaseEntity> queryPageUnreceive(Map<String, Object> params) {
+    public PageVO<PurchaseEntity> queryPageUnreceive(PageQuery query) {
         LambdaQueryWrapper<PurchaseEntity> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.in(PurchaseEntity::getStatus, PurchaseStatusEnum.openCodes());
 
         IPage<PurchaseEntity> page = this.page(
-                new Query<PurchaseEntity>().getPage(params),
+                query.toPage(),
                 queryWrapper
         );
 

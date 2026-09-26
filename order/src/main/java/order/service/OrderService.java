@@ -10,6 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 
+import common.query.PageQuery;
+import order.vo.OrderPageQuery;
 /**
  * 订单
  *
@@ -20,7 +22,7 @@ import java.util.Map;
 public interface OrderService extends IService<OrderEntity> {
 
     /** 后台订单列表（renren 的 /order/order/list 用），不做会员过滤 */
-    PageVO<OrderEntity> queryPage(Map<String, Object> params);
+    PageVO<OrderEntity> queryPage(PageQuery query);
 
     /** 结算页数据：收货地址、已勾选商品、库存、积分、防重令牌、金额 */
     OrderConfirmVo confirmOrder(MemberResponseVo user);
@@ -40,8 +42,8 @@ public interface OrderService extends IService<OrderEntity> {
      */
     SubmitOrderResponseVo submitOrder(MemberResponseVo user, OrderSubmitVo vo);
 
-    /** 我的订单分页。params 支持 pageNum / pageSize / status */
-    PageVO<OrderEntity> queryMemberOrders(MemberResponseVo user, Map<String, Object> params);
+    /** 我的订单分页。query 支持 page / limit / status */
+    PageVO<OrderEntity> queryMemberOrders(MemberResponseVo user, OrderPageQuery query);
 
     /**
      * 订单详情（含订单项）。

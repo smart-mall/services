@@ -6,6 +6,7 @@ import coupon.entity.CouponEntity;
 
 import java.util.Map;
 
+import common.query.KeyPageQuery;
 /**
  * 优惠券信息
  *
@@ -15,6 +16,6 @@ import java.util.Map;
  */
 public interface CouponService extends IService<CouponEntity> {
 
-    PageVO<CouponEntity> queryPage(Map<String, Object> params);
+    PageVO<CouponEntity> queryPage(KeyPageQuery query);
 }
 

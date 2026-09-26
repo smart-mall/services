@@ -9,6 +9,8 @@ import product.vo.AttrVO;
 import java.util.List;
 import java.util.Map;
 
+import common.query.PageQuery;
+import common.query.KeyPageQuery;
 /**
  * 商品属性
  *
@@ -18,11 +20,11 @@ import java.util.Map;
  */
 public interface AttrService extends IService<AttrEntity> {
 
-    PageVO<AttrEntity> queryPage(Map<String, Object> params);
+    PageVO<AttrEntity> queryPage(PageQuery query);
 
     void saveAttr(AttrVO attr);
 
-    PageVO<AttrRespVO> queryBaseAttrPage(Map<String, Object> params, Long categoryId, String attrType);
+    PageVO<AttrRespVO> queryBaseAttrPage(KeyPageQuery query, Long categoryId, String attrType);
 
     AttrRespVO getAttrInfo(Long attrId);
 
@@ -30,7 +32,7 @@ public interface AttrService extends IService<AttrEntity> {
 
     List<AttrEntity> getRelationAttr(Long attrGroupId);
 
-    PageVO<AttrEntity> getNoRelationAttr(Long attrGroupId, Map<String, Object> params);
+    PageVO<AttrEntity> getNoRelationAttr(Long attrGroupId, KeyPageQuery query);
 
     List<Long> selectSearchAttrs(List<Long> attrIds);
 

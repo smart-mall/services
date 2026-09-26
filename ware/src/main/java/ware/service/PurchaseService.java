@@ -10,6 +10,8 @@ import ware.vo.PurchaseDoneVO;
 import java.util.List;
 import java.util.Map;
 
+import ware.vo.PurchasePageQuery;
+import common.query.PageQuery;
 /**
  * 采购信息
  *
@@ -19,9 +21,9 @@ import java.util.Map;
  */
 public interface PurchaseService extends IService<PurchaseEntity> {
 
-    PageVO<PurchaseEntity> queryPage(Map<String, Object> params);
+    PageVO<PurchaseEntity> queryPage(PurchasePageQuery query);
 
-    PageVO<PurchaseEntity> queryPageUnreceive(Map<String, Object> params);
+    PageVO<PurchaseEntity> queryPageUnreceive(PageQuery query);
 
     void merge(MergeVO mergeVO);
 

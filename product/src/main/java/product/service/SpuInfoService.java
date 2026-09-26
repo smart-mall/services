@@ -9,6 +9,8 @@ import product.vo.SpuVO;
 import java.util.List;
 import java.util.Map;
 
+import common.query.PageQuery;
+import product.vo.SpuInfoPageQuery;
 /**
  * spu信息
  *
@@ -18,11 +20,11 @@ import java.util.Map;
  */
 public interface SpuInfoService extends IService<SpuInfoEntity> {
 
-    PageVO<SpuInfoEntity> queryPage(Map<String, Object> params);
+    PageVO<SpuInfoEntity> queryPage(PageQuery query);
 
     void saveSpuInfo(SpuVO spuInfo);
 
-    PageVO<SpuInfoEntity> queryPageByCondition(Map<String, Object> params);
+    PageVO<SpuInfoEntity> queryPageByCondition(SpuInfoPageQuery query);
 
     void up(Long spuId);
 

@@ -6,6 +6,7 @@ import member.entity.MemberCollectSubjectEntity;
 
 import java.util.Map;
 
+import common.query.PageQuery;
 /**
  * 会员收藏的专题活动
  *
@@ -15,6 +16,6 @@ import java.util.Map;
  */
 public interface MemberCollectSubjectService extends IService<MemberCollectSubjectEntity> {
 
-    PageVO<MemberCollectSubjectEntity> queryPage(Map<String, Object> params);
+    PageVO<MemberCollectSubjectEntity> queryPage(PageQuery query);
 }
 

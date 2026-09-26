@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.Map;
 
 
+import common.query.KeyPageQuery;
 /**
  * 品牌
  *
@@ -35,9 +36,9 @@ public class BrandController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<BrandEntity>> list(@RequestParam Map<String, Object> params){
-        log.info("显示品牌：{}", JSON.toJSONString( params, SerializerFeature.PrettyFormat));
-        PageVO<BrandEntity> page = brandService.queryPage(params);
+    public R<PageVO<BrandEntity>> list(KeyPageQuery query){
+        log.info("显示品牌：{}", JSON.toJSONString( query, SerializerFeature.PrettyFormat));
+        PageVO<BrandEntity> page = brandService.queryPage(query);
 
         return R.ok(page);
     }

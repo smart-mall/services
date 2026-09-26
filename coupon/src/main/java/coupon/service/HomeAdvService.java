@@ -6,6 +6,7 @@ import coupon.entity.HomeAdvEntity;
 
 import java.util.Map;
 
+import common.query.PageQuery;
 /**
  * 首页轮播广告
  *
@@ -15,6 +16,6 @@ import java.util.Map;
  */
 public interface HomeAdvService extends IService<HomeAdvEntity> {
 
-    PageVO<HomeAdvEntity> queryPage(Map<String, Object> params);
+    PageVO<HomeAdvEntity> queryPage(PageQuery query);
 }
 

@@ -6,20 +6,20 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.vo.PageVO;
-import common.utils.Query;
 
 import coupon.dao.CouponHistoryDao;
 import coupon.entity.CouponHistoryEntity;
 import coupon.service.CouponHistoryService;
 
 
+import common.query.PageQuery;
 @Service("couponHistoryService")
 public class CouponHistoryServiceImpl extends ServiceImpl<CouponHistoryDao, CouponHistoryEntity> implements CouponHistoryService {
 
     @Override
-    public PageVO<CouponHistoryEntity> queryPage(Map<String, Object> params) {
+    public PageVO<CouponHistoryEntity> queryPage(PageQuery query) {
         IPage<CouponHistoryEntity> page = this.page(
-                new Query<CouponHistoryEntity>().getPage(params),
+                query.toPage(),
                 new QueryWrapper<CouponHistoryEntity>()
         );
 

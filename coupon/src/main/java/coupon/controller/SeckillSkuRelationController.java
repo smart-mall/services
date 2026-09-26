@@ -17,6 +17,7 @@ import common.utils.R;
 
 
 
+import coupon.vo.SeckillSkuRelationPageQuery;
 /**
  * 秒杀活动商品关联
  *
@@ -34,8 +35,8 @@ public class SeckillSkuRelationController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<SeckillSkuRelationEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<SeckillSkuRelationEntity> page = seckillSkuRelationService.queryPage(params);
+    public R<PageVO<SeckillSkuRelationEntity>> list(SeckillSkuRelationPageQuery query){
+        PageVO<SeckillSkuRelationEntity> page = seckillSkuRelationService.queryPage(query);
 
         return R.ok(page);
     }

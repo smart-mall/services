@@ -6,6 +6,7 @@ import coupon.entity.SeckillPromotionEntity;
 
 import java.util.Map;
 
+import common.query.KeyPageQuery;
 /**
  * 秒杀活动
  *
@@ -15,6 +16,6 @@ import java.util.Map;
  */
 public interface SeckillPromotionService extends IService<SeckillPromotionEntity> {
 
-    PageVO<SeckillPromotionEntity> queryPage(Map<String, Object> params);
+    PageVO<SeckillPromotionEntity> queryPage(KeyPageQuery query);
 }
 

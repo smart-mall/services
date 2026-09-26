@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.exception.BaseException;
 import common.vo.PageVO;
-import common.utils.Query;
 import common.utils.R;
 import coupon.dao.SeckillPromotionDao;
 import coupon.entity.SeckillPromotionEntity;
@@ -18,6 +17,7 @@ import java.util.Map;
 import java.util.Objects;
 
 
+import common.query.KeyPageQuery;
 @Service("seckillPromotionService")
 public class SeckillPromotionServiceImpl extends ServiceImpl<SeckillPromotionDao, SeckillPromotionEntity> implements SeckillPromotionService {
     private final RenrenFeignService renrenFeignService;
@@ -27,8 +27,8 @@ public class SeckillPromotionServiceImpl extends ServiceImpl<SeckillPromotionDao
     }
 
     @Override
-    public PageVO<SeckillPromotionEntity> queryPage(Map<String, Object> params) {
-        String key = (String)params.get("key");
+    public PageVO<SeckillPromotionEntity> queryPage(KeyPageQuery query) {
+        String key = query.getKey();
         LambdaQueryWrapper<SeckillPromotionEntity> wrapper = new LambdaQueryWrapper<>();
 
         if (key != null && !key.isEmpty()) {
@@ -38,7 +38,7 @@ public class SeckillPromotionServiceImpl extends ServiceImpl<SeckillPromotionDao
         }
 
         IPage<SeckillPromotionEntity> page = this.page(
-                new Query<SeckillPromotionEntity>().getPage(params),
+                query.toPage(),
                 wrapper
         );
 

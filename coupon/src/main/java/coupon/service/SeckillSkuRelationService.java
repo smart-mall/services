@@ -6,6 +6,7 @@ import coupon.entity.SeckillSkuRelationEntity;
 
 import java.util.Map;
 
+import coupon.vo.SeckillSkuRelationPageQuery;
 /**
  * 秒杀活动商品关联
  *
@@ -15,6 +16,6 @@ import java.util.Map;
  */
 public interface SeckillSkuRelationService extends IService<SeckillSkuRelationEntity> {
 
-    PageVO<SeckillSkuRelationEntity> queryPage(Map<String, Object> params);
+    PageVO<SeckillSkuRelationEntity> queryPage(SeckillSkuRelationPageQuery query);
 }
 

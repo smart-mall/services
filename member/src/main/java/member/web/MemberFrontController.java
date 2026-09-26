@@ -30,6 +30,7 @@ import java.util.Map;
 
 import common.vo.PageVO;
 import member.entity.MemberLoginLogEntity;
+import common.query.PageQuery;
 /**
  * 会员中心的前台接口，全部要求登录；会员 id 只取自 {@code X-Member-Claims}，不接受前端传参。
  * 改资料会重签 token，返回形状和 auth 的登录接口一致。
@@ -100,10 +101,10 @@ public class MemberFrontController {
 
     /* ═══════════════════ 登录记录 ═══════════════════ */
 
-    /** 当前登录会员自己的登录记录，按时间倒序。参数 {@code pageNum / pageSize} */
+    /** 当前登录会员自己的登录记录，按时间倒序。参数 {@code page / limit} */
     @GetMapping("/memberloginlog/mine")
-    public R<PageVO<MemberLoginLogEntity>> listLoginLog(@RequestParam Map<String, Object> params, HttpServletRequest request) {
-        return R.ok(memberLoginLogService.queryMine(LoginUserUtils.requireCurrentUser(request).getId(), params));
+    public R<PageVO<MemberLoginLogEntity>> listLoginLog(PageQuery query, HttpServletRequest request) {
+        return R.ok(memberLoginLogService.queryMine(LoginUserUtils.requireCurrentUser(request).getId(), query));
     }
 
     /* ═══════════════════ 内部 ═══════════════════ */

@@ -17,6 +17,7 @@ import common.utils.R;
 
 
 
+import common.query.PageQuery;
 /**
  * 库存工作单
  *
@@ -34,8 +35,8 @@ public class WareOrderTaskDetailController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<WareOrderTaskDetailEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<WareOrderTaskDetailEntity> page = wareOrderTaskDetailService.queryPage(params);
+    public R<PageVO<WareOrderTaskDetailEntity>> list(PageQuery query){
+        PageVO<WareOrderTaskDetailEntity> page = wareOrderTaskDetailService.queryPage(query);
 
         return R.ok(page);
     }

@@ -6,20 +6,20 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.vo.PageVO;
-import common.utils.Query;
 
 import member.dao.IntegrationChangeHistoryDao;
 import member.entity.IntegrationChangeHistoryEntity;
 import member.service.IntegrationChangeHistoryService;
 
 
+import common.query.PageQuery;
 @Service("integrationChangeHistoryService")
 public class IntegrationChangeHistoryServiceImpl extends ServiceImpl<IntegrationChangeHistoryDao, IntegrationChangeHistoryEntity> implements IntegrationChangeHistoryService {
 
     @Override
-    public PageVO<IntegrationChangeHistoryEntity> queryPage(Map<String, Object> params) {
+    public PageVO<IntegrationChangeHistoryEntity> queryPage(PageQuery query) {
         IPage<IntegrationChangeHistoryEntity> page = this.page(
-                new Query<IntegrationChangeHistoryEntity>().getPage(params),
+                query.toPage(),
                 new QueryWrapper<IntegrationChangeHistoryEntity>()
         );
 

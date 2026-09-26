@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.Map;
 
 
+import common.query.PageQuery;
 /**
  * 商品评价
  *
@@ -28,8 +29,8 @@ public class SpuCommentController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<SpuCommentEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<SpuCommentEntity> page = spuCommentService.queryPage(params);
+    public R<PageVO<SpuCommentEntity>> list(PageQuery query){
+        PageVO<SpuCommentEntity> page = spuCommentService.queryPage(query);
 
         return R.ok(page);
     }

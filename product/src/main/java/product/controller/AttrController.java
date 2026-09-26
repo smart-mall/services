@@ -18,6 +18,8 @@ import java.util.List;
 import java.util.Map;
 
 
+import common.query.PageQuery;
+import common.query.KeyPageQuery;
 /**
  * 商品属性
  *
@@ -53,9 +55,9 @@ public class AttrController {
      * 列表
      */
     @RequestMapping("/{attrType}/list/{category}")
-    public R<PageVO<AttrRespVO>> baseAttrList(@RequestParam Map<String, Object> params, @PathVariable Long category, @PathVariable String attrType) {
-        log.info("查询商品属性：{}--{}--{}", JSON.toJSONString(params, SerializerFeature.PrettyFormat), category, attrType);
-        PageVO<AttrRespVO> page = attrService.queryBaseAttrPage(params, category, attrType);
+    public R<PageVO<AttrRespVO>> baseAttrList(KeyPageQuery query, @PathVariable Long category, @PathVariable String attrType) {
+        log.info("查询商品属性：{}--{}--{}", JSON.toJSONString(query, SerializerFeature.PrettyFormat), category, attrType);
+        PageVO<AttrRespVO> page = attrService.queryBaseAttrPage(query, category, attrType);
 
         return R.ok(page);
     }
@@ -64,9 +66,9 @@ public class AttrController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<AttrEntity>> list(@RequestParam Map<String, Object> params) {
-        log.info("查询商品属性：{}", JSON.toJSONString(params, SerializerFeature.PrettyFormat));
-        PageVO<AttrEntity> page = attrService.queryPage(params);
+    public R<PageVO<AttrEntity>> list(PageQuery query) {
+        log.info("查询商品属性：{}", JSON.toJSONString(query, SerializerFeature.PrettyFormat));
+        PageVO<AttrEntity> page = attrService.queryPage(query);
 
         return R.ok(page);
     }

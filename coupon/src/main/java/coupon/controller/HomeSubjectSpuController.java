@@ -17,6 +17,7 @@ import common.utils.R;
 
 
 
+import common.query.PageQuery;
 /**
  * 专题商品
  *
@@ -34,8 +35,8 @@ public class HomeSubjectSpuController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<HomeSubjectSpuEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<HomeSubjectSpuEntity> page = homeSubjectSpuService.queryPage(params);
+    public R<PageVO<HomeSubjectSpuEntity>> list(PageQuery query){
+        PageVO<HomeSubjectSpuEntity> page = homeSubjectSpuService.queryPage(query);
 
         return R.ok(page);
     }

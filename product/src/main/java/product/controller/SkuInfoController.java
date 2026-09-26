@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 
+import product.vo.SkuInfoPageQuery;
 /**
  * sku信息
  *
@@ -73,8 +74,8 @@ public class SkuInfoController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<SkuInfoEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<SkuInfoEntity> page = skuInfoService.queryPageByCondition(params);
+    public R<PageVO<SkuInfoEntity>> list(SkuInfoPageQuery query){
+        PageVO<SkuInfoEntity> page = skuInfoService.queryPageByCondition(query);
 
         return R.ok(page);
     }

@@ -6,20 +6,20 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.vo.PageVO;
-import common.utils.Query;
 
 import order.dao.OrderReturnReasonDao;
 import order.entity.OrderReturnReasonEntity;
 import order.service.OrderReturnReasonService;
 
 
+import common.query.PageQuery;
 @Service("orderReturnReasonService")
 public class OrderReturnReasonServiceImpl extends ServiceImpl<OrderReturnReasonDao, OrderReturnReasonEntity> implements OrderReturnReasonService {
 
     @Override
-    public PageVO<OrderReturnReasonEntity> queryPage(Map<String, Object> params) {
+    public PageVO<OrderReturnReasonEntity> queryPage(PageQuery query) {
         IPage<OrderReturnReasonEntity> page = this.page(
-                new Query<OrderReturnReasonEntity>().getPage(params),
+                query.toPage(),
                 new QueryWrapper<OrderReturnReasonEntity>()
         );
 

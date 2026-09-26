@@ -13,7 +13,6 @@ import common.to.SkuDeleteBlockerTo;
 import common.to.mq.StockDetailTo;
 import common.to.mq.StockLockedTo;
 import common.vo.PageVO;
-import common.utils.Query;
 import common.utils.R;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -49,6 +48,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 
+import ware.vo.WareSkuPageQuery;
 @Slf4j
 @Service("wareSkuService")
 public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> implements WareSkuService {
@@ -74,23 +74,23 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
     }
 
     @Override
-    public PageVO<WareSkuEntity> queryPage(Map<String, Object> params) {
+    public PageVO<WareSkuEntity> queryPage(WareSkuPageQuery query) {
         List<WareInfoEntity> wareInfoEntities = wareInfoService.list();
 
         LambdaQueryWrapper<WareSkuEntity> queryWrapper = new LambdaQueryWrapper<>();
 
-        String key = (String) params.get("skuId");
+        String key = query.getSkuId();
         if (key != null && !key.isEmpty()) {
             queryWrapper.eq(WareSkuEntity::getSkuId, key);
         }
 
-        String wareId = (String) params.get("wareId");
+        String wareId = query.getWareId();
         if (wareId != null && !wareId.isEmpty()) {
             queryWrapper.eq(WareSkuEntity::getWareId, wareId);
         }
 
         IPage<WareSkuEntity> page = this.page(
-                new Query<WareSkuEntity>().getPage(params),
+                query.toPage(),
                 queryWrapper
         );
 

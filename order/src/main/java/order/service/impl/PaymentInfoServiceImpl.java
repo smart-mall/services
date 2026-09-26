@@ -6,20 +6,20 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.vo.PageVO;
-import common.utils.Query;
 
 import order.dao.PaymentInfoDao;
 import order.entity.PaymentInfoEntity;
 import order.service.PaymentInfoService;
 
 
+import common.query.PageQuery;
 @Service("paymentInfoService")
 public class PaymentInfoServiceImpl extends ServiceImpl<PaymentInfoDao, PaymentInfoEntity> implements PaymentInfoService {
 
     @Override
-    public PageVO<PaymentInfoEntity> queryPage(Map<String, Object> params) {
+    public PageVO<PaymentInfoEntity> queryPage(PageQuery query) {
         IPage<PaymentInfoEntity> page = this.page(
-                new Query<PaymentInfoEntity>().getPage(params),
+                query.toPage(),
                 new QueryWrapper<PaymentInfoEntity>()
         );
 

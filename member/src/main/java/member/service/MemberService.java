@@ -11,6 +11,7 @@ import member.vo.SocialUser;
 
 import java.util.Map;
 
+import common.query.PageQuery;
 /**
  * 会员
  *
@@ -20,7 +21,7 @@ import java.util.Map;
  */
 public interface MemberService extends IService<MemberEntity> {
 
-    PageVO<MemberEntity> queryPage(Map<String, Object> params);
+    PageVO<MemberEntity> queryPage(PageQuery query);
 
     /**
      * 账号密码注册。

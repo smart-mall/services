@@ -6,7 +6,6 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.exception.BaseException;
 import common.vo.PageVO;
-import common.utils.Query;
 import common.utils.R;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -32,6 +31,8 @@ import java.util.Map;
 import java.util.Objects;
 
 
+import common.query.KeyPageQuery;
+import common.query.PageQuery;
 @Service("attrGroupService")
 public class AttrGroupServiceImpl extends ServiceImpl<AttrGroupDao, AttrGroupEntity> implements AttrGroupService {
     private final AttrAttrgroupRelationDao relationDao;
@@ -47,9 +48,9 @@ public class AttrGroupServiceImpl extends ServiceImpl<AttrGroupDao, AttrGroupEnt
     }
 
     @Override
-    public PageVO<AttrGroupEntity> queryPage(Map<String, Object> params) {
+    public PageVO<AttrGroupEntity> queryPage(PageQuery query) {
         IPage<AttrGroupEntity> page = this.page(
-                new Query<AttrGroupEntity>().getPage(params),
+                query.toPage(),
                 new QueryWrapper<>()
         );
 
@@ -57,7 +58,7 @@ public class AttrGroupServiceImpl extends ServiceImpl<AttrGroupDao, AttrGroupEnt
     }
 
     @Override
-    public PageVO<AttrGroupRespVO> queryPage(Map<String, Object> params, Long categoryId) {
+    public PageVO<AttrGroupRespVO> queryPage(KeyPageQuery query, Long categoryId) {
         List<CategoryEntity> list = categoryService.list();
 
         LambdaQueryWrapper<AttrGroupEntity> lambdaQueryWrapper = new LambdaQueryWrapper<>();
@@ -66,7 +67,7 @@ public class AttrGroupServiceImpl extends ServiceImpl<AttrGroupDao, AttrGroupEnt
             lambdaQueryWrapper.eq(AttrGroupEntity::getCatalogId, categoryId);
         }
 
-        String key = (String) params.get("key");
+        String key = query.getKey();
 
         if (key != null && !key.isEmpty()) {
             lambdaQueryWrapper.like(AttrGroupEntity::getAttrGroupName, key)
@@ -74,7 +75,7 @@ public class AttrGroupServiceImpl extends ServiceImpl<AttrGroupDao, AttrGroupEnt
                         .eq(AttrGroupEntity::getAttrGroupId, key);
         }
         IPage<AttrGroupEntity> page = this.page(
-                new Query<AttrGroupEntity>().getPage(params),
+                query.toPage(),
                 lambdaQueryWrapper
         );
 

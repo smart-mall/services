@@ -20,6 +20,7 @@ import common.utils.R;
 
 
 
+import common.query.PageQuery;
 /**
  * 会员登录记录
  *
@@ -53,8 +54,8 @@ public class MemberLoginLogController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<MemberLoginLogEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<MemberLoginLogEntity> page = memberLoginLogService.queryPage(params);
+    public R<PageVO<MemberLoginLogEntity>> list(PageQuery query){
+        PageVO<MemberLoginLogEntity> page = memberLoginLogService.queryPage(query);
 
         return R.ok(page);
     }

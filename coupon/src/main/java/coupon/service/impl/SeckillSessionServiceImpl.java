@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.vo.PageVO;
-import common.utils.Query;
 import coupon.dao.SeckillSessionDao;
 import coupon.entity.SeckillSessionEntity;
 import coupon.entity.SeckillSkuRelationEntity;
@@ -23,6 +22,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 
+import common.query.KeyPageQuery;
 @Service("seckillSessionService")
 public class SeckillSessionServiceImpl extends ServiceImpl<SeckillSessionDao, SeckillSessionEntity> implements SeckillSessionService {
     private final SeckillSkuRelationService seckillSkuRelationService;
@@ -32,11 +32,11 @@ public class SeckillSessionServiceImpl extends ServiceImpl<SeckillSessionDao, Se
     }
 
     @Override
-    public PageVO<SeckillSessionEntity> queryPage(Map<String, Object> params) {
+    public PageVO<SeckillSessionEntity> queryPage(KeyPageQuery query) {
 
         LambdaQueryWrapper<SeckillSessionEntity> queryWrapper = new LambdaQueryWrapper<>();
 
-        String key = (String) params.get("key");
+        String key = query.getKey();
 
         if (!StringUtils.isEmpty(key)) {
             queryWrapper.like(SeckillSessionEntity::getName, key)
@@ -45,7 +45,7 @@ public class SeckillSessionServiceImpl extends ServiceImpl<SeckillSessionDao, Se
         }
 
         IPage<SeckillSessionEntity> page = this.page(
-                new Query<SeckillSessionEntity>().getPage(params),
+                query.toPage(),
                 queryWrapper
         );
 

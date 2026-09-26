@@ -6,6 +6,7 @@ import member.entity.MemberCollectSpuEntity;
 
 import java.util.Map;
 
+import common.query.PageQuery;
 /**
  * 会员收藏的商品
  *
@@ -15,6 +16,6 @@ import java.util.Map;
  */
 public interface MemberCollectSpuService extends IService<MemberCollectSpuEntity> {
 
-    PageVO<MemberCollectSpuEntity> queryPage(Map<String, Object> params);
+    PageVO<MemberCollectSpuEntity> queryPage(PageQuery query);
 }
 

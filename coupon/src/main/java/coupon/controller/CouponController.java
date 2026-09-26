@@ -17,6 +17,7 @@ import common.utils.R;
 
 
 
+import common.query.KeyPageQuery;
 /**
  * 优惠券信息
  *
@@ -34,8 +35,8 @@ public class CouponController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<CouponEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<CouponEntity> page = couponService.queryPage(params);
+    public R<PageVO<CouponEntity>> list(KeyPageQuery query){
+        PageVO<CouponEntity> page = couponService.queryPage(query);
 
         return R.ok(page);
     }

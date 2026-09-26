@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.vo.PageVO;
-import common.utils.Query;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import product.dao.AttrAttrgroupRelationDao;
@@ -16,13 +15,14 @@ import java.util.List;
 import java.util.Map;
 
 
+import common.query.PageQuery;
 @Service("attrAttrgroupRelationService")
 public class AttrAttrgroupRelationServiceImpl extends ServiceImpl<AttrAttrgroupRelationDao, AttrAttrgroupRelationEntity> implements AttrAttrgroupRelationService {
 
     @Override
-    public PageVO<AttrAttrgroupRelationEntity> queryPage(Map<String, Object> params) {
+    public PageVO<AttrAttrgroupRelationEntity> queryPage(PageQuery query) {
         IPage<AttrAttrgroupRelationEntity> page = this.page(
-                new Query<AttrAttrgroupRelationEntity>().getPage(params),
+                query.toPage(),
                 new QueryWrapper<>()
         );
 

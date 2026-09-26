@@ -11,7 +11,6 @@ import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
 import common.utils.HttpUtils;
 import common.vo.PageVO;
-import common.utils.Query;
 import lombok.extern.slf4j.Slf4j;
 import member.dao.MemberDao;
 import member.dao.MemberLevelDao;
@@ -36,6 +35,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 
+import common.query.PageQuery;
 @Service("memberService")
 @Slf4j
 public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> implements MemberService {
@@ -46,9 +46,9 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
     }
 
     @Override
-    public PageVO<MemberEntity> queryPage(Map<String, Object> params) {
+    public PageVO<MemberEntity> queryPage(PageQuery query) {
         IPage<MemberEntity> page = this.page(
-                new Query<MemberEntity>().getPage(params),
+                query.toPage(),
                 new QueryWrapper<MemberEntity>()
         );
 

@@ -11,6 +11,8 @@ import product.vo.SpuItemAttrGroupVo;
 import java.util.List;
 import java.util.Map;
 
+import common.query.KeyPageQuery;
+import common.query.PageQuery;
 /**
  * 属性分组
  *
@@ -20,9 +22,9 @@ import java.util.Map;
  */
 public interface AttrGroupService extends IService<AttrGroupEntity> {
 
-    PageVO<AttrGroupEntity> queryPage(Map<String, Object> params);
+    PageVO<AttrGroupEntity> queryPage(PageQuery query);
 
-    PageVO<AttrGroupRespVO> queryPage(Map<String, Object> params, Long categoryId);
+    PageVO<AttrGroupRespVO> queryPage(KeyPageQuery query, Long categoryId);
 
     void deleteRelation(AttrGroupRelationVO[] vos);
 

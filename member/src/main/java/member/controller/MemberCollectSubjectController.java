@@ -17,6 +17,7 @@ import common.utils.R;
 
 
 
+import common.query.PageQuery;
 /**
  * 会员收藏的专题活动
  *
@@ -34,8 +35,8 @@ public class MemberCollectSubjectController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<MemberCollectSubjectEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<MemberCollectSubjectEntity> page = memberCollectSubjectService.queryPage(params);
+    public R<PageVO<MemberCollectSubjectEntity>> list(PageQuery query){
+        PageVO<MemberCollectSubjectEntity> page = memberCollectSubjectService.queryPage(query);
 
         return R.ok(page);
     }

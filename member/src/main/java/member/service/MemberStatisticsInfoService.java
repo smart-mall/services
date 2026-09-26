@@ -6,6 +6,7 @@ import member.entity.MemberStatisticsInfoEntity;
 
 import java.util.Map;
 
+import common.query.PageQuery;
 /**
  * 会员统计信息
  *
@@ -15,6 +16,6 @@ import java.util.Map;
  */
 public interface MemberStatisticsInfoService extends IService<MemberStatisticsInfoEntity> {
 
-    PageVO<MemberStatisticsInfoEntity> queryPage(Map<String, Object> params);
+    PageVO<MemberStatisticsInfoEntity> queryPage(PageQuery query);
 }
 

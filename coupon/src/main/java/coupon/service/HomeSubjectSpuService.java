@@ -6,6 +6,7 @@ import coupon.entity.HomeSubjectSpuEntity;
 
 import java.util.Map;
 
+import common.query.PageQuery;
 /**
  * 专题商品
  *
@@ -15,6 +16,6 @@ import java.util.Map;
  */
 public interface HomeSubjectSpuService extends IService<HomeSubjectSpuEntity> {
 
-    PageVO<HomeSubjectSpuEntity> queryPage(Map<String, Object> params);
+    PageVO<HomeSubjectSpuEntity> queryPage(PageQuery query);
 }
 

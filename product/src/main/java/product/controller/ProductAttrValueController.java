@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.Map;
 
 
+import common.query.PageQuery;
 /**
  * spu属性值
  *
@@ -28,8 +29,8 @@ public class ProductAttrValueController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<ProductAttrValueEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<ProductAttrValueEntity> page = productAttrValueService.queryPage(params);
+    public R<PageVO<ProductAttrValueEntity>> list(PageQuery query){
+        PageVO<ProductAttrValueEntity> page = productAttrValueService.queryPage(query);
 
         return R.ok(page);
     }

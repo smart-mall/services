@@ -17,6 +17,7 @@ import common.utils.R;
 
 
 
+import common.query.KeyPageQuery;
 /**
  * 首页专题表【jd首页下面很多专题，每个专题链接新的页面，展示专题商品信息】
  *
@@ -34,8 +35,8 @@ public class HomeSubjectController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<HomeSubjectEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<HomeSubjectEntity> page = homeSubjectService.queryPage(params);
+    public R<PageVO<HomeSubjectEntity>> list(KeyPageQuery query){
+        PageVO<HomeSubjectEntity> page = homeSubjectService.queryPage(query);
 
         return R.ok(page);
     }

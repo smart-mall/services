@@ -25,6 +25,7 @@ import order.vo.SubmitOrderResponseVo;
 import order.vo.FareVo;
 import order.vo.PayResultVo;
 import order.vo.OrderStatusVo;
+import order.vo.OrderPageQuery;
 /**
  * 订单前台接口（给 Vue 用），全部要求登录。"订单 / 地址是不是你的"不在这里管，
  * 由 service 层的 {@code requireOwnOrder} / {@code requireOwnAddress} 逐个校验。
@@ -63,14 +64,14 @@ public class OrderFrontController {
     }
 
     /**
-     * 我的订单分页。参数：{@code pageNum} / {@code pageSize} / {@code status}（可选）。
+     * 我的订单分页。参数：{@code page} / {@code limit} / {@code status}（可选）。
      *
      * <p>返回体的 {@code data} 是 {@code {total, rows}}，
      * 其中 {@code rows} 的每一项是订单，带 {@code orderItemEntityList} 和 {@code statusText}。</p>
      */
     @GetMapping("/list")
-    public R<PageVO<OrderEntity>> list(HttpServletRequest request, @RequestParam Map<String, Object> params) {
-        return R.ok(orderService.queryMemberOrders(LoginUserUtils.requireCurrentUser(request), params));
+    public R<PageVO<OrderEntity>> list(HttpServletRequest request, OrderPageQuery query) {
+        return R.ok(orderService.queryMemberOrders(LoginUserUtils.requireCurrentUser(request), query));
     }
 
     /** 订单详情（含订单项） */

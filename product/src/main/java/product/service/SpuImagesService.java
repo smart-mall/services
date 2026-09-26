@@ -6,6 +6,7 @@ import product.entity.SpuImagesEntity;
 
 import java.util.Map;
 
+import common.query.PageQuery;
 /**
  * spu图片
  *
@@ -15,6 +16,6 @@ import java.util.Map;
  */
 public interface SpuImagesService extends IService<SpuImagesEntity> {
 
-    PageVO<SpuImagesEntity> queryPage(Map<String, Object> params);
+    PageVO<SpuImagesEntity> queryPage(PageQuery query);
 }
 

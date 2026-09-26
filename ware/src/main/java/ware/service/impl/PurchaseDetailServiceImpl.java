@@ -7,7 +7,6 @@ import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
 import common.exception.ValidationException;
 import common.vo.PageVO;
-import common.utils.Query;
 import common.utils.R;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +24,7 @@ import java.util.Map;
 import java.util.Objects;
 
 
+import ware.vo.PurchaseDetailPageQuery;
 @Service("purchaseDetailService")
 public class PurchaseDetailServiceImpl extends ServiceImpl<PurchaseDetailDao, PurchaseDetailEntity> implements PurchaseDetailService {
     private final ProductFeignService productFeignService;
@@ -36,29 +36,29 @@ public class PurchaseDetailServiceImpl extends ServiceImpl<PurchaseDetailDao, Pu
     }
 
     @Override
-    public PageVO<PurchaseDetailEntity> queryPage(Map<String, Object> params) {
+    public PageVO<PurchaseDetailEntity> queryPage(PurchaseDetailPageQuery query) {
         LambdaQueryWrapper<PurchaseDetailEntity> queryWrapper = new LambdaQueryWrapper<>();
 
-        String key = (String) params.get("key");
+        String key = query.getKey();
 
-        String status = (String) params.get("status");
+        String status = query.getStatus();
         if (status != null && !status.isEmpty()) {
             queryWrapper.eq(PurchaseDetailEntity::getStatus, status);
         }
 
-        String wareId = (String) params.get("wareId");
+        String wareId = query.getWareId();
         if (wareId != null && !wareId.isEmpty()) {
             queryWrapper.eq(PurchaseDetailEntity::getWareId, wareId);
         }
 
         // 按采购单查它下面的明细。"完成采购"要逐条填结果，前端必须能只取一张单的明细
-        String purchaseId = (String) params.get("purchaseId");
+        String purchaseId = query.getPurchaseId();
         if (purchaseId != null && !purchaseId.isEmpty()) {
             queryWrapper.eq(PurchaseDetailEntity::getPurchaseId, purchaseId);
         }
 
         IPage<PurchaseDetailEntity> page = this.page(
-                new Query<PurchaseDetailEntity>().getPage(params),
+                query.toPage(),
                 queryWrapper
         );
 

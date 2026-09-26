@@ -17,6 +17,7 @@ import common.utils.R;
 
 
 
+import common.query.PageQuery;
 /**
  * 会员收藏的商品
  *
@@ -34,8 +35,8 @@ public class MemberCollectSpuController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<MemberCollectSpuEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<MemberCollectSpuEntity> page = memberCollectSpuService.queryPage(params);
+    public R<PageVO<MemberCollectSpuEntity>> list(PageQuery query){
+        PageVO<MemberCollectSpuEntity> page = memberCollectSpuService.queryPage(query);
 
         return R.ok(page);
     }

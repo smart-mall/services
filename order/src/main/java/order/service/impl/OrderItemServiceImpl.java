@@ -6,20 +6,20 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.vo.PageVO;
-import common.utils.Query;
 
 import order.dao.OrderItemDao;
 import order.entity.OrderItemEntity;
 import order.service.OrderItemService;
 
 
+import common.query.PageQuery;
 @Service("orderItemService")
 public class OrderItemServiceImpl extends ServiceImpl<OrderItemDao, OrderItemEntity> implements OrderItemService {
 
     @Override
-    public PageVO<OrderItemEntity> queryPage(Map<String, Object> params) {
+    public PageVO<OrderItemEntity> queryPage(PageQuery query) {
         IPage<OrderItemEntity> page = this.page(
-                new Query<OrderItemEntity>().getPage(params),
+                query.toPage(),
                 new QueryWrapper<OrderItemEntity>()
         );
 

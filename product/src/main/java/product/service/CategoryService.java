@@ -8,6 +8,7 @@ import product.vo.CategoryVo;
 import java.util.List;
 import java.util.Map;
 
+import common.query.PageQuery;
 /**
  * 商品三级分类
  *
@@ -17,7 +18,7 @@ import java.util.Map;
  */
 public interface CategoryService extends IService<CategoryEntity> {
 
-    PageVO<CategoryEntity> queryPage(Map<String, Object> params);
+    PageVO<CategoryEntity> queryPage(PageQuery query);
 
     List<CategoryEntity> listWithTree();
 

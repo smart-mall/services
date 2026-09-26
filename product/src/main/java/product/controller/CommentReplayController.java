@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.Map;
 
 
+import common.query.PageQuery;
 /**
  * 商品评价回复关系
  *
@@ -28,8 +29,8 @@ public class CommentReplayController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<CommentReplayEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<CommentReplayEntity> page = commentReplayService.queryPage(params);
+    public R<PageVO<CommentReplayEntity>> list(PageQuery query){
+        PageVO<CommentReplayEntity> page = commentReplayService.queryPage(query);
 
         return R.ok(page);
     }

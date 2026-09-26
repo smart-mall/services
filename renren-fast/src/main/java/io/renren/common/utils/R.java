@@ -61,4 +61,10 @@ public class R extends HashMap<String, Object> {
 		super.put(key, value);
 		return this;
 	}
+
+	/** 把数据放进 data，保持全项目 {@code {code, msg, data}} 的形状 */
+	public R setData(Object data) {
+		put("data", data);
+		return this;
+	}
 }

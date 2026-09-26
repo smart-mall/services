@@ -17,6 +17,7 @@ import common.utils.R;
 
 
 
+import common.query.PageQuery;
 /**
  * 支付信息表
  *
@@ -34,8 +35,8 @@ public class PaymentInfoController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<PaymentInfoEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<PaymentInfoEntity> page = paymentInfoService.queryPage(params);
+    public R<PageVO<PaymentInfoEntity>> list(PageQuery query){
+        PageVO<PaymentInfoEntity> page = paymentInfoService.queryPage(query);
 
         return R.ok(page);
     }

@@ -6,7 +6,6 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
 import common.vo.PageVO;
-import common.utils.Query;
 import common.utils.R;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,6 +25,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 
+import common.query.KeyPageQuery;
 @Service("brandService")
 @Slf4j
 public class BrandServiceImpl extends ServiceImpl<BrandDao, BrandEntity> implements BrandService {
@@ -44,8 +44,8 @@ public class BrandServiceImpl extends ServiceImpl<BrandDao, BrandEntity> impleme
     }
 
     @Override
-    public PageVO<BrandEntity> queryPage(Map<String, Object> params) {
-        String key = (String)params.get("key");
+    public PageVO<BrandEntity> queryPage(KeyPageQuery query) {
+        String key = query.getKey();
         LambdaQueryWrapper<BrandEntity> wrapper = new LambdaQueryWrapper<>();
 
         if (key != null && !key.isEmpty()) {
@@ -55,7 +55,7 @@ public class BrandServiceImpl extends ServiceImpl<BrandDao, BrandEntity> impleme
         }
 
         IPage<BrandEntity> page = this.page(
-                new Query<BrandEntity>().getPage(params),
+                query.toPage(),
                  wrapper
         );
 

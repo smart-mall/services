@@ -9,7 +9,6 @@ import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
 import common.exception.ValidationException;
 import common.vo.PageVO;
-import common.utils.Query;
 import common.utils.R;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -38,6 +37,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import common.query.KeyPageQuery;
 @Slf4j
 @Service("wareInfoService")
 public class WareInfoServiceImpl extends ServiceImpl<WareInfoDao, WareInfoEntity> implements WareInfoService {
@@ -59,10 +59,10 @@ public class WareInfoServiceImpl extends ServiceImpl<WareInfoDao, WareInfoEntity
     }
 
     @Override
-    public PageVO<WareInfoEntity> queryPage(Map<String, Object> params) {
+    public PageVO<WareInfoEntity> queryPage(KeyPageQuery query) {
         LambdaQueryWrapper<WareInfoEntity> queryWrapper = new LambdaQueryWrapper<>();
 
-        String key = (String) params.get("key");
+        String key = query.getKey();
         if (key != null && !key.isEmpty()) {
             queryWrapper
                     .eq(WareInfoEntity::getId, key)
@@ -73,7 +73,7 @@ public class WareInfoServiceImpl extends ServiceImpl<WareInfoDao, WareInfoEntity
         }
 
         IPage<WareInfoEntity> page = this.page(
-                new Query<WareInfoEntity>().getPage(params),
+                query.toPage(),
                 queryWrapper
         );
 

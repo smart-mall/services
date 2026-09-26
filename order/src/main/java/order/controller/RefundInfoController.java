@@ -17,6 +17,7 @@ import common.utils.R;
 
 
 
+import common.query.PageQuery;
 /**
  * 退款信息
  *
@@ -34,8 +35,8 @@ public class RefundInfoController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<RefundInfoEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<RefundInfoEntity> page = refundInfoService.queryPage(params);
+    public R<PageVO<RefundInfoEntity>> list(PageQuery query){
+        PageVO<RefundInfoEntity> page = refundInfoService.queryPage(query);
 
         return R.ok(page);
     }

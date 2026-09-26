@@ -9,7 +9,6 @@ import common.constant.ProductConstant;
 import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
 import common.vo.PageVO;
-import common.utils.Query;
 import common.utils.R;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -38,6 +37,8 @@ import java.util.stream.Collectors;
 
 
 import product.entity.AttrEntity;
+import common.query.PageQuery;
+import common.query.KeyPageQuery;
 @Service("attrService")
 @Slf4j
 public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements AttrService {
@@ -66,9 +67,9 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
     }
 
     @Override
-    public PageVO<AttrEntity> queryPage(Map<String, Object> params) {
+    public PageVO<AttrEntity> queryPage(PageQuery query) {
         IPage<AttrEntity> page = this.page(
-                new Query<AttrEntity>().getPage(params),
+                query.toPage(),
                 new QueryWrapper<>()
         );
 
@@ -90,7 +91,7 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
     }
 
     @Override
-    public PageVO<AttrRespVO> queryBaseAttrPage(Map<String, Object> params, Long categoryId, String attrType) {
+    public PageVO<AttrRespVO> queryBaseAttrPage(KeyPageQuery query, Long categoryId, String attrType) {
 
         LambdaQueryWrapper<AttrEntity> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(AttrEntity::getAttrType,
@@ -99,7 +100,7 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
                         ProductConstant.AttrEnum.TYPE_SALE.getCode()
         );
 
-        String key = (String) params.get("key");
+        String key = query.getKey();
         if (!StringUtil.isNullOrEmpty(key)) {
             wrapper.like(AttrEntity::getAttrId, key)
                     .or()
@@ -110,7 +111,7 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
         }
 
         IPage<AttrEntity> page = this.page(
-                new Query<AttrEntity>().getPage(params),
+                query.toPage(),
                 wrapper
         );
 
@@ -225,7 +226,7 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
     }
 
     @Override
-    public PageVO<AttrEntity> getNoRelationAttr(Long attrGroupId, Map<String, Object> params) {
+    public PageVO<AttrEntity> getNoRelationAttr(Long attrGroupId, KeyPageQuery query) {
         AttrGroupEntity attrGroupEntity = attrGroupDao.selectById(attrGroupId);
         log.debug("获取分组信息：{}", attrGroupEntity);
 
@@ -252,7 +253,7 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
                 .eq(AttrEntity::getAttrType, ProductConstant.AttrEnum.TYPE_BASE.getCode())
                 .notIn(!attrIds.isEmpty(), AttrEntity::getAttrId, attrIds);
 
-        String key = (String) params.get("key");
+        String key = query.getKey();
         if (key != null && !key.isEmpty()) {
             wrapper.like(AttrEntity::getAttrName, key)
                     .or()
@@ -260,7 +261,7 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
         }
 
         IPage<AttrEntity> page = this.page(
-                new Query<AttrEntity>().getPage(params),
+                query.toPage(),
                 wrapper
         );
 

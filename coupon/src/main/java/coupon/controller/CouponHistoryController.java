@@ -17,6 +17,7 @@ import common.utils.R;
 
 
 
+import common.query.PageQuery;
 /**
  * 优惠券领取历史记录
  *
@@ -34,8 +35,8 @@ public class CouponHistoryController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<CouponHistoryEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<CouponHistoryEntity> page = couponHistoryService.queryPage(params);
+    public R<PageVO<CouponHistoryEntity>> list(PageQuery query){
+        PageVO<CouponHistoryEntity> page = couponHistoryService.queryPage(query);
 
         return R.ok(page);
     }

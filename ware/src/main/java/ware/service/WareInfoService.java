@@ -8,6 +8,7 @@ import ware.vo.FareVo;
 import java.util.List;
 import java.util.Map;
 
+import common.query.KeyPageQuery;
 /**
  * 仓库信息
  *
@@ -17,7 +18,7 @@ import java.util.Map;
  */
 public interface WareInfoService extends IService<WareInfoEntity> {
 
-    PageVO<WareInfoEntity> queryPage(Map<String, Object> params);
+    PageVO<WareInfoEntity> queryPage(KeyPageQuery query);
 
     FareVo getFare(Long addrId);
 

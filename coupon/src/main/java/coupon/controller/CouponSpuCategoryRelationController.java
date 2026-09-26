@@ -17,6 +17,7 @@ import common.utils.R;
 
 
 
+import common.query.PageQuery;
 /**
  * 优惠券分类关联
  *
@@ -34,8 +35,8 @@ public class CouponSpuCategoryRelationController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<CouponSpuCategoryRelationEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<CouponSpuCategoryRelationEntity> page = couponSpuCategoryRelationService.queryPage(params);
+    public R<PageVO<CouponSpuCategoryRelationEntity>> list(PageQuery query){
+        PageVO<CouponSpuCategoryRelationEntity> page = couponSpuCategoryRelationService.queryPage(query);
 
         return R.ok(page);
     }

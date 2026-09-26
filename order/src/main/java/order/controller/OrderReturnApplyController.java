@@ -17,6 +17,7 @@ import common.utils.R;
 
 
 
+import common.query.PageQuery;
 /**
  * 订单退货申请
  *
@@ -34,8 +35,8 @@ public class OrderReturnApplyController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<OrderReturnApplyEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<OrderReturnApplyEntity> page = orderReturnApplyService.queryPage(params);
+    public R<PageVO<OrderReturnApplyEntity>> list(PageQuery query){
+        PageVO<OrderReturnApplyEntity> page = orderReturnApplyService.queryPage(query);
 
         return R.ok(page);
     }

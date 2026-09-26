@@ -19,7 +19,6 @@ import common.mq.MqPublisher;
 import common.to.OrderTo;
 import common.to.mq.SeckillOrderTo;
 import common.vo.PageVO;
-import common.utils.Query;
 import common.utils.R;
 import common.vo.MemberResponseVo;
 import lombok.extern.slf4j.Slf4j;
@@ -78,6 +77,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import common.query.PageQuery;
+import order.vo.OrderPageQuery;
 import static com.lly835.bestpay.enums.BestPayTypeEnum.WXPAY_NATIVE;
 import static common.constant.CartConstant.CART_PREFIX;
 
@@ -120,9 +121,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
 
     @Override
-    public PageVO<OrderEntity> queryPage(Map<String, Object> params) {
+    public PageVO<OrderEntity> queryPage(PageQuery query) {
         IPage<OrderEntity> page = this.page(
-                new Query<OrderEntity>().getPage(params),
+                query.toPage(),
                 new QueryWrapper<OrderEntity>()
         );
 
@@ -358,7 +359,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     /* ═══════════════════ 我的订单 ═══════════════════ */
 
     @Override
-    public PageVO<OrderEntity> queryMemberOrders(MemberResponseVo user, Map<String, Object> params) {
+    public PageVO<OrderEntity> queryMemberOrders(MemberResponseVo user, OrderPageQuery query) {
         Long memberId = user.getId();
 
         QueryWrapper<OrderEntity> wrapper = new QueryWrapper<OrderEntity>()
@@ -367,12 +368,12 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
                 .eq("delete_status", 0)
                 .orderByDesc("create_time");
 
-        Object status = params.get("status");
+        String status = query.getStatus();
         if (status != null && !status.toString().isBlank()) {
             wrapper.eq("status", status);
         }
 
-        IPage<OrderEntity> page = this.page(buildPage(params), wrapper);
+        IPage<OrderEntity> page = this.page(query.toPage(), wrapper);
         List<OrderEntity> records = page.getRecords();
 
         // 订单项一次查完再按 orderSn 分组。原来的写法是遍历订单、每个订单查一次订单项（N+1）
@@ -405,37 +406,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         return this.baseMapper.selectOne(new QueryWrapper<OrderEntity>().eq("order_sn", orderSn));
     }
 
-    /**
-     * 分页参数。
-     *
-     * <p>用 {@code pageNum / pageSize} 而不是 renren 那套 {@code page / limit}：
-     * 前台已经有一套分页协议（检索页就是 pageNum/pageSize），同一批对接前端的接口
-     * 不该出现两种页码参数名。</p>
-     */
-    private Page<OrderEntity> buildPage(Map<String, Object> params) {
-        long pageNum = parseNumber(params.get("pageNum"), 1, "pageNum");
-        long pageSize = parseNumber(params.get("pageSize"), OrderConstant.DEFAULT_PAGE_SIZE, "pageSize");
-        if (pageSize > OrderConstant.MAX_PAGE_SIZE) {
-            pageSize = OrderConstant.MAX_PAGE_SIZE;
-        }
-        return new Page<>(pageNum, pageSize);
-    }
 
-    private long parseNumber(Object raw, long defaultValue, String name) {
-        if (raw == null || raw.toString().isBlank()) {
-            return defaultValue;
-        }
-        long value;
-        try {
-            value = Long.parseLong(raw.toString().trim());
-        } catch (NumberFormatException e) {
-            throw new ValidationException(name, name + " 参数类型不正确");
-        }
-        if (value < 1) {
-            throw new ValidationException(name, name + " 必须大于 0");
-        }
-        return value;
-    }
 
     /**
      * 填状态文案。

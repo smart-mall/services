@@ -17,6 +17,7 @@ import common.utils.R;
 
 
 
+import common.query.PageQuery;
 /**
  * 积分变化历史记录
  *
@@ -34,8 +35,8 @@ public class IntegrationChangeHistoryController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<IntegrationChangeHistoryEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<IntegrationChangeHistoryEntity> page = integrationChangeHistoryService.queryPage(params);
+    public R<PageVO<IntegrationChangeHistoryEntity>> list(PageQuery query){
+        PageVO<IntegrationChangeHistoryEntity> page = integrationChangeHistoryService.queryPage(query);
 
         return R.ok(page);
     }

@@ -8,6 +8,7 @@ import member.vo.AddressSaveVo;
 import java.util.List;
 import java.util.Map;
 
+import common.query.PageQuery;
 /**
  * 会员收货地址
  *
@@ -17,7 +18,7 @@ import java.util.Map;
  */
 public interface MemberReceiveAddressService extends IService<MemberReceiveAddressEntity> {
 
-    PageVO<MemberReceiveAddressEntity> queryPage(Map<String, Object> params);
+    PageVO<MemberReceiveAddressEntity> queryPage(PageQuery query);
 
     /**
      * 按会员查地址。给 order 的结算页和 seckill 的秒杀下单用（它们从登录态拿自己的 memberId）。

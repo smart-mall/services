@@ -6,7 +6,6 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.vo.PageVO;
-import common.utils.Query;
 import org.springframework.stereotype.Service;
 import product.dao.BrandDao;
 import product.dao.CategoryBrandRelationDao;
@@ -20,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 
 
+import common.query.PageQuery;
 @Service("categoryBrandRelationService")
 public class CategoryBrandRelationServiceImpl extends ServiceImpl<CategoryBrandRelationDao, CategoryBrandRelationEntity> implements CategoryBrandRelationService {
     private final CategoryDao categoryDao;
@@ -31,9 +31,9 @@ public class CategoryBrandRelationServiceImpl extends ServiceImpl<CategoryBrandR
     }
 
     @Override
-    public PageVO<CategoryBrandRelationEntity> queryPage(Map<String, Object> params) {
+    public PageVO<CategoryBrandRelationEntity> queryPage(PageQuery query) {
         IPage<CategoryBrandRelationEntity> page = this.page(
-                new Query<CategoryBrandRelationEntity>().getPage(params),
+                query.toPage(),
                 new QueryWrapper<>()
         );
 

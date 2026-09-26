@@ -7,6 +7,7 @@ import ware.entity.PurchaseDetailEntity;
 import java.util.List;
 import java.util.Map;
 
+import ware.vo.PurchaseDetailPageQuery;
 /**
  * 
  *
@@ -16,7 +17,7 @@ import java.util.Map;
  */
 public interface PurchaseDetailService extends IService<PurchaseDetailEntity> {
 
-    PageVO<PurchaseDetailEntity> queryPage(Map<String, Object> params);
+    PageVO<PurchaseDetailEntity> queryPage(PurchaseDetailPageQuery query);
 
     void saveDetail(PurchaseDetailEntity detail);
 

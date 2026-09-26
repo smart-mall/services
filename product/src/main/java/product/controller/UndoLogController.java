@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.Map;
 
 
+import common.query.PageQuery;
 /**
  * 
  *
@@ -28,8 +29,8 @@ public class UndoLogController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<UndoLogEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<UndoLogEntity> page = undoLogService.queryPage(params);
+    public R<PageVO<UndoLogEntity>> list(PageQuery query){
+        PageVO<UndoLogEntity> page = undoLogService.queryPage(query);
 
         return R.ok(page);
     }

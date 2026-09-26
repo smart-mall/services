@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.Map;
 
 
+import common.query.PageQuery;
 /**
  * sku图片
  *
@@ -28,8 +29,8 @@ public class SkuImagesController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<SkuImagesEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<SkuImagesEntity> page = skuImagesService.queryPage(params);
+    public R<PageVO<SkuImagesEntity>> list(PageQuery query){
+        PageVO<SkuImagesEntity> page = skuImagesService.queryPage(query);
 
         return R.ok(page);
     }

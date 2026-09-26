@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 
+import product.vo.SpuInfoPageQuery;
 /**
  * spu信息
  *
@@ -87,9 +88,9 @@ public class SpuInfoController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<SpuInfoEntity>> list(@RequestParam Map<String, Object> params){
-        log.info("列表查询spu：{}", JSON.toJSONString( params, SerializerFeature.PrettyFormat));
-        PageVO<SpuInfoEntity> page = spuInfoService.queryPageByCondition(params);
+    public R<PageVO<SpuInfoEntity>> list(SpuInfoPageQuery query){
+        log.info("列表查询spu：{}", JSON.toJSONString( query, SerializerFeature.PrettyFormat));
+        PageVO<SpuInfoEntity> page = spuInfoService.queryPageByCondition(query);
 
         return R.ok(page);
     }

@@ -7,6 +7,7 @@ import coupon.entity.SpuBoundsEntity;
 import java.util.List;
 import java.util.Map;
 
+import common.query.KeyPageQuery;
 /**
  * 商品spu积分设置
  *
@@ -16,7 +17,7 @@ import java.util.Map;
  */
 public interface SpuBoundsService extends IService<SpuBoundsEntity> {
 
-    PageVO<SpuBoundsEntity> queryPage(Map<String, Object> params);
+    PageVO<SpuBoundsEntity> queryPage(KeyPageQuery query);
 
     /**
      * 按 spuId 批量删除。商品删除时由 product 服务远程调用。

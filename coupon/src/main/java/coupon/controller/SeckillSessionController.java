@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 
+import common.query.KeyPageQuery;
 /**
  * 秒杀活动场次
  *
@@ -48,9 +49,9 @@ public class SeckillSessionController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<SeckillSessionEntity>> list(@RequestParam Map<String, Object> params) {
-        log.info("列表查询：{}", JSON.toJSONString(params, SerializerFeature.PrettyFormat));
-        PageVO<SeckillSessionEntity> page = seckillSessionService.queryPage(params);
+    public R<PageVO<SeckillSessionEntity>> list(KeyPageQuery query) {
+        log.info("列表查询：{}", JSON.toJSONString(query, SerializerFeature.PrettyFormat));
+        PageVO<SeckillSessionEntity> page = seckillSessionService.queryPage(query);
 
         return R.ok(page);
     }

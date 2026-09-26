@@ -23,6 +23,7 @@ import java.util.function.Supplier;
 
 
 
+import common.query.PageQuery;
 /**
  * 会员
  *
@@ -134,8 +135,8 @@ public class MemberController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<MemberEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<MemberEntity> page = memberService.queryPage(params);
+    public R<PageVO<MemberEntity>> list(PageQuery query){
+        PageVO<MemberEntity> page = memberService.queryPage(query);
 
         return R.ok(page);
     }

@@ -21,6 +21,8 @@ import java.util.Map;
 
 
 
+import common.query.PageQuery;
+import ware.vo.PurchasePageQuery;
 /**
  * 采购信息
  *
@@ -94,9 +96,9 @@ public class PurchaseController {
      * 列表
      */
     @RequestMapping("/unreceive/list")
-    public R<PageVO<PurchaseEntity>> undeceiveList(@RequestParam Map<String, Object> params){
-        log.info("未接收的采购单: {}", params);
-        PageVO<PurchaseEntity> page = purchaseService.queryPageUnreceive(params);
+    public R<PageVO<PurchaseEntity>> undeceiveList(PageQuery query){
+        log.info("未接收的采购单: {}", query);
+        PageVO<PurchaseEntity> page = purchaseService.queryPageUnreceive(query);
 
         return R.ok(page);
     }
@@ -105,9 +107,9 @@ public class PurchaseController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<PurchaseEntity>> list(@RequestParam Map<String, Object> params){
-        log.info("采购单列表: {}", JSON.toJSONString(params, SerializerFeature.PrettyFormat));
-        PageVO<PurchaseEntity> page = purchaseService.queryPage(params);
+    public R<PageVO<PurchaseEntity>> list(PurchasePageQuery query){
+        log.info("采购单列表: {}", JSON.toJSONString(query, SerializerFeature.PrettyFormat));
+        PageVO<PurchaseEntity> page = purchaseService.queryPage(query);
 
         return R.ok(page);
     }

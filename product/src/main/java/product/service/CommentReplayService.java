@@ -6,6 +6,7 @@ import product.entity.CommentReplayEntity;
 
 import java.util.Map;
 
+import common.query.PageQuery;
 /**
  * 商品评价回复关系
  *
@@ -15,6 +16,6 @@ import java.util.Map;
  */
 public interface CommentReplayService extends IService<CommentReplayEntity> {
 
-    PageVO<CommentReplayEntity> queryPage(Map<String, Object> params);
+    PageVO<CommentReplayEntity> queryPage(PageQuery query);
 }
 

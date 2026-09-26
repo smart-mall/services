@@ -6,6 +6,7 @@ import coupon.entity.SeckillSkuNoticeEntity;
 
 import java.util.Map;
 
+import common.query.PageQuery;
 /**
  * 秒杀商品通知订阅
  *
@@ -15,6 +16,6 @@ import java.util.Map;
  */
 public interface SeckillSkuNoticeService extends IService<SeckillSkuNoticeEntity> {
 
-    PageVO<SeckillSkuNoticeEntity> queryPage(Map<String, Object> params);
+    PageVO<SeckillSkuNoticeEntity> queryPage(PageQuery query);
 }
 

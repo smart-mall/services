@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.Map;
 
 
+import common.query.PageQuery;
 /**
  * spu图片
  *
@@ -28,8 +29,8 @@ public class SpuImagesController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<SpuImagesEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<SpuImagesEntity> page = spuImagesService.queryPage(params);
+    public R<PageVO<SpuImagesEntity>> list(PageQuery query){
+        PageVO<SpuImagesEntity> page = spuImagesService.queryPage(query);
 
         return R.ok(page);
     }

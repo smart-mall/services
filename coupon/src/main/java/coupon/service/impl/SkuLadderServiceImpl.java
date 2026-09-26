@@ -6,20 +6,20 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.vo.PageVO;
-import common.utils.Query;
 
 import coupon.dao.SkuLadderDao;
 import coupon.entity.SkuLadderEntity;
 import coupon.service.SkuLadderService;
 
 
+import common.query.PageQuery;
 @Service("skuLadderService")
 public class SkuLadderServiceImpl extends ServiceImpl<SkuLadderDao, SkuLadderEntity> implements SkuLadderService {
 
     @Override
-    public PageVO<SkuLadderEntity> queryPage(Map<String, Object> params) {
+    public PageVO<SkuLadderEntity> queryPage(PageQuery query) {
         IPage<SkuLadderEntity> page = this.page(
-                new Query<SkuLadderEntity>().getPage(params),
+                query.toPage(),
                 new QueryWrapper<SkuLadderEntity>()
         );
 

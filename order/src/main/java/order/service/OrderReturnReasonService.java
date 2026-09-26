@@ -6,6 +6,7 @@ import order.entity.OrderReturnReasonEntity;
 
 import java.util.Map;
 
+import common.query.PageQuery;
 /**
  * 退货原因
  *
@@ -15,6 +16,6 @@ import java.util.Map;
  */
 public interface OrderReturnReasonService extends IService<OrderReturnReasonEntity> {
 
-    PageVO<OrderReturnReasonEntity> queryPage(Map<String, Object> params);
+    PageVO<OrderReturnReasonEntity> queryPage(PageQuery query);
 }
 

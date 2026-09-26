@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 
+import common.query.PageQuery;
 /**
  * sku销售属性&值
  *
@@ -34,8 +35,8 @@ public class SkuSaleAttrValueController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<SkuSaleAttrValueEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<SkuSaleAttrValueEntity> page = skuSaleAttrValueService.queryPage(params);
+    public R<PageVO<SkuSaleAttrValueEntity>> list(PageQuery query){
+        PageVO<SkuSaleAttrValueEntity> page = skuSaleAttrValueService.queryPage(query);
 
         return R.ok(page);
     }

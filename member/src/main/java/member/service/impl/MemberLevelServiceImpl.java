@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.vo.PageVO;
-import common.utils.Query;
 import member.dao.MemberLevelDao;
 import member.entity.MemberLevelEntity;
 import member.service.MemberLevelService;
@@ -15,12 +14,13 @@ import java.util.List;
 import java.util.Map;
 
 
+import common.query.KeyPageQuery;
 @Service("memberLevelService")
 public class MemberLevelServiceImpl extends ServiceImpl<MemberLevelDao, MemberLevelEntity> implements MemberLevelService {
 
     @Override
-    public PageVO<MemberLevelEntity> queryPage(Map<String, Object> params) {
-        String key = (String)params.get("key");
+    public PageVO<MemberLevelEntity> queryPage(KeyPageQuery query) {
+        String key = query.getKey();
 
         LambdaQueryWrapper<MemberLevelEntity> wrapper = new LambdaQueryWrapper<>();
 
@@ -31,7 +31,7 @@ public class MemberLevelServiceImpl extends ServiceImpl<MemberLevelDao, MemberLe
         }
 
         IPage<MemberLevelEntity> page = this.page(
-                new Query<MemberLevelEntity>().getPage(params),
+                query.toPage(),
                 wrapper
         );
 

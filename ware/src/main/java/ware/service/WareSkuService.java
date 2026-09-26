@@ -12,6 +12,7 @@ import ware.vo.WareSkuLockVo;
 import java.util.List;
 import java.util.Map;
 
+import ware.vo.WareSkuPageQuery;
 /**
  * 商品库存
  *
@@ -21,7 +22,7 @@ import java.util.Map;
  */
 public interface WareSkuService extends IService<WareSkuEntity> {
 
-    PageVO<WareSkuEntity> queryPage(Map<String, Object> params);
+    PageVO<WareSkuEntity> queryPage(WareSkuPageQuery query);
 
     void addStock(Long skuId, Long wareId, Integer skuNum);
 

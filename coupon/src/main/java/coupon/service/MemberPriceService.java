@@ -6,6 +6,7 @@ import coupon.entity.MemberPriceEntity;
 
 import java.util.Map;
 
+import common.query.KeyPageQuery;
 /**
  * 商品会员价格
  *
@@ -15,6 +16,6 @@ import java.util.Map;
  */
 public interface MemberPriceService extends IService<MemberPriceEntity> {
 
-    PageVO<MemberPriceEntity> queryPage(Map<String, Object> params);
+    PageVO<MemberPriceEntity> queryPage(KeyPageQuery query);
 }
 

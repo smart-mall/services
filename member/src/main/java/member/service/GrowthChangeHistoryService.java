@@ -6,6 +6,7 @@ import member.entity.GrowthChangeHistoryEntity;
 
 import java.util.Map;
 
+import common.query.PageQuery;
 /**
  * 成长值变化历史记录
  *
@@ -15,6 +16,6 @@ import java.util.Map;
  */
 public interface GrowthChangeHistoryService extends IService<GrowthChangeHistoryEntity> {
 
-    PageVO<GrowthChangeHistoryEntity> queryPage(Map<String, Object> params);
+    PageVO<GrowthChangeHistoryEntity> queryPage(PageQuery query);
 }
 

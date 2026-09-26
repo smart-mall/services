@@ -18,10 +18,4 @@ public class OrderConstant {
      */
     public static final int USER_ORDER_TOKEN_TIMEOUT_MINUTES = 30;
 
-    /** 我的订单默认每页条数 */
-    public static final int DEFAULT_PAGE_SIZE = 10;
-
-    /** 我的订单每页条数上限，防止 pageSize=100000 把整表捞出来 */
-    public static final int MAX_PAGE_SIZE = 100;
-
 }

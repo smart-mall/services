@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.vo.PageVO;
-import common.utils.Query;
 import coupon.dao.HomeSubjectDao;
 import coupon.entity.HomeSubjectEntity;
 import coupon.service.HomeSubjectService;
@@ -13,12 +12,13 @@ import org.springframework.stereotype.Service;
 import java.util.Map;
 
 
+import common.query.KeyPageQuery;
 @Service("homeSubjectService")
 public class HomeSubjectServiceImpl extends ServiceImpl<HomeSubjectDao, HomeSubjectEntity> implements HomeSubjectService {
 
     @Override
-    public PageVO<HomeSubjectEntity> queryPage(Map<String, Object> params) {
-        String key = (String)params.get("key");
+    public PageVO<HomeSubjectEntity> queryPage(KeyPageQuery query) {
+        String key = query.getKey();
         LambdaQueryWrapper<HomeSubjectEntity> wrapper = new LambdaQueryWrapper<>();
 
         if (key != null && !key.isEmpty()) {
@@ -27,7 +27,7 @@ public class HomeSubjectServiceImpl extends ServiceImpl<HomeSubjectDao, HomeSubj
                     .like(HomeSubjectEntity::getId, key);
         }
         IPage<HomeSubjectEntity> page = this.page(
-                new Query<HomeSubjectEntity>().getPage(params),
+                query.toPage(),
                 wrapper
         );
 

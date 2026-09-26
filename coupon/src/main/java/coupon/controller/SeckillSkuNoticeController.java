@@ -17,6 +17,7 @@ import common.utils.R;
 
 
 
+import common.query.PageQuery;
 /**
  * 秒杀商品通知订阅
  *
@@ -34,8 +35,8 @@ public class SeckillSkuNoticeController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<SeckillSkuNoticeEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<SeckillSkuNoticeEntity> page = seckillSkuNoticeService.queryPage(params);
+    public R<PageVO<SeckillSkuNoticeEntity>> list(PageQuery query){
+        PageVO<SeckillSkuNoticeEntity> page = seckillSkuNoticeService.queryPage(query);
 
         return R.ok(page);
     }

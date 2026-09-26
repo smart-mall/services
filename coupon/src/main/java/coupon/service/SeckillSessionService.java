@@ -7,6 +7,7 @@ import coupon.entity.SeckillSessionEntity;
 import java.util.List;
 import java.util.Map;
 
+import common.query.KeyPageQuery;
 /**
  * 秒杀活动场次
  *
@@ -16,7 +17,7 @@ import java.util.Map;
  */
 public interface SeckillSessionService extends IService<SeckillSessionEntity> {
 
-    PageVO<SeckillSessionEntity> queryPage(Map<String, Object> params);
+    PageVO<SeckillSessionEntity> queryPage(KeyPageQuery query);
 
     List<SeckillSessionEntity> getLates3DaySession();
 }

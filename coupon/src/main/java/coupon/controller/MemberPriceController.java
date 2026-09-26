@@ -17,6 +17,7 @@ import common.utils.R;
 
 
 
+import common.query.KeyPageQuery;
 /**
  * 商品会员价格
  *
@@ -34,8 +35,8 @@ public class MemberPriceController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<MemberPriceEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<MemberPriceEntity> page = memberPriceService.queryPage(params);
+    public R<PageVO<MemberPriceEntity>> list(KeyPageQuery query){
+        PageVO<MemberPriceEntity> page = memberPriceService.queryPage(query);
 
         return R.ok(page);
     }

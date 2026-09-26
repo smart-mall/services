@@ -17,6 +17,7 @@ import common.utils.R;
 
 
 
+import common.query.PageQuery;
 /**
  * 订单配置信息
  *
@@ -34,8 +35,8 @@ public class OrderSettingController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<OrderSettingEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<OrderSettingEntity> page = orderSettingService.queryPage(params);
+    public R<PageVO<OrderSettingEntity>> list(PageQuery query){
+        PageVO<OrderSettingEntity> page = orderSettingService.queryPage(query);
 
         return R.ok(page);
     }

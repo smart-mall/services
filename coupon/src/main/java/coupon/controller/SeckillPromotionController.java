@@ -15,6 +15,7 @@ import java.util.Map;
 
 
 
+import common.query.KeyPageQuery;
 /**
  * 秒杀活动
  *
@@ -36,9 +37,9 @@ public class SeckillPromotionController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<SeckillPromotionEntity>> list(@RequestParam Map<String, Object> params){
-        log.info("列表：{}", JSON.toJSONString(params, SerializerFeature.PrettyFormat));
-        PageVO<SeckillPromotionEntity> page = seckillPromotionService.queryPage(params);
+    public R<PageVO<SeckillPromotionEntity>> list(KeyPageQuery query){
+        log.info("列表：{}", JSON.toJSONString(query, SerializerFeature.PrettyFormat));
+        PageVO<SeckillPromotionEntity> page = seckillPromotionService.queryPage(query);
 
         return R.ok(page);
     }

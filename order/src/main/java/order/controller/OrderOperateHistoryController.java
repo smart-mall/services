@@ -17,6 +17,7 @@ import common.utils.R;
 
 
 
+import common.query.PageQuery;
 /**
  * 订单操作历史记录
  *
@@ -34,8 +35,8 @@ public class OrderOperateHistoryController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<OrderOperateHistoryEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<OrderOperateHistoryEntity> page = orderOperateHistoryService.queryPage(params);
+    public R<PageVO<OrderOperateHistoryEntity>> list(PageQuery query){
+        PageVO<OrderOperateHistoryEntity> page = orderOperateHistoryService.queryPage(query);
 
         return R.ok(page);
     }

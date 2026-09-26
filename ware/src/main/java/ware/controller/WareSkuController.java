@@ -15,6 +15,7 @@ import ware.vo.WareSkuLockVo;
 import java.util.List;
 import java.util.Map;
 
+import ware.vo.WareSkuPageQuery;
 import static common.exception.BaseCodeEnum.NO_STOCK_EXCEPTION;
 
 
@@ -95,8 +96,8 @@ public class WareSkuController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<WareSkuEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<WareSkuEntity> page = wareSkuService.queryPage(params);
+    public R<PageVO<WareSkuEntity>> list(WareSkuPageQuery query){
+        PageVO<WareSkuEntity> page = wareSkuService.queryPage(query);
 
         return R.ok(page);
     }

@@ -17,6 +17,7 @@ import common.utils.R;
 
 
 
+import common.query.PageQuery;
 /**
  * 退货原因
  *
@@ -34,8 +35,8 @@ public class OrderReturnReasonController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<OrderReturnReasonEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<OrderReturnReasonEntity> page = orderReturnReasonService.queryPage(params);
+    public R<PageVO<OrderReturnReasonEntity>> list(PageQuery query){
+        PageVO<OrderReturnReasonEntity> page = orderReturnReasonService.queryPage(query);
 
         return R.ok(page);
     }

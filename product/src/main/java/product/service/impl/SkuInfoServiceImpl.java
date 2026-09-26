@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.vo.PageVO;
-import common.utils.Query;
 import common.utils.R;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,6 +25,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.stream.Collectors;
 
 
+import common.query.PageQuery;
+import product.vo.SkuInfoPageQuery;
 @Slf4j
 @Service("skuInfoService")
 public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> implements SkuInfoService {
@@ -48,9 +49,9 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
     }
 
     @Override
-    public PageVO<SkuInfoEntity> queryPage(Map<String, Object> params) {
+    public PageVO<SkuInfoEntity> queryPage(PageQuery query) {
         IPage<SkuInfoEntity> page = this.page(
-                new Query<SkuInfoEntity>().getPage(params),
+                query.toPage(),
                 new QueryWrapper<>()
         );
 
@@ -58,33 +59,33 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
     }
 
     @Override
-    public PageVO<SkuInfoEntity> queryPageByCondition(Map<String, Object> params) {
+    public PageVO<SkuInfoEntity> queryPageByCondition(SkuInfoPageQuery query) {
         LambdaQueryWrapper<SkuInfoEntity> queryWrapper = new LambdaQueryWrapper<>();
 
-        String key = (String) params.get("key");
+        String key = query.getKey();
         if (key != null && !key.isEmpty()) {
             queryWrapper.and(wrapper -> wrapper.eq(SkuInfoEntity::getSkuId, key).or().like(SkuInfoEntity::getSkuName, key));
         }
 
-        String catalogId = (String) params.get("catalogId");
+        String catalogId = query.getCatalogId();
         if (catalogId != null && !catalogId.isEmpty() && !"0".equals(catalogId)) {
             queryWrapper.eq(SkuInfoEntity::getCatalogId, catalogId);
         }
 
-        String brandId = (String) params.get("brandId");
+        String brandId = query.getBrandId();
         if (brandId != null && !brandId.isEmpty() && !"0".equals(brandId)) {
             queryWrapper.eq(SkuInfoEntity::getBrandId, brandId);
         }
 
-        int min = Integer.parseInt((String) params.get("min"));
-        int max = Integer.parseInt((String) params.get("max"));
-        if (min >= 0 && min < max) {
+        Integer min = query.getMin();
+        Integer max = query.getMax();
+        if (min != null && max != null && min >= 0 && min < max) {
             queryWrapper.ge(SkuInfoEntity::getPrice, min);
             queryWrapper.le(SkuInfoEntity::getPrice, max);
         }
 
         IPage<SkuInfoEntity> page = this.page(
-                new Query<SkuInfoEntity>().getPage(params),
+                query.toPage(),
                 queryWrapper
         );
 

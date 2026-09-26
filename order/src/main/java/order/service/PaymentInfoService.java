@@ -6,6 +6,7 @@ import order.entity.PaymentInfoEntity;
 
 import java.util.Map;
 
+import common.query.PageQuery;
 /**
  * 支付信息表
  *
@@ -15,6 +16,6 @@ import java.util.Map;
  */
 public interface PaymentInfoService extends IService<PaymentInfoEntity> {
 
-    PageVO<PaymentInfoEntity> queryPage(Map<String, Object> params);
+    PageVO<PaymentInfoEntity> queryPage(PageQuery query);
 }
 

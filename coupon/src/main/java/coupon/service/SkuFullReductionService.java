@@ -8,6 +8,7 @@ import coupon.entity.SkuFullReductionEntity;
 import java.util.List;
 import java.util.Map;
 
+import common.query.KeyPageQuery;
 /**
  * 商品满减信息
  *
@@ -17,7 +18,7 @@ import java.util.Map;
  */
 public interface SkuFullReductionService extends IService<SkuFullReductionEntity> {
 
-    PageVO<SkuFullReductionEntity> queryPage(Map<String, Object> params);
+    PageVO<SkuFullReductionEntity> queryPage(KeyPageQuery query);
 
     void saveSkuReduction(SkuReductionTo skuReductionTo);
 

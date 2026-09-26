@@ -7,6 +7,7 @@ import product.entity.SkuImagesEntity;
 import java.util.List;
 import java.util.Map;
 
+import common.query.PageQuery;
 /**
  * sku图片
  *
@@ -16,7 +17,7 @@ import java.util.Map;
  */
 public interface SkuImagesService extends IService<SkuImagesEntity> {
 
-    PageVO<SkuImagesEntity> queryPage(Map<String, Object> params);
+    PageVO<SkuImagesEntity> queryPage(PageQuery query);
 
     List<SkuImagesEntity> getImagesBySkuId(Long skuId);
 }

@@ -17,6 +17,7 @@ import java.util.Map;
 
 
 
+import common.query.KeyPageQuery;
 /**
  * 会员等级
  *
@@ -44,9 +45,9 @@ public class MemberLevelController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<MemberLevelEntity>> list(@RequestParam Map<String, Object> params){
-        log.info("列表: {}", JSON.toJSONString(params, SerializerFeature.PrettyFormat));
-        PageVO<MemberLevelEntity> page = memberLevelService.queryPage(params);
+    public R<PageVO<MemberLevelEntity>> list(KeyPageQuery query){
+        log.info("列表: {}", JSON.toJSONString(query, SerializerFeature.PrettyFormat));
+        PageVO<MemberLevelEntity> page = memberLevelService.queryPage(query);
 
         return R.ok(page);
     }

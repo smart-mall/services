@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 
+import common.query.KeyPageQuery;
 /**
  * 属性分组
  *
@@ -69,10 +70,10 @@ public class AttrGroupController {
      * 获取分组的所有属性
      */
     @GetMapping("/{attrGroupId}/noattr/relation")
-    public R<PageVO<AttrEntity>> attrNoRelation(@RequestParam Map<String, Object> params,
+    public R<PageVO<AttrEntity>> attrNoRelation(KeyPageQuery query,
                             @PathVariable Long attrGroupId) {
-        log.info("获取分组的所有属性：{}, {}", attrGroupId, JSON.toJSONString(params, SerializerFeature.PrettyFormat));
-        PageVO<AttrEntity> pageUtils = attrService.getNoRelationAttr(attrGroupId, params);
+        log.info("获取分组的所有属性：{}, {}", attrGroupId, JSON.toJSONString(query, SerializerFeature.PrettyFormat));
+        PageVO<AttrEntity> pageUtils = attrService.getNoRelationAttr(attrGroupId, query);
         return R.ok(pageUtils);
     }
 
@@ -103,9 +104,9 @@ public class AttrGroupController {
      * 列表
      */
     @RequestMapping("/list/{categoryId}")
-    public R<PageVO<AttrGroupRespVO>> list(@RequestParam Map<String, Object> params, @PathVariable Long categoryId){
-        log.info("列表：{}", JSON.toJSONString(params, SerializerFeature.PrettyFormat));
-        PageVO<AttrGroupRespVO> page = attrGroupService.queryPage(params, categoryId);
+    public R<PageVO<AttrGroupRespVO>> list(KeyPageQuery query, @PathVariable Long categoryId){
+        log.info("列表：{}", JSON.toJSONString(query, SerializerFeature.PrettyFormat));
+        PageVO<AttrGroupRespVO> page = attrGroupService.queryPage(query, categoryId);
 
         return R.ok(page);
     }

@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.vo.PageVO;
-import common.utils.Query;
 import org.springframework.stereotype.Service;
 import ware.dao.WareOrderTaskDao;
 import ware.entity.WareOrderTaskEntity;
@@ -13,13 +12,14 @@ import ware.service.WareOrderTaskService;
 import java.util.Map;
 
 
+import common.query.PageQuery;
 @Service("wareOrderTaskService")
 public class WareOrderTaskServiceImpl extends ServiceImpl<WareOrderTaskDao, WareOrderTaskEntity> implements WareOrderTaskService {
 
     @Override
-    public PageVO<WareOrderTaskEntity> queryPage(Map<String, Object> params) {
+    public PageVO<WareOrderTaskEntity> queryPage(PageQuery query) {
         IPage<WareOrderTaskEntity> page = this.page(
-                new Query<WareOrderTaskEntity>().getPage(params),
+                query.toPage(),
                 new QueryWrapper<>()
         );
 

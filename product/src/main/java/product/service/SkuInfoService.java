@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
+import common.query.PageQuery;
+import product.vo.SkuInfoPageQuery;
 /**
  * sku信息
  *
@@ -19,9 +21,9 @@ import java.util.concurrent.ExecutionException;
  */
 public interface SkuInfoService extends IService<SkuInfoEntity> {
 
-    PageVO<SkuInfoEntity> queryPage(Map<String, Object> params);
+    PageVO<SkuInfoEntity> queryPage(PageQuery query);
 
-    PageVO<SkuInfoEntity> queryPageByCondition(Map<String, Object> params);
+    PageVO<SkuInfoEntity> queryPageByCondition(SkuInfoPageQuery query);
 
     SkuItemVo item(Long skuId) throws ExecutionException, InterruptedException;
 

@@ -8,6 +8,7 @@ import product.vo.SkuItemSaleAttrVo;
 import java.util.List;
 import java.util.Map;
 
+import common.query.PageQuery;
 /**
  * sku销售属性&值
  *
@@ -17,7 +18,7 @@ import java.util.Map;
  */
 public interface SkuSaleAttrValueService extends IService<SkuSaleAttrValueEntity> {
 
-    PageVO<SkuSaleAttrValueEntity> queryPage(Map<String, Object> params);
+    PageVO<SkuSaleAttrValueEntity> queryPage(PageQuery query);
 
     List<SkuItemSaleAttrVo> getSaleAttrBySpuId(Long spuId);
 

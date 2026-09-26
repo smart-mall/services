@@ -17,6 +17,7 @@ import common.utils.R;
 
 
 
+import common.query.PageQuery;
 /**
  * 商品阶梯价格
  *
@@ -34,8 +35,8 @@ public class SkuLadderController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<SkuLadderEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<SkuLadderEntity> page = skuLadderService.queryPage(params);
+    public R<PageVO<SkuLadderEntity>> list(PageQuery query){
+        PageVO<SkuLadderEntity> page = skuLadderService.queryPage(query);
 
         return R.ok(page);
     }

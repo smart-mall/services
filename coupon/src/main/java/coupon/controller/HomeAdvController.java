@@ -17,6 +17,7 @@ import common.utils.R;
 
 
 
+import common.query.PageQuery;
 /**
  * 首页轮播广告
  *
@@ -34,8 +35,8 @@ public class HomeAdvController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<HomeAdvEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<HomeAdvEntity> page = homeAdvService.queryPage(params);
+    public R<PageVO<HomeAdvEntity>> list(PageQuery query){
+        PageVO<HomeAdvEntity> page = homeAdvService.queryPage(query);
 
         return R.ok(page);
     }

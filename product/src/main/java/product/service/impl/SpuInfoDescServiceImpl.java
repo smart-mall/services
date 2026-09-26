@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.vo.PageVO;
-import common.utils.Query;
 import org.springframework.stereotype.Service;
 import product.dao.SpuInfoDescDao;
 import product.entity.SpuInfoDescEntity;
@@ -13,13 +12,14 @@ import product.service.SpuInfoDescService;
 import java.util.Map;
 
 
+import common.query.PageQuery;
 @Service("spuInfoDescService")
 public class SpuInfoDescServiceImpl extends ServiceImpl<SpuInfoDescDao, SpuInfoDescEntity> implements SpuInfoDescService {
 
     @Override
-    public PageVO<SpuInfoDescEntity> queryPage(Map<String, Object> params) {
+    public PageVO<SpuInfoDescEntity> queryPage(PageQuery query) {
         IPage<SpuInfoDescEntity> page = this.page(
-                new Query<SpuInfoDescEntity>().getPage(params),
+                query.toPage(),
                 new QueryWrapper<SpuInfoDescEntity>()
         );
 

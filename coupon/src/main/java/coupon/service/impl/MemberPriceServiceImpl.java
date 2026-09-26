@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.exception.BaseException;
 import common.vo.PageVO;
-import common.utils.Query;
 import common.utils.R;
 import coupon.dao.MemberPriceDao;
 import coupon.entity.MemberPriceEntity;
@@ -18,6 +17,7 @@ import java.util.Map;
 import java.util.Objects;
 
 
+import common.query.KeyPageQuery;
 @Service("memberPriceService")
 public class MemberPriceServiceImpl extends ServiceImpl<MemberPriceDao, MemberPriceEntity> implements MemberPriceService {
 private final ProductFeignService productFeignService;
@@ -27,11 +27,11 @@ private final ProductFeignService productFeignService;
     }
 
     @Override
-    public PageVO<MemberPriceEntity> queryPage(Map<String, Object> params) {
-        String key = (String) params.get("key");
+    public PageVO<MemberPriceEntity> queryPage(KeyPageQuery query) {
+        String key = query.getKey();
 
         IPage<MemberPriceEntity> page = this.page(
-                new Query<MemberPriceEntity>().getPage(params),
+                query.toPage(),
                 new LambdaQueryWrapper<>()
         );
 

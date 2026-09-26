@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.Map;
 
 
+import common.query.PageQuery;
 /**
  * spu信息介绍
  *
@@ -28,8 +29,8 @@ public class SpuInfoDescController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<SpuInfoDescEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<SpuInfoDescEntity> page = spuInfoDescService.queryPage(params);
+    public R<PageVO<SpuInfoDescEntity>> list(PageQuery query){
+        PageVO<SpuInfoDescEntity> page = spuInfoDescService.queryPage(query);
 
         return R.ok(page);
     }

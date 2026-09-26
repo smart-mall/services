@@ -6,7 +6,6 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.exception.BaseException;
 import common.to.SkuReductionTo;
 import common.vo.PageVO;
-import common.utils.Query;
 import common.utils.R;
 import coupon.dao.MemberPriceDao;
 import coupon.dao.SkuFullReductionDao;
@@ -26,6 +25,7 @@ import java.util.Map;
 import java.util.Objects;
 
 
+import common.query.KeyPageQuery;
 @Service("skuFullReductionService")
 public class SkuFullReductionServiceImpl extends ServiceImpl<SkuFullReductionDao, SkuFullReductionEntity> implements SkuFullReductionService {
     private final SkuLadderDao skuLadderDao;
@@ -40,11 +40,11 @@ public class SkuFullReductionServiceImpl extends ServiceImpl<SkuFullReductionDao
 
 
     @Override
-    public PageVO<SkuFullReductionEntity> queryPage(Map<String, Object> params) {
-        String key = (String) params.get("key");
+    public PageVO<SkuFullReductionEntity> queryPage(KeyPageQuery query) {
+        String key = query.getKey();
 
         IPage<SkuFullReductionEntity> page = this.page(
-                new Query<SkuFullReductionEntity>().getPage(params),
+                query.toPage(),
                 new LambdaQueryWrapper<>()
         );
 

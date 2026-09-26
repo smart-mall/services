@@ -8,6 +8,7 @@ import product.vo.AttrGroupRelationVO;
 import java.util.List;
 import java.util.Map;
 
+import common.query.PageQuery;
 /**
  * 属性&属性分组关联
  *
@@ -17,7 +18,7 @@ import java.util.Map;
  */
 public interface AttrAttrgroupRelationService extends IService<AttrAttrgroupRelationEntity> {
 
-    PageVO<AttrAttrgroupRelationEntity> queryPage(Map<String, Object> params);
+    PageVO<AttrAttrgroupRelationEntity> queryPage(PageQuery query);
 
     void addRelation(List<AttrGroupRelationVO> vos);
 }

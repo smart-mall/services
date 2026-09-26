@@ -158,7 +158,7 @@ public class AuthFilter extends OncePerRequestFilter {
             return fail(response, BaseCodeEnum.ADMIN_NOT_LOGIN_EXCEPTION);
         }
 
-        AdminVerifyVo verified;
+        R<AdminVerifyVo> verified;
         try {
             verified = adminAuthFeignService.verify(token);
         } catch (Exception e) {
@@ -166,14 +166,14 @@ public class AuthFilter extends OncePerRequestFilter {
             return fail(response, BaseCodeEnum.AUTH_UNAVAILABLE);
         }
 
-        // renren 的响应把身份平铺在顶层，没有 userId 就是凭证无效
-        if (verified == null || verified.getUserId() == null) {
+        AdminVerifyVo adminInfo = verified == null ? null : verified.getData();
+        if (adminInfo == null || adminInfo.getUserId() == null) {
             return fail(response, BaseCodeEnum.ADMIN_NOT_LOGIN_EXCEPTION);
         }
 
         AdminResponseVo admin = new AdminResponseVo();
-        admin.setId(verified.getUserId());
-        admin.setUsername(verified.getUsername());
+        admin.setId(adminInfo.getUserId());
+        admin.setUsername(adminInfo.getUsername());
 
         identity.put(ADMIN_HEADER, LoginUserUtils.encode(admin));
         return true;

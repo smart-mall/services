@@ -6,20 +6,20 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.vo.PageVO;
-import common.utils.Query;
 
 import member.dao.MemberCollectSpuDao;
 import member.entity.MemberCollectSpuEntity;
 import member.service.MemberCollectSpuService;
 
 
+import common.query.PageQuery;
 @Service("memberCollectSpuService")
 public class MemberCollectSpuServiceImpl extends ServiceImpl<MemberCollectSpuDao, MemberCollectSpuEntity> implements MemberCollectSpuService {
 
     @Override
-    public PageVO<MemberCollectSpuEntity> queryPage(Map<String, Object> params) {
+    public PageVO<MemberCollectSpuEntity> queryPage(PageQuery query) {
         IPage<MemberCollectSpuEntity> page = this.page(
-                new Query<MemberCollectSpuEntity>().getPage(params),
+                query.toPage(),
                 new QueryWrapper<MemberCollectSpuEntity>()
         );
 

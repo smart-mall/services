@@ -6,6 +6,7 @@ import ware.entity.WareOrderTaskEntity;
 
 import java.util.Map;
 
+import common.query.PageQuery;
 /**
  * 库存工作单
  *
@@ -15,7 +16,7 @@ import java.util.Map;
  */
 public interface WareOrderTaskService extends IService<WareOrderTaskEntity> {
 
-    PageVO<WareOrderTaskEntity> queryPage(Map<String, Object> params);
+    PageVO<WareOrderTaskEntity> queryPage(PageQuery query);
 
     WareOrderTaskEntity getOrderTaskByOrderSn(String orderSn);
 }

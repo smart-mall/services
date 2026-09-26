@@ -7,6 +7,7 @@ import product.entity.ProductAttrValueEntity;
 import java.util.List;
 import java.util.Map;
 
+import common.query.PageQuery;
 /**
  * spu属性值
  *
@@ -16,7 +17,7 @@ import java.util.Map;
  */
 public interface ProductAttrValueService extends IService<ProductAttrValueEntity> {
 
-    PageVO<ProductAttrValueEntity> queryPage(Map<String, Object> params);
+    PageVO<ProductAttrValueEntity> queryPage(PageQuery query);
 
     List<ProductAttrValueEntity> baseAttrListForSpu(Long spuId);
 

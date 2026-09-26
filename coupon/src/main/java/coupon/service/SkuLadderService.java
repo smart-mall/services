@@ -6,6 +6,7 @@ import coupon.entity.SkuLadderEntity;
 
 import java.util.Map;
 
+import common.query.PageQuery;
 /**
  * 商品阶梯价格
  *
@@ -15,6 +16,6 @@ import java.util.Map;
  */
 public interface SkuLadderService extends IService<SkuLadderEntity> {
 
-    PageVO<SkuLadderEntity> queryPage(Map<String, Object> params);
+    PageVO<SkuLadderEntity> queryPage(PageQuery query);
 }
 

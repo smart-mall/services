@@ -6,6 +6,7 @@ import coupon.entity.CouponSpuCategoryRelationEntity;
 
 import java.util.Map;
 
+import common.query.PageQuery;
 /**
  * 优惠券分类关联
  *
@@ -15,6 +16,6 @@ import java.util.Map;
  */
 public interface CouponSpuCategoryRelationService extends IService<CouponSpuCategoryRelationEntity> {
 
-    PageVO<CouponSpuCategoryRelationEntity> queryPage(Map<String, Object> params);
+    PageVO<CouponSpuCategoryRelationEntity> queryPage(PageQuery query);
 }
 

@@ -6,6 +6,7 @@ import order.entity.OrderSettingEntity;
 
 import java.util.Map;
 
+import common.query.PageQuery;
 /**
  * 订单配置信息
  *
@@ -15,6 +16,6 @@ import java.util.Map;
  */
 public interface OrderSettingService extends IService<OrderSettingEntity> {
 
-    PageVO<OrderSettingEntity> queryPage(Map<String, Object> params);
+    PageVO<OrderSettingEntity> queryPage(PageQuery query);
 }
 

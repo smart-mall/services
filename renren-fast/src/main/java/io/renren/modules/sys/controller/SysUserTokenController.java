@@ -12,6 +12,7 @@ import io.renren.common.utils.R;
 import io.renren.modules.sys.entity.SysUserEntity;
 import io.renren.modules.sys.entity.SysUserTokenEntity;
 import io.renren.modules.sys.service.ShiroService;
+import io.renren.modules.sys.vo.SysUserTokenVo;
 import org.apache.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -46,7 +47,7 @@ public class SysUserTokenController {
             return R.error(HttpStatus.SC_UNAUTHORIZED, "invalid token");
         }
 
-        return R.ok().put("userId", user.getUserId()).put("username", user.getUsername());
+        return R.ok().setData(new SysUserTokenVo(user.getUserId(), user.getUsername()));
     }
 
 }

@@ -9,7 +9,6 @@ import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
 import common.exception.ValidationException;
 import common.vo.PageVO;
-import common.utils.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import product.dao.ProductAttrValueDao;
@@ -23,6 +22,7 @@ import java.util.Map;
 import java.util.Objects;
 
 
+import common.query.PageQuery;
 @Service("productAttrValueService")
 public class ProductAttrValueServiceImpl extends ServiceImpl<ProductAttrValueDao, ProductAttrValueEntity> implements ProductAttrValueService {
 
@@ -33,9 +33,9 @@ public class ProductAttrValueServiceImpl extends ServiceImpl<ProductAttrValueDao
     }
 
     @Override
-    public PageVO<ProductAttrValueEntity> queryPage(Map<String, Object> params) {
+    public PageVO<ProductAttrValueEntity> queryPage(PageQuery query) {
         IPage<ProductAttrValueEntity> page = this.page(
-                new Query<ProductAttrValueEntity>().getPage(params),
+                query.toPage(),
                 new QueryWrapper<>()
         );
 

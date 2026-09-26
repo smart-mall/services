@@ -6,6 +6,7 @@ import product.entity.SpuInfoDescEntity;
 
 import java.util.Map;
 
+import common.query.PageQuery;
 /**
  * spu信息介绍
  *
@@ -15,6 +16,6 @@ import java.util.Map;
  */
 public interface SpuInfoDescService extends IService<SpuInfoDescEntity> {
 
-    PageVO<SpuInfoDescEntity> queryPage(Map<String, Object> params);
+    PageVO<SpuInfoDescEntity> queryPage(PageQuery query);
 }
 

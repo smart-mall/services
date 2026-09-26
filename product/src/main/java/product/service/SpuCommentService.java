@@ -6,6 +6,7 @@ import product.entity.SpuCommentEntity;
 
 import java.util.Map;
 
+import common.query.PageQuery;
 /**
  * 商品评价
  *
@@ -15,6 +16,6 @@ import java.util.Map;
  */
 public interface SpuCommentService extends IService<SpuCommentEntity> {
 
-    PageVO<SpuCommentEntity> queryPage(Map<String, Object> params);
+    PageVO<SpuCommentEntity> queryPage(PageQuery query);
 }
 

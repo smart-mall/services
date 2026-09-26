@@ -16,6 +16,7 @@ import java.util.Map;
 
 
 
+import ware.vo.PurchaseDetailPageQuery;
 /**
  * 
  *
@@ -39,9 +40,9 @@ public class PurchaseDetailController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<PurchaseDetailEntity>> list(@RequestParam Map<String, Object> params){
-        log.info("list params:{}", JSON.toJSONString(params, SerializerFeature.PrettyFormat));
-        PageVO<PurchaseDetailEntity> page = purchaseDetailService.queryPage(params);
+    public R<PageVO<PurchaseDetailEntity>> list(PurchaseDetailPageQuery query){
+        log.info("list params:{}", JSON.toJSONString(query, SerializerFeature.PrettyFormat));
+        PageVO<PurchaseDetailEntity> page = purchaseDetailService.queryPage(query);
 
         return R.ok(page);
     }

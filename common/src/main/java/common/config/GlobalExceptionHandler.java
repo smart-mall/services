@@ -72,7 +72,7 @@ public class GlobalExceptionHandler {
         return R.error(BaseCodeEnum.VALID_EXCEPTION, errors);
     }
 
-    /** query 参数类型不对，例如 {@code pageNum=abc} */
+    /** query 参数类型不对，例如 {@code page=abc} */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public R<Map<String, String>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
         Map<String, String> errors = new LinkedHashMap<>();

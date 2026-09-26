@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.Map;
 
 
+import common.query.PageQuery;
 /**
  * 属性&属性分组关联
  *
@@ -30,8 +31,8 @@ public class AttrAttrgroupRelationController {
      * 列表
      */
     @RequestMapping("/list")
-    public R<PageVO<AttrAttrgroupRelationEntity>> list(@RequestParam Map<String, Object> params){
-        PageVO<AttrAttrgroupRelationEntity> page = attrAttrgroupRelationService.queryPage(params);
+    public R<PageVO<AttrAttrgroupRelationEntity>> list(PageQuery query){
+        PageVO<AttrAttrgroupRelationEntity> page = attrAttrgroupRelationService.queryPage(query);
 
         return R.ok(page);
     }
