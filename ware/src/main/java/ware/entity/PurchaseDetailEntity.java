@@ -10,21 +10,11 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.List;
 
-/**
- * 
- * 
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 11:20:17
- */
 @Data
 @TableName("wms_purchase_detail")
 public class PurchaseDetailEntity implements Serializable {
 	@Serial private static final long serialVersionUID = 1L;
 
-	/**
-	 * 
-	 */
 	@TableId
 	private Long id;
 	/**

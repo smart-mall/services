@@ -3,7 +3,6 @@ package product.vo;
 import lombok.Data;
 
 /**
- * @author wangwei
  * 2021/1/11 18:36
  *
  * 商品规格参数(基本属性)VO

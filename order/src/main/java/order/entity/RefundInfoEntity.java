@@ -10,10 +10,6 @@ import lombok.Data;
 
 /**
  * 退款信息
- * 
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 11:22:13
  */
 @Data
 @TableName("oms_refund_info")
@@ -45,9 +41,6 @@ public class RefundInfoEntity implements Serializable {
 	 * 退款渠道[1-支付宝，2-微信，3-银联，4-汇款]
 	 */
 	private Integer refundChannel;
-	/**
-	 * 
-	 */
 	private String refundContent;
 
 }

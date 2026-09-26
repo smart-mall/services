@@ -9,10 +9,6 @@ import lombok.Data;
 
 /**
  * 仓库信息
- * 
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 11:20:17
  */
 @Data
 @TableName("wms_ware_info")

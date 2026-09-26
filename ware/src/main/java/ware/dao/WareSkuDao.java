@@ -9,10 +9,6 @@ import java.util.List;
 
 /**
  * 商品库存
- * 
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 11:20:17
  */
 @Mapper
 public interface WareSkuDao extends BaseMapper<WareSkuEntity> {

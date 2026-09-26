@@ -20,10 +20,6 @@ import common.utils.R;
 import common.query.PageQuery;
 /**
  * 优惠券分类关联
- *
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 11:10:43
  */
 @RestController
 @RequestMapping("coupon/couponspucategoryrelation")

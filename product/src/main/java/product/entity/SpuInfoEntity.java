@@ -11,10 +11,6 @@ import java.util.Date;
 
 /**
  * spu信息
- * 
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 09:58:33
  */
 @Data
 @TableName("pms_spu_info")
@@ -42,21 +38,12 @@ public class SpuInfoEntity implements Serializable {
 	 * 品牌id
 	 */
 	private Long brandId;
-	/**
-	 * 
-	 */
 	private BigDecimal weight;
 	/**
 	 * 上架状态[0 - 下架，1 - 上架]
 	 */
 	private Integer publishStatus;
-	/**
-	 * 
-	 */
 	private Date createTime;
-	/**
-	 * 
-	 */
 	private Date updateTime;
 
 	@TableField(exist = false)

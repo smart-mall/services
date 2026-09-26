@@ -3,7 +3,6 @@ package product.vo;
 import lombok.Data;
 
 /**
- * @author wangwei
  * 2021/1/12 11:31
  * <p>
  * /**

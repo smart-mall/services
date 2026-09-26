@@ -11,10 +11,6 @@ import java.util.Map;
 import common.query.PageQuery;
 /**
  * 品牌分类关联
- *
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 09:58:33
  */
 public interface CategoryBrandRelationService extends IService<CategoryBrandRelationEntity> {
 

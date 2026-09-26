@@ -9,10 +9,6 @@ import java.util.List;
 
 /**
  * 商品属性
- * 
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 09:58:33
  */
 @Mapper
 public interface AttrDao extends BaseMapper<AttrEntity> {

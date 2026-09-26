@@ -13,11 +13,8 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 
 /**
- * @Description: 定时关闭订单
- * @Created: with IntelliJ IDEA.
- * @author: 夏沫止水
- * @createTime: 2020-07-07 09:54
- **/
+ * 定时关闭订单
+ */
 
 @RabbitListener(queues = MqConstant.Queues.ORDER_RELEASE)
 @Service

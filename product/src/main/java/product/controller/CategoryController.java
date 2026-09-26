@@ -16,10 +16,6 @@ import java.util.List;
 
 /**
  * 商品三级分类
- *
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 09:58:33
  */
 @RestController
 @RequestMapping("product/category")
@@ -79,7 +75,7 @@ public class CategoryController {
     }
 
     /**
-     * @description 批量修改菜单
+     * 批量修改菜单
      */
     @RequestMapping("/update/sort")
     @CacheEvict(value = "category", allEntries = true)

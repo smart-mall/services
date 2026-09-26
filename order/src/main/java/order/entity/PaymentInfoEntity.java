@@ -10,10 +10,6 @@ import lombok.Data;
 
 /**
  * 支付信息表
- * 
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 11:22:13
  */
 @Data
 @TableName("oms_payment_info")

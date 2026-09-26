@@ -14,10 +14,6 @@ import common.query.PageQuery;
 import order.vo.OrderPageQuery;
 /**
  * 订单
- *
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 11:22:13
  */
 public interface OrderService extends IService<OrderEntity> {
 

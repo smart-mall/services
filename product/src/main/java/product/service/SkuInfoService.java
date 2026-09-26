@@ -14,10 +14,6 @@ import common.query.PageQuery;
 import product.vo.SkuInfoPageQuery;
 /**
  * sku信息
- *
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 09:58:33
  */
 public interface SkuInfoService extends IService<SkuInfoEntity> {
 

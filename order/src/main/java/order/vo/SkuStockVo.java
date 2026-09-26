@@ -3,11 +3,8 @@ package order.vo;
 import lombok.Data;
 
 /**
- * @Description: 库存vo
- * @Created: with IntelliJ IDEA.
- * @author: 夏沫止水
- * @createTime: 2020-07-03 18:13
- **/
+ * 库存vo
+ */
 
 @Data
 public class SkuStockVo {

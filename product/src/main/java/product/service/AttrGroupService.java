@@ -15,10 +15,6 @@ import common.query.KeyPageQuery;
 import common.query.PageQuery;
 /**
  * 属性分组
- *
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 09:58:33
  */
 public interface AttrGroupService extends IService<AttrGroupEntity> {
 

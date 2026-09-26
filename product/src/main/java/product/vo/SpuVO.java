@@ -6,7 +6,6 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * @author wangwei
  * 2020/10/19 11:28
  */
 @Data

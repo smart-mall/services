@@ -20,10 +20,6 @@ import common.exception.BaseCodeEnum;
 import common.query.PageQuery;
 /**
  * 会员收货地址
- *
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 11:14:17
  */
 @RestController
 @Slf4j

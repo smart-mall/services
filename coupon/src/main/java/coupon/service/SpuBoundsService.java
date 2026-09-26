@@ -10,10 +10,6 @@ import java.util.Map;
 import common.query.KeyPageQuery;
 /**
  * 商品spu积分设置
- *
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 11:10:43
  */
 public interface SpuBoundsService extends IService<SpuBoundsEntity> {
 

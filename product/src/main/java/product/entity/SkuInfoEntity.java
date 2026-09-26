@@ -9,10 +9,6 @@ import java.math.BigDecimal;
 
 /**
  * sku信息
- * 
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 09:58:33
  */
 @Data
 @TableName("pms_sku_info")

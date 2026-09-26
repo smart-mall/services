@@ -8,10 +8,6 @@ import java.io.Serial;import java.io.Serializable;
 
 /**
  * spu图片
- * 
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 09:58:33
  */
 @Data
 @TableName("pms_spu_images")

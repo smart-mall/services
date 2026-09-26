@@ -7,11 +7,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * @Description: Best Pay 支付配置类
- * @Created: with IntelliJ IDEA.
- * @author: 夏沫止水
- * @createTime: 2020-07-08 22:53
- **/
+ * Best Pay 支付配置类
+ */
 
 @Configuration
 public class BestPayConfig {

@@ -25,10 +25,6 @@ import common.query.PageQuery;
 import ware.vo.PurchasePageQuery;
 /**
  * 采购信息
- *
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 11:20:17
  */
 @RestController
 @RequestMapping("ware/purchase")

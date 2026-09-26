@@ -6,10 +6,6 @@ import product.entity.ProductAttrValueEntity;
 
 /**
  * spu属性值
- * 
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 09:58:33
  */
 @Mapper
 public interface ProductAttrValueDao extends BaseMapper<ProductAttrValueEntity> {

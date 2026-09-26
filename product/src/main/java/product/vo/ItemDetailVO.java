@@ -9,7 +9,6 @@ import product.entity.SpuInfoDescEntity;
 import java.util.List;
 
 /**
- * @author wangwei
  * 2021/1/11 18:25
  *
  * 商品详情模型

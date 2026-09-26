@@ -8,9 +8,6 @@ import java.math.BigDecimal;
 
 /**
  * 封装订单提交数据的vo
- *
- * @author 夏沫止水
- * @createTime 2020-07-04 11:54
  */
 
 @Data

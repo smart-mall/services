@@ -13,10 +13,6 @@ import common.query.PageQuery;
 import product.vo.SpuInfoPageQuery;
 /**
  * spu信息
- *
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 09:58:33
  */
 public interface SpuInfoService extends IService<SpuInfoEntity> {
 

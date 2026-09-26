@@ -10,10 +10,6 @@ import java.io.Serializable;
 
 /**
  * 商品库存
- * 
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 11:20:17
  */
 @Data
 @TableName("wms_ware_sku")

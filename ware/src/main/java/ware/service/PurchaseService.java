@@ -14,10 +14,6 @@ import ware.vo.PurchasePageQuery;
 import common.query.PageQuery;
 /**
  * 采购信息
- *
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 11:20:17
  */
 public interface PurchaseService extends IService<PurchaseEntity> {
 

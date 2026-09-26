@@ -10,10 +10,6 @@ import java.util.Date;
 
 /**
  * 优惠券领取历史记录
- * 
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 11:10:43
  */
 @Data
 @TableName("sms_coupon_history")

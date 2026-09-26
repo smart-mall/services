@@ -2,12 +2,6 @@ package common.to.mq;
 
 import lombok.Data;
 
-/**
- * @Description:
- * @Created: with IntelliJ IDEA.
- * @author: 夏沫止水
- * @createTime: 2020-07-06 21:14
- **/
 
 @Data
 public class StockDetailTo {

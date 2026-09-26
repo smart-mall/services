@@ -22,10 +22,6 @@ import common.query.PageQuery;
 import common.query.KeyPageQuery;
 /**
  * 商品属性
- *
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 09:58:33
  */
 @RestController
 @RequestMapping("product/attr")

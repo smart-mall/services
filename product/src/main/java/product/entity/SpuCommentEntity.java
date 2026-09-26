@@ -9,10 +9,6 @@ import java.util.Date;
 
 /**
  * 商品评价
- * 
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 09:58:33
  */
 @Data
 @TableName("pms_spu_comment")

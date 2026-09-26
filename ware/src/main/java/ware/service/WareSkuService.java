@@ -15,10 +15,6 @@ import java.util.Map;
 import ware.vo.WareSkuPageQuery;
 /**
  * 商品库存
- *
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 11:20:17
  */
 public interface WareSkuService extends IService<WareSkuEntity> {
 

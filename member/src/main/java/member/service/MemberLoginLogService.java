@@ -10,10 +10,6 @@ import java.util.Map;
 import common.query.PageQuery;
 /**
  * 会员登录记录
- *
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 11:14:17
  */
 public interface MemberLoginLogService extends IService<MemberLoginLogEntity> {
 

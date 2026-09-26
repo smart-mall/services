@@ -6,10 +6,6 @@ import org.apache.ibatis.annotations.Mapper;
 
 /**
  * 会员收藏的商品
- * 
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 11:14:17
  */
 @Mapper
 public interface MemberCollectSpuDao extends BaseMapper<MemberCollectSpuEntity> {

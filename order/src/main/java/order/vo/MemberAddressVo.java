@@ -2,12 +2,6 @@ package order.vo;
 
 import lombok.Data;
 
-/**
- * @Description:
- * @Created: with IntelliJ IDEA.
- * @author: 夏沫止水
- * @createTime: 2020-07-02 19:03
- **/
 
 @Data
 public class MemberAddressVo {

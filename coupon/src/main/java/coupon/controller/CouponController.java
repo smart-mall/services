@@ -20,10 +20,6 @@ import common.utils.R;
 import common.query.KeyPageQuery;
 /**
  * 优惠券信息
- *
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 11:10:43
  */
 @RestController
 @RequestMapping("coupon/coupon")

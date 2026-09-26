@@ -11,10 +11,6 @@ import java.util.Map;
 import common.query.PageQuery;
 /**
  * 商品三级分类
- *
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 09:58:33
  */
 public interface CategoryService extends IService<CategoryEntity> {
 

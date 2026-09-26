@@ -2,7 +2,6 @@ package order.enume;
 
 /**
  * 订单状态枚举
- * @author Jerry
  */
 
 public enum OrderStatusEnum {

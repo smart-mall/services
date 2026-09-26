@@ -20,10 +20,6 @@ import common.utils.R;
 import common.query.PageQuery;
 /**
  * 会员收藏的专题活动
- *
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 11:14:17
  */
 @RestController
 @RequestMapping("member/membercollectsubject")

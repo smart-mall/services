@@ -21,10 +21,6 @@ import static common.exception.BaseCodeEnum.NO_STOCK_EXCEPTION;
 
 /**
  * 商品库存
- *
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 11:20:17
  */
 @RestController
 @RequestMapping("ware/waresku")

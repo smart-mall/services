@@ -18,13 +18,6 @@ import common.utils.R;
 
 
 import common.query.PageQuery;
-/**
- * 
- *
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 11:14:17
- */
 @RestController
 @RequestMapping("member/undolog")
 public class UndoLogController {

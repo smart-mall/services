@@ -9,10 +9,6 @@ import lombok.Data;
 
 /**
  * 会员
- * 
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 11:14:17
  */
 @Data
 @TableName("ums_member")

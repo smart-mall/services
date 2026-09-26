@@ -17,13 +17,6 @@ import java.util.Map;
 
 
 import ware.vo.PurchaseDetailPageQuery;
-/**
- * 
- *
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 11:20:17
- */
 @RestController
 @RequestMapping("ware/purchasedetail")
 @Slf4j

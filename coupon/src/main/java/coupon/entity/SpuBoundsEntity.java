@@ -11,10 +11,6 @@ import java.math.BigDecimal;
 
 /**
  * 商品spu积分设置
- * 
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 11:10:43
  */
 @Data
 @TableName("sms_spu_bounds")
@@ -26,9 +22,6 @@ public class SpuBoundsEntity implements Serializable {
 	 */
 	@TableId
 	private Long id;
-	/**
-	 * 
-	 */
 	private Long spuId;
 	/**
 	 * 成长积分

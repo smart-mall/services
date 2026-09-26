@@ -13,56 +13,22 @@ import java.util.List;
 
 /**
  * 采购信息
- * 
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 11:20:17
  */
 @Data
 @TableName("wms_purchase")
 public class PurchaseEntity implements Serializable {
 	@Serial private static final long serialVersionUID = 1L;
 
-	/**
-	 * 
-	 */
 	@TableId
 	private Long id;
-	/**
-	 * 
-	 */
 	private Long assigneeId;
-	/**
-	 * 
-	 */
 	private String assigneeName;
-	/**
-	 * 
-	 */
 	private String phone;
-	/**
-	 * 
-	 */
 	private Integer priority;
-	/**
-	 * 
-	 */
 	private Integer status;
-	/**
-	 * 
-	 */
 	private Long wareId;
-	/**
-	 * 
-	 */
 	private BigDecimal amount;
-	/**
-	 * 
-	 */
 	private Date createTime;
-	/**
-	 * 
-	 */
 	private Date updateTime;
 
 	@TableField (exist = false)

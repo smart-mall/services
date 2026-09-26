@@ -3,11 +3,8 @@ package auth.vo;
 import lombok.Data;
 
 /**
- * @Description: 社交用户信息
- * @Created: with IntelliJ IDEA.
- * @author: 夏沫止水
- * @createTime: 2020-06-28 11:04
- **/
+ * 社交用户信息
+ */
 
 @Data
 public class SocialUser {

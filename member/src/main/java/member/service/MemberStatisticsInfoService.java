@@ -9,10 +9,6 @@ import java.util.Map;
 import common.query.PageQuery;
 /**
  * 会员统计信息
- *
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 11:14:17
  */
 public interface MemberStatisticsInfoService extends IService<MemberStatisticsInfoEntity> {
 

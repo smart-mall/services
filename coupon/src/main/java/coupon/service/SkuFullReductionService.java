@@ -11,10 +11,6 @@ import java.util.Map;
 import common.query.KeyPageQuery;
 /**
  * 商品满减信息
- *
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 11:10:43
  */
 public interface SkuFullReductionService extends IService<SkuFullReductionEntity> {
 

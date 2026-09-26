@@ -20,10 +20,6 @@ import java.util.Map;
 import common.query.KeyPageQuery;
 /**
  * 品牌
- *
- * @author ??
- * @email sunlightcs@gmail.com
- * @date 2025-09-15 09:58:33
  */
 @RestController
 @RequestMapping("product/brand")
