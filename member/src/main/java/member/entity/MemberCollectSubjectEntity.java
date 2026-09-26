@@ -28,6 +28,6 @@ public class MemberCollectSubjectEntity implements Serializable {
 	/** 活动图片地址。 */
 	private String subjectImg;
 	/** 活动跳转地址。 */
-	private String subjectUrll;
+	private String subjectUrl;
 
 }

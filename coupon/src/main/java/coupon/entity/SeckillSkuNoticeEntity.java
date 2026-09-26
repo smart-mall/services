@@ -38,7 +38,7 @@ public class SeckillSkuNoticeEntity implements Serializable {
 	/**
 	 * 订阅时间。
 	 */
-	private Date subcribeTime;
+	private Date subscribeTime;
 	/**
 	 * 提醒实际发送时间，为空表示尚未发送。
 	 */

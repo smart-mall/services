@@ -26,6 +26,6 @@ public class SpuInfoDescEntity implements Serializable {
 	/**
 	 * 商品介绍，多张图片地址拼接成一个长字符串。
 	 */
-	private String decript;
+	private String description;
 
 }

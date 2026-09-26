@@ -149,7 +149,7 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
         if (discrip != null && !discrip.isEmpty()) {
             SpuInfoDescEntity spuInfoDescEntity = new SpuInfoDescEntity();
             spuInfoDescEntity.setSpuId(spuInfoEntity.getId());
-            spuInfoDescEntity.setDecript(String.join(",", discrip));
+            spuInfoDescEntity.setDescription(String.join(",", discrip));
 
             spuInfoDescDao.insert(spuInfoDescEntity);
         }
@@ -433,10 +433,10 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
             skus.forEach(sku -> urls.add(sku.getSkuDefaultImg()));
         }
 
-        // 商品描述存的是逗号拼接的一组地址，见 saveSpuInfo 里的 String.join(",", decript)
+        // 商品描述存的是逗号拼接的一组地址，见 saveSpuInfo 里的 String.join(",", discrip)
         spuInfoDescDao.selectList(new LambdaQueryWrapper<SpuInfoDescEntity>()
                         .in(SpuInfoDescEntity::getSpuId, spuIds))
-                .forEach(desc -> urls.addAll(splitDecript(desc.getDecript())));
+                .forEach(desc -> urls.addAll(splitDescription(desc.getDescription())));
 
         return urls.stream().filter(StringUtils::hasText).distinct().toList();
     }
@@ -444,14 +444,14 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
     /**
      * 按逗号拆开商品描述里拼接的图片地址。
      *
-     * @param decript 逗号拼接的描述图地址，允许为 {@code null} 或空串
+     * @param description 逗号拼接的描述图地址，允许为 {@code null} 或空串
      * @return 拆分并去掉空白项后的地址列表；没有有效地址时返回空列表
      */
-    private static List<String> splitDecript(String decript) {
-        if (!StringUtils.hasText(decript)) {
+    private static List<String> splitDescription(String description) {
+        if (!StringUtils.hasText(description)) {
             return List.of();
         }
-        return Arrays.stream(decript.split(","))
+        return Arrays.stream(description.split(","))
                 .map(String::trim)
                 .filter(StringUtils::hasText)
                 .toList();

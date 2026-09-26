@@ -9,7 +9,7 @@
         <result property="memberId" column="member_id"/>
         <result property="skuId" column="sku_id"/>
         <result property="sessionId" column="session_id"/>
-        <result property="subcribeTime" column="subcribe_time"/>
+        <result property="subscribeTime" column="subscribe_time"/>
         <result property="sendTime" column="send_time"/>
         <result property="noticeType" column="notice_type"/>
     </resultMap>

@@ -236,7 +236,7 @@ CREATE TABLE `sms_seckill_sku_notice`  (
   `member_id` bigint(20) NULL DEFAULT NULL COMMENT 'member_id',
   `sku_id` bigint(20) NULL DEFAULT NULL COMMENT 'sku_id',
   `session_id` bigint(20) NULL DEFAULT NULL COMMENT '活动场次id',
-  `subcribe_time` datetime(0) NULL DEFAULT NULL COMMENT '订阅时间',
+  `subscribe_time` datetime(0) NULL DEFAULT NULL COMMENT '订阅时间',
   `send_time` datetime(0) NULL DEFAULT NULL COMMENT '发送时间',
   `notice_type` tinyint(1) NULL DEFAULT NULL COMMENT '通知方式[0-短信，1-邮件]',
   PRIMARY KEY (`id`) USING BTREE

@@ -1861,7 +1861,7 @@ INSERT INTO `pms_spu_info` VALUES (3, '华为 HUAWEI P40 Pro+ 麒麟990 5G ', '�
 DROP TABLE IF EXISTS `pms_spu_info_desc`;
 CREATE TABLE `pms_spu_info_desc`  (
   `spu_id` bigint(20) NOT NULL COMMENT '商品id',
-  `decript` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '商品介绍',
+  `description` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '商品介绍',
   PRIMARY KEY (`spu_id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'spu信息介绍' ROW_FORMAT = Dynamic;
 

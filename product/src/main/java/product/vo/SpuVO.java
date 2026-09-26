@@ -27,7 +27,11 @@ public class SpuVO {
     /** 上架状态：0 新建，1 已上架，2 已下架；新增时一般传 0。 */
     private Integer publishStatus;
 
-    /** 描述图片地址列表，落库时用逗号拼成 {@code pms_spu_info_desc.decript}。 */
+    /**
+     * 描述图片地址列表，落库时用逗号拼成 {@code pms_spu_info_desc.description}。
+     *
+     * <p>字段名沿用 {@code decript}：它是前端传的 JSON 键，改名要同步改管理端。
+     */
     private List<String> decript;
     /** 实物图片地址列表。 */
     private List<String> images;
