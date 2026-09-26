@@ -46,7 +46,7 @@ public class OrderPayedController {
         }
 
         boolean signVerified = AlipaySignature.rsaCheckV1(params, alipayTemplate.getAlipay_public_key(),
-                alipayTemplate.getCharset(), alipayTemplate.getSign_type()); //调用SDK验证签名
+                alipayTemplate.getCharset(), alipayTemplate.getSign_type());
 
         if (signVerified) {
             System.out.println("签名验证成功...");

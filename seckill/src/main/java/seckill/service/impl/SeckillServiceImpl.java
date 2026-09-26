@@ -69,9 +69,9 @@ public class SeckillServiceImpl implements SeckillService {
     private final String SECKILL_CACHE_PREFIX = "seckill:skus";
 
     /**
-     * 商品库存信号量
+     * 商品库存信号量。Redis key 为「本前缀 + 商品随机码」。
      */
-    private final String SKU_STOCK_SEMAPHORE = "seckill:stock:";    //+商品随机码
+    private final String SKU_STOCK_SEMAPHORE = "seckill:stock:";
 
     @Override
     public void uploadSeckillSkuLatest3Days() {
@@ -178,10 +178,9 @@ public class SeckillServiceImpl implements SeckillService {
      * 获取到当前可以参加秒杀商品的信息
      * @return
      */
-    @SentinelResource(value = "getCurrentSeckillSkusResource",blockHandler = "blockHandler") // 自定义受保护的资源
+    @SentinelResource(value = "getCurrentSeckillSkusResource",blockHandler = "blockHandler")
     @Override
     public List<SeckillSkuRedisTo> getCurrentSeckillSkus() {
-//        自定义受保护的资源
         try (Entry entry = SphU.entry("seckillSkus")) {
             //1、确定当前属于哪个秒杀场次
             long currentTime = System.currentTimeMillis();
@@ -193,8 +192,8 @@ public class SeckillServiceImpl implements SeckillService {
                 return List.of();
             }
             for (String key : keys) {
-                //seckill:sessions:1594396764000_1594453242000
-                String replace = key.replace(SESSION_CACHE_PREFIX, "");  //1594396764000_1594453242000
+                // key 形如 seckill:sessions:开始时间_结束时间；去掉前缀后剩下的就是 开始时间_结束时间
+                String replace = key.replace(SESSION_CACHE_PREFIX, "");
                 String[] s = replace.split("_");
                 //获取存入Redis商品的开始时间
                 long startTime = Long.parseLong(s[0]);
@@ -268,7 +267,8 @@ public class SeckillServiceImpl implements SeckillService {
                     if (currentTime >= startTime && currentTime <= endTime) {
                         return redisTo;
                     }
-                    redisTo.setRandomCode(null); // 非秒杀时间,删除请求随机码
+                    // 非秒杀时间，删除请求随机码
+                    redisTo.setRandomCode(null);
                     return redisTo;
                 }
             }

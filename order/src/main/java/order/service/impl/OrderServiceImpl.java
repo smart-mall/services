@@ -832,7 +832,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
         if (tradeStatus.equals("TRADE_SUCCESS") || tradeStatus.equals("TRADE_FINISHED")) {
             //支付成功状态
-            String orderSn = asyncVo.getOut_trade_no(); //获取订单号
+            String orderSn = asyncVo.getOut_trade_no();
             this.updateOrderStatus(orderSn,OrderStatusEnum.PAYED.getCode(), PayConstant.ALIPAY);
         }
 
@@ -878,11 +878,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
             throw new RuntimeException("该订单已失效,orderNo=" + payResponse.getOrderId());
         }
 
-        /*//判断金额是否一致,Double类型比较大小，精度问题不好控制
-        if (orderEntity.getPayAmount().compareTo(BigDecimal.valueOf(payResponse.getOrderAmount())) != 0) {
-            //TODO 告警
-            throw new RuntimeException("异步通知中的金额和数据库里的不一致,orderNo=" + payResponse.getOrderId());
-        }*/
+        // TODO: 微信异步通知的金额未与订单应付金额比对，需补校验并在不一致时告警
 
         //3.修改订单支付状态
         //支付成功状态

@@ -32,8 +32,8 @@ public class ProductSaveServiceImpl implements ProductSaveService {
 
         for (SkuEsModel sku : skuEsModels) {
             IndexQuery indexQuery = new IndexQuery();
-            indexQuery.setId(String.valueOf(sku.getSkuId())); // 设置文档ID
-            indexQuery.setObject(sku); // 设置对象
+            indexQuery.setId(String.valueOf(sku.getSkuId()));
+            indexQuery.setObject(sku);
             indexQueries.add(indexQuery);
         }
 

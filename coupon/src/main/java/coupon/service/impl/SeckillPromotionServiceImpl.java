@@ -44,8 +44,8 @@ public class SeckillPromotionServiceImpl extends ServiceImpl<SeckillPromotionDao
 
         List<Long> userIds = page.getRecords().stream()
                 .map(SeckillPromotionEntity::getUserId)
-                .filter(Objects::nonNull)      // 过滤 null
-                .distinct()                     // 去重
+                .filter(Objects::nonNull)
+                .distinct()
                 .toList();
 
         R<Map<Long, String>> r = renrenFeignService.getUserNames(userIds);

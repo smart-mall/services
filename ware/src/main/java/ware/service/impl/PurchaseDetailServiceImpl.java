@@ -76,8 +76,8 @@ public class PurchaseDetailServiceImpl extends ServiceImpl<PurchaseDetailDao, Pu
         // 添加skuName
         List<Long> skuIds = page.getRecords().stream()
                 .map(PurchaseDetailEntity::getSkuId)
-                .filter(Objects::nonNull)      // 过滤 null 值
-                .distinct()                    // 去重
+                .filter(Objects::nonNull)
+                .distinct()
                 .toList();
 
         if (!skuIds.isEmpty()) {
