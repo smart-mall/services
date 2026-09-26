@@ -6,9 +6,7 @@ import product.entity.CommentReplayEntity;
 
 
 import common.query.PageQuery;
-/**
- * 商品评价回复服务：维护评价与其回复之间的对应关系。
- */
+/** 商品评价回复服务：维护评价与其回复之间的对应关系。 */
 public interface CommentReplayService extends IService<CommentReplayEntity> {
 
     /**

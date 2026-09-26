@@ -18,13 +18,13 @@ public class PageQuery {
 
     private static final long DEFAULT_LIMIT = 10;
 
-    /** 单页上限，防止 limit 传成天文数字把服务拖垮 */
+    /** 单页上限，防止 limit 传成天文数字把服务拖垮。 */
     private static final long MAX_LIMIT = 1000;
 
-    /** 页码，从 1 开始；小于 1 时按 {@link #DEFAULT_PAGE} 处理 */
+    /** 页码，从 1 开始；小于 1 时按 {@link #DEFAULT_PAGE} 处理。 */
     private long page = DEFAULT_PAGE;
 
-    /** 每页条数；小于 1 时按 {@link #DEFAULT_LIMIT} 处理，超过 {@link #MAX_LIMIT} 时截断 */
+    /** 每页条数；小于 1 时按 {@link #DEFAULT_LIMIT} 处理，超过 {@link #MAX_LIMIT} 时截断。 */
     private long limit = DEFAULT_LIMIT;
 
     /**

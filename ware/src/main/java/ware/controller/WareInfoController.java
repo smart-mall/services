@@ -14,9 +14,7 @@ import java.util.List;
 
 
 import common.query.KeyPageQuery;
-/**
- * 仓库信息接口：仓库的增删改查，以及按收货地址计算运费。
- */
+/** 仓库信息接口：仓库的增删改查，以及按收货地址计算运费。 */
 @RestController
 @Slf4j
 @RequestMapping("ware/wareinfo")

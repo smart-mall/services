@@ -10,6 +10,6 @@ import lombok.Setter;
 @Setter
 public class KeyPageQuery extends PageQuery {
 
-    /** 关键字，按各接口自己的含义匹配（品牌名、分类名、采购单号…） */
+    /** 关键字，按各接口自己的含义匹配（品牌名、分类名、采购单号…）。 */
     private String key;
 }

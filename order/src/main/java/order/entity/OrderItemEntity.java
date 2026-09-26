@@ -45,33 +45,19 @@ public class OrderItemEntity implements Serializable {
 	private BigDecimal skuPrice;
 	/** 购买数量。 */
 	private Integer skuQuantity;
-	/**
-	 * 商品销售属性组合（JSON）
-	 */
+	/** 商品销售属性组合（JSON）。 */
 	private String skuAttrsVals;
-	/**
-	 * 商品促销分解金额
-	 */
+	/** 商品促销分解金额。 */
 	private BigDecimal promotionAmount;
-	/**
-	 * 优惠券优惠分解金额
-	 */
+	/** 优惠券优惠分解金额。 */
 	private BigDecimal couponAmount;
-	/**
-	 * 积分优惠分解金额
-	 */
+	/** 积分优惠分解金额。 */
 	private BigDecimal integrationAmount;
-	/**
-	 * 该商品经过优惠后的分解金额
-	 */
+	/** 该商品经过优惠后的分解金额。 */
 	private BigDecimal realAmount;
-	/**
-	 * 赠送积分
-	 */
+	/** 赠送积分。 */
 	private Integer giftIntegration;
-	/**
-	 * 赠送成长值
-	 */
+	/** 赠送成长值。 */
 	private Integer giftGrowth;
 
 }

@@ -29,7 +29,7 @@ public class MemberProfileUpdateVo {
     @Size(max = 500, message = "头像地址过长")
     private String header;
 
-    /** 0 未知 / 1 男 / 2 女 */
+    /** 0 未知 / 1 男 / 2 女。 */
     @Min(value = 0, message = "性别取值不正确")
     @Max(value = 2, message = "性别取值不正确")
     private Integer gender;

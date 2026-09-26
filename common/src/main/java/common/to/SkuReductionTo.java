@@ -29,9 +29,7 @@ public class SkuReductionTo {
     /** 该 SKU 不同会员等级的价格信息。 */
     private List<MemberPrice> memberPrice;
 
-    /**
-     * 该 SKU 的会员价条目。
-     */
+    /** 该 SKU 的会员价条目。 */
     @Data
     public static class MemberPrice {
 

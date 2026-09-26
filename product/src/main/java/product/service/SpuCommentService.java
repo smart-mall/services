@@ -6,9 +6,7 @@ import product.entity.SpuCommentEntity;
 
 
 import common.query.PageQuery;
-/**
- * 商品评价服务：维护 spu 的用户评价。
- */
+/** 商品评价服务：维护 spu 的用户评价。 */
 public interface SpuCommentService extends IService<SpuCommentEntity> {
 
     /**

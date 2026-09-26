@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS `pms_attr` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `pms_attr_attrgroup_relation` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
   `attr_id` bigint DEFAULT NULL COMMENT '属性id',
   `attr_group_id` bigint DEFAULT NULL COMMENT '属性分组id',
   `attr_sort` int DEFAULT NULL COMMENT '属性组内排序',
@@ -119,7 +119,7 @@ CREATE TABLE IF NOT EXISTS `pms_category_brand_relation` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `pms_comment_replay` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
   `comment_id` bigint DEFAULT NULL COMMENT '评论id',
   `reply_id` bigint DEFAULT NULL COMMENT '回复id',
   PRIMARY KEY (`id`) USING BTREE
@@ -128,7 +128,7 @@ CREATE TABLE IF NOT EXISTS `pms_comment_replay` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `pms_product_attr_value` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
   `spu_id` bigint DEFAULT NULL COMMENT '商品id',
   `attr_id` bigint DEFAULT NULL COMMENT '属性id',
   `attr_name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '属性名',
@@ -141,8 +141,8 @@ CREATE TABLE IF NOT EXISTS `pms_product_attr_value` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `pms_sku_images` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `sku_id` bigint DEFAULT NULL COMMENT 'sku_id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `sku_id` bigint DEFAULT NULL,
   `img_url` varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '图片地址',
   `img_sort` int DEFAULT NULL COMMENT '排序',
   `default_img` int DEFAULT NULL COMMENT '默认图[0 - 不是默认图，1 - 是默认图]',
@@ -169,9 +169,9 @@ CREATE TABLE IF NOT EXISTS `pms_sku_info` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `pms_sku_sale_attr_value` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `sku_id` bigint DEFAULT NULL COMMENT 'sku_id',
-  `attr_id` bigint DEFAULT NULL COMMENT 'attr_id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `sku_id` bigint DEFAULT NULL,
+  `attr_id` bigint DEFAULT NULL,
   `attr_name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '销售属性名',
   `attr_value` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '销售属性值',
   `attr_sort` int DEFAULT NULL COMMENT '顺序',
@@ -181,9 +181,9 @@ CREATE TABLE IF NOT EXISTS `pms_sku_sale_attr_value` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `pms_spu_comment` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `sku_id` bigint DEFAULT NULL COMMENT 'sku_id',
-  `spu_id` bigint DEFAULT NULL COMMENT 'spu_id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `sku_id` bigint DEFAULT NULL,
+  `spu_id` bigint DEFAULT NULL,
   `spu_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '商品名字',
   `member_nick_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '会员昵称',
   `star` tinyint(1) DEFAULT NULL COMMENT '星级',
@@ -203,8 +203,8 @@ CREATE TABLE IF NOT EXISTS `pms_spu_comment` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `pms_spu_images` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `spu_id` bigint DEFAULT NULL COMMENT 'spu_id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `spu_id` bigint DEFAULT NULL,
   `img_name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '图片名',
   `img_url` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '图片地址',
   `img_sort` int DEFAULT NULL COMMENT '顺序',
@@ -304,11 +304,11 @@ CREATE TABLE IF NOT EXISTS `mq_message` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `oms_order` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `member_id` bigint DEFAULT NULL COMMENT 'member_id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `member_id` bigint DEFAULT NULL,
   `order_sn` char(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '订单号',
   `coupon_id` bigint DEFAULT NULL COMMENT '使用的优惠券',
-  `create_time` datetime DEFAULT NULL COMMENT 'create_time',
+  `create_time` datetime DEFAULT NULL,
   `member_username` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '用户名',
   `total_amount` decimal(18,4) DEFAULT NULL COMMENT '订单总额',
   `pay_amount` decimal(18,4) DEFAULT NULL COMMENT '应付总额',
@@ -353,12 +353,12 @@ CREATE TABLE IF NOT EXISTS `oms_order` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `oms_order_item` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `order_id` bigint DEFAULT NULL COMMENT 'order_id',
-  `order_sn` char(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'order_sn',
-  `spu_id` bigint DEFAULT NULL COMMENT 'spu_id',
-  `spu_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'spu_name',
-  `spu_pic` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'spu_pic',
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `order_id` bigint DEFAULT NULL,
+  `order_sn` char(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `spu_id` bigint DEFAULT NULL,
+  `spu_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `spu_pic` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `spu_brand` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '品牌',
   `category_id` bigint DEFAULT NULL COMMENT '商品分类id',
   `sku_id` bigint DEFAULT NULL COMMENT '商品sku编号',
@@ -379,7 +379,7 @@ CREATE TABLE IF NOT EXISTS `oms_order_item` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `oms_order_operate_history` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
   `order_id` bigint DEFAULT NULL COMMENT '订单id',
   `operate_man` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '操作人[用户；系统；后台管理员]',
   `create_time` datetime DEFAULT NULL COMMENT '操作时间',
@@ -391,8 +391,8 @@ CREATE TABLE IF NOT EXISTS `oms_order_operate_history` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `oms_order_return_apply` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `order_id` bigint DEFAULT NULL COMMENT 'order_id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `order_id` bigint DEFAULT NULL,
   `sku_id` bigint DEFAULT NULL COMMENT '退货商品id',
   `order_sn` char(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '订单编号',
   `create_time` datetime DEFAULT NULL COMMENT '申请时间',
@@ -425,18 +425,18 @@ CREATE TABLE IF NOT EXISTS `oms_order_return_apply` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `oms_order_return_reason` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
   `name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '退货原因名',
   `sort` int DEFAULT NULL COMMENT '排序',
   `status` tinyint(1) DEFAULT NULL COMMENT '启用状态',
-  `create_time` datetime DEFAULT NULL COMMENT 'create_time',
+  `create_time` datetime DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='退货原因';
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `oms_order_setting` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
   `flash_order_overtime` int DEFAULT NULL COMMENT '秒杀订单超时关闭时间(分)',
   `normal_order_overtime` int DEFAULT NULL COMMENT '正常订单超时时间(分)',
   `confirm_overtime` int DEFAULT NULL COMMENT '发货后自动确认收货时间（天）',
@@ -449,7 +449,7 @@ CREATE TABLE IF NOT EXISTS `oms_order_setting` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `oms_payment_info` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
   `order_sn` char(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '订单号（对外业务号）',
   `order_id` bigint DEFAULT NULL COMMENT '订单id',
   `alipay_trade_no` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '支付宝交易流水号',
@@ -468,7 +468,7 @@ CREATE TABLE IF NOT EXISTS `oms_payment_info` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `oms_refund_info` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
   `order_return_id` bigint DEFAULT NULL COMMENT '退款的订单',
   `refund` decimal(18,4) DEFAULT NULL COMMENT '退款金额',
   `refund_sn` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '退款交易流水号',
@@ -520,7 +520,7 @@ CREATE TABLE IF NOT EXISTS `mq_message` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `sms_coupon` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
   `coupon_type` tinyint(1) DEFAULT NULL COMMENT '优惠卷类型[0->全场赠券；1->会员赠券；2->购物赠券；3->注册赠券]',
   `coupon_img` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '优惠券图片',
   `coupon_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '优惠卷名字',
@@ -546,7 +546,7 @@ CREATE TABLE IF NOT EXISTS `sms_coupon` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `sms_coupon_history` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
   `coupon_id` bigint DEFAULT NULL COMMENT '优惠券id',
   `member_id` bigint DEFAULT NULL COMMENT '会员id',
   `member_nick_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '会员名字',
@@ -562,7 +562,7 @@ CREATE TABLE IF NOT EXISTS `sms_coupon_history` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `sms_coupon_spu_category_relation` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
   `coupon_id` bigint DEFAULT NULL COMMENT '优惠券id',
   `category_id` bigint DEFAULT NULL COMMENT '产品分类id',
   `category_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '产品分类名称',
@@ -572,17 +572,17 @@ CREATE TABLE IF NOT EXISTS `sms_coupon_spu_category_relation` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `sms_coupon_spu_relation` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
   `coupon_id` bigint DEFAULT NULL COMMENT '优惠券id',
-  `spu_id` bigint DEFAULT NULL COMMENT 'spu_id',
-  `spu_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'spu_name',
+  `spu_id` bigint DEFAULT NULL,
+  `spu_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='优惠券与产品关联';
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `sms_home_adv` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
   `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '名字',
   `pic` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '图片地址',
   `start_time` datetime DEFAULT NULL COMMENT '开始时间',
@@ -600,7 +600,7 @@ CREATE TABLE IF NOT EXISTS `sms_home_adv` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `sms_home_subject` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
   `name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '专题名字',
   `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '专题标题',
   `sub_title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '专题副标题',
@@ -614,10 +614,10 @@ CREATE TABLE IF NOT EXISTS `sms_home_subject` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `sms_home_subject_spu` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
   `name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '专题名字',
   `subject_id` bigint DEFAULT NULL COMMENT '专题id',
-  `spu_id` bigint DEFAULT NULL COMMENT 'spu_id',
+  `spu_id` bigint DEFAULT NULL,
   `sort` int DEFAULT NULL COMMENT '排序',
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='专题商品';
@@ -625,8 +625,8 @@ CREATE TABLE IF NOT EXISTS `sms_home_subject_spu` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `sms_member_price` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `sku_id` bigint DEFAULT NULL COMMENT 'sku_id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `sku_id` bigint DEFAULT NULL,
   `member_level_id` bigint DEFAULT NULL COMMENT '会员等级id',
   `member_level_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '会员等级名',
   `member_price` decimal(18,4) DEFAULT NULL COMMENT '会员对应价格',
@@ -637,7 +637,7 @@ CREATE TABLE IF NOT EXISTS `sms_member_price` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `sms_seckill_promotion` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
   `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '活动标题',
   `start_time` datetime DEFAULT NULL COMMENT '开始日期',
   `end_time` datetime DEFAULT NULL COMMENT '结束日期',
@@ -650,7 +650,7 @@ CREATE TABLE IF NOT EXISTS `sms_seckill_promotion` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `sms_seckill_session` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
   `name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '场次名称',
   `start_time` datetime DEFAULT NULL COMMENT '每日开始时间',
   `end_time` datetime DEFAULT NULL COMMENT '每日结束时间',
@@ -662,9 +662,9 @@ CREATE TABLE IF NOT EXISTS `sms_seckill_session` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `sms_seckill_sku_notice` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `member_id` bigint DEFAULT NULL COMMENT 'member_id',
-  `sku_id` bigint DEFAULT NULL COMMENT 'sku_id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `member_id` bigint DEFAULT NULL,
+  `sku_id` bigint DEFAULT NULL,
   `session_id` bigint DEFAULT NULL COMMENT '活动场次id',
   `subscribe_time` datetime DEFAULT NULL COMMENT '订阅时间',
   `send_time` datetime DEFAULT NULL COMMENT '发送时间',
@@ -675,7 +675,7 @@ CREATE TABLE IF NOT EXISTS `sms_seckill_sku_notice` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `sms_seckill_sku_relation` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
   `promotion_id` bigint DEFAULT NULL COMMENT '活动id',
   `promotion_session_id` bigint DEFAULT NULL COMMENT '活动场次id',
   `sku_id` bigint DEFAULT NULL COMMENT '商品id',
@@ -689,8 +689,8 @@ CREATE TABLE IF NOT EXISTS `sms_seckill_sku_relation` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `sms_sku_full_reduction` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `sku_id` bigint DEFAULT NULL COMMENT 'sku_id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `sku_id` bigint DEFAULT NULL,
   `full_price` decimal(18,4) DEFAULT NULL COMMENT '满多少',
   `reduce_price` decimal(18,4) DEFAULT NULL COMMENT '减多少',
   `add_other` tinyint(1) DEFAULT NULL COMMENT '是否参与其他优惠',
@@ -700,8 +700,8 @@ CREATE TABLE IF NOT EXISTS `sms_sku_full_reduction` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `sms_sku_ladder` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `sku_id` bigint DEFAULT NULL COMMENT 'sku_id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `sku_id` bigint DEFAULT NULL,
   `full_count` int DEFAULT NULL COMMENT '满几件',
   `discount` decimal(4,2) DEFAULT NULL COMMENT '打几折',
   `price` decimal(18,4) DEFAULT NULL COMMENT '折后价',
@@ -712,7 +712,7 @@ CREATE TABLE IF NOT EXISTS `sms_sku_ladder` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `sms_spu_bounds` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
   `spu_id` bigint DEFAULT NULL,
   `grow_bounds` decimal(18,4) DEFAULT NULL COMMENT '成长积分',
   `buy_bounds` decimal(18,4) DEFAULT NULL COMMENT '购物积分',
@@ -762,9 +762,9 @@ CREATE TABLE IF NOT EXISTS `mq_message` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `ums_growth_change_history` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `member_id` bigint DEFAULT NULL COMMENT 'member_id',
-  `create_time` datetime DEFAULT NULL COMMENT 'create_time',
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `member_id` bigint DEFAULT NULL,
+  `create_time` datetime DEFAULT NULL,
   `change_count` int DEFAULT NULL COMMENT '改变的值（正负计数）',
   `note` varchar(0) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '备注',
   `source_type` tinyint DEFAULT NULL COMMENT '积分来源[0-购物，1-管理员修改]',
@@ -774,9 +774,9 @@ CREATE TABLE IF NOT EXISTS `ums_growth_change_history` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `ums_integration_change_history` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `member_id` bigint DEFAULT NULL COMMENT 'member_id',
-  `create_time` datetime DEFAULT NULL COMMENT 'create_time',
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `member_id` bigint DEFAULT NULL,
+  `create_time` datetime DEFAULT NULL,
   `change_count` int DEFAULT NULL COMMENT '变化的值',
   `note` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '备注',
   `source_type` tinyint DEFAULT NULL COMMENT '来源[0->购物；1->管理员修改;2->活动]',
@@ -786,7 +786,7 @@ CREATE TABLE IF NOT EXISTS `ums_integration_change_history` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `ums_member` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
   `level_id` bigint DEFAULT NULL COMMENT '会员等级id',
   `username` char(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '用户名',
   `password` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '密码',
@@ -813,22 +813,22 @@ CREATE TABLE IF NOT EXISTS `ums_member` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `ums_member_collect_spu` (
-  `id` bigint NOT NULL COMMENT 'id',
+  `id` bigint NOT NULL,
   `member_id` bigint DEFAULT NULL COMMENT '会员id',
-  `spu_id` bigint DEFAULT NULL COMMENT 'spu_id',
-  `spu_name` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'spu_name',
-  `spu_img` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'spu_img',
-  `create_time` datetime DEFAULT NULL COMMENT 'create_time',
+  `spu_id` bigint DEFAULT NULL,
+  `spu_name` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `spu_img` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `create_time` datetime DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='会员收藏的商品';
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `ums_member_collect_subject` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `subject_id` bigint DEFAULT NULL COMMENT 'subject_id',
-  `subject_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'subject_name',
-  `subject_img` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'subject_img',
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `subject_id` bigint DEFAULT NULL,
+  `subject_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `subject_img` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `subject_url` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '活动url',
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='会员收藏的专题活动';
@@ -836,7 +836,7 @@ CREATE TABLE IF NOT EXISTS `ums_member_collect_subject` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `ums_member_level` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
   `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '等级名称',
   `growth_point` int DEFAULT NULL COMMENT '等级需要的成长值',
   `default_status` tinyint DEFAULT NULL COMMENT '是否为默认等级[0->不是；1->是]',
@@ -852,11 +852,11 @@ CREATE TABLE IF NOT EXISTS `ums_member_level` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `ums_member_login_log` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `member_id` bigint DEFAULT NULL COMMENT 'member_id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `member_id` bigint DEFAULT NULL,
   `create_time` datetime DEFAULT NULL COMMENT '创建时间',
-  `ip` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'ip',
-  `city` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'city',
+  `ip` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `city` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `login_type` tinyint(1) DEFAULT NULL COMMENT '登录类型[1-web，2-app]',
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='会员登录记录';
@@ -864,8 +864,8 @@ CREATE TABLE IF NOT EXISTS `ums_member_login_log` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `ums_member_receive_address` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `member_id` bigint DEFAULT NULL COMMENT 'member_id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `member_id` bigint DEFAULT NULL,
   `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '收货人姓名',
   `phone` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '电话',
   `post_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '邮政编码',
@@ -881,7 +881,7 @@ CREATE TABLE IF NOT EXISTS `ums_member_receive_address` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `ums_member_statistics_info` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
   `member_id` bigint DEFAULT NULL COMMENT '会员id',
   `consume_amount` decimal(18,4) DEFAULT NULL COMMENT '累计消费金额',
   `coupon_amount` decimal(18,4) DEFAULT NULL COMMENT '累计优惠金额',
@@ -986,7 +986,7 @@ CREATE TABLE IF NOT EXISTS `wms_purchase_detail` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `wms_ware_info` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
   `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '仓库名',
   `address` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '仓库地址',
   `areacode` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '区域编码',
@@ -996,9 +996,9 @@ CREATE TABLE IF NOT EXISTS `wms_ware_info` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `wms_ware_order_task` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `order_id` bigint DEFAULT NULL COMMENT 'order_id',
-  `order_sn` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT 'order_sn',
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `order_id` bigint DEFAULT NULL,
+  `order_sn` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `consignee` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '收货人',
   `consignee_tel` char(15) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '收货人电话',
   `delivery_address` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '配送地址',
@@ -1007,7 +1007,7 @@ CREATE TABLE IF NOT EXISTS `wms_ware_order_task` (
   `task_status` tinyint DEFAULT NULL COMMENT '任务状态',
   `order_body` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '订单描述',
   `tracking_no` char(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '物流单号',
-  `create_time` datetime DEFAULT NULL COMMENT 'create_time',
+  `create_time` datetime DEFAULT NULL,
   `ware_id` bigint DEFAULT NULL COMMENT '仓库id',
   `task_comment` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '工作单备注',
   PRIMARY KEY (`id`) USING BTREE
@@ -1016,9 +1016,9 @@ CREATE TABLE IF NOT EXISTS `wms_ware_order_task` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `wms_ware_order_task_detail` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `sku_id` bigint DEFAULT NULL COMMENT 'sku_id',
-  `sku_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT 'sku_name',
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `sku_id` bigint DEFAULT NULL,
+  `sku_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `sku_num` int DEFAULT NULL COMMENT '购买个数',
   `task_id` bigint DEFAULT NULL COMMENT '工作单id',
   `ware_id` bigint DEFAULT NULL COMMENT '仓库id',
@@ -1029,11 +1029,11 @@ CREATE TABLE IF NOT EXISTS `wms_ware_order_task_detail` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `wms_ware_sku` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `sku_id` bigint DEFAULT NULL COMMENT 'sku_id',
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `sku_id` bigint DEFAULT NULL,
   `ware_id` bigint DEFAULT NULL COMMENT '仓库id',
   `stock` int DEFAULT NULL COMMENT '库存数',
-  `sku_name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT 'sku_name',
+  `sku_name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `stock_locked` int DEFAULT '0' COMMENT '锁定库存',
   PRIMARY KEY (`id`) USING BTREE,
   KEY `sku_id` (`sku_id`) USING BTREE,

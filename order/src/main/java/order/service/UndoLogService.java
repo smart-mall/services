@@ -6,9 +6,7 @@ import order.entity.UndoLogEntity;
 
 
 import common.query.PageQuery;
-/**
- * 撤销日志服务：在通用 CRUD 之上提供后台列表的分页查询。
- */
+/** 撤销日志服务：在通用 CRUD 之上提供后台列表的分页查询。 */
 public interface UndoLogService extends IService<UndoLogEntity> {
 
     /**

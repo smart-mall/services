@@ -27,7 +27,7 @@ import java.io.IOException;
 @RabbitListener(queues = MqConstant.Queues.COUPON_PRODUCT_DELETED)
 public class ProductDeletedListener {
 
-    /** 最多重试几次（不含首次投递）；4 次都失败基本不是抖动，而是数据或代码问题 */
+    /** 最多重试几次（不含首次投递）；4 次都失败基本不是抖动，而是数据或代码问题。 */
     private static final int MAX_RETRY = 3;
 
     private final ProductCleanupService productCleanupService;

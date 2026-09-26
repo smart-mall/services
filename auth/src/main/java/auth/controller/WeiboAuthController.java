@@ -31,7 +31,7 @@ import java.util.Map;
 @RestController
 public class WeiboAuthController extends AbstractSocialAuthController {
 
-    /** 微博开放平台登记的回调地址，与后台登记不一致时换不到 access_token */
+    /** 微博开放平台登记的回调地址，与后台登记不一致时换不到 access_token。 */
     private static final String WEIBO_REDIRECT_URI = "http://auth.gulimall.com/oauth2/weibo/success";
 
     public WeiboAuthController(MemberFeignService memberFeignService,

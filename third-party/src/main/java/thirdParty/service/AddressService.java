@@ -4,9 +4,7 @@ import thirdParty.vo.AreaTreeNode;
 
 import java.util.List;
 
-/**
- * 地址树查询服务。
- */
+/** 地址树查询服务。 */
 public interface AddressService {
 
     /**

@@ -24,9 +24,7 @@ public class OrderItemVo {
     /** 商品图片地址。 */
     private String image;
 
-    /**
-     * 商品套餐属性值列表（所选规格）。
-     */
+    /** 商品套餐属性值列表（所选规格）。 */
     private List<String> skuAttrValues;
 
     /** 单价。 */

@@ -79,7 +79,7 @@ class MediaServiceTest {
 
         private final List<PutCall> puts = new ArrayList<>();
         private final List<String> removed = new ArrayList<>();
-        /** 设了之后指定 key 的删除会抛异常，用来验证批量删除的容错 */
+        /** 设了之后指定 key 的删除会抛异常，用来验证批量删除的容错。 */
         private RuntimeException removeFailure;
         private String removeFailureKey;
 
@@ -101,7 +101,7 @@ class MediaServiceTest {
             removed.add(objectName);
         }
 
-        /** 让指定 key 的删除失败 */
+        /** 让指定 key 的删除失败。 */
         private void failRemoveOf(String key) {
             this.removeFailureKey = key;
             this.removeFailure = new MinIOException("boom");

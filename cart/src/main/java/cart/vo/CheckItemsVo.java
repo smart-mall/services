@@ -15,11 +15,11 @@ import java.util.List;
 @Data
 public class CheckItemsVo {
 
-    /** 待修改勾选状态的 SKU 标识列表，不能为空 */
+    /** 待修改勾选状态的 SKU 标识列表，不能为空。 */
     @NotEmpty(message = "不能为空")
     private List<Long> skuIds;
 
-    /** 目标勾选状态：{@code true} 勾选，{@code false} 取消勾选 */
+    /** 目标勾选状态：{@code true} 勾选，{@code false} 取消勾选。 */
     @NotNull(message = "不能为空")
     private Boolean checked;
 

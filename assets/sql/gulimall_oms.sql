@@ -39,11 +39,11 @@ CREATE TABLE `mq_message`  (
 -- ----------------------------
 DROP TABLE IF EXISTS `oms_order`;
 CREATE TABLE `oms_order`  (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `member_id` bigint(20) NULL DEFAULT NULL COMMENT 'member_id',
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `member_id` bigint(20) NULL DEFAULT NULL,
   `order_sn` char(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '订单号',
   `coupon_id` bigint(20) NULL DEFAULT NULL COMMENT '使用的优惠券',
-  `create_time` datetime(0) NULL DEFAULT NULL COMMENT 'create_time',
+  `create_time` datetime(0) NULL DEFAULT NULL,
   `member_username` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '用户名',
   `total_amount` decimal(18, 4) NULL DEFAULT NULL COMMENT '订单总额',
   `pay_amount` decimal(18, 4) NULL DEFAULT NULL COMMENT '应付总额',
@@ -96,12 +96,12 @@ INSERT INTO `oms_order` VALUES (2, 3, '202007102108315951281576033585246209', NU
 -- ----------------------------
 DROP TABLE IF EXISTS `oms_order_item`;
 CREATE TABLE `oms_order_item`  (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `order_id` bigint(20) NULL DEFAULT NULL COMMENT 'order_id',
-  `order_sn` char(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'order_sn',
-  `spu_id` bigint(20) NULL DEFAULT NULL COMMENT 'spu_id',
-  `spu_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'spu_name',
-  `spu_pic` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'spu_pic',
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `order_id` bigint(20) NULL DEFAULT NULL,
+  `order_sn` char(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `spu_id` bigint(20) NULL DEFAULT NULL,
+  `spu_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `spu_pic` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
   `spu_brand` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '品牌',
   `category_id` bigint(20) NULL DEFAULT NULL COMMENT '商品分类id',
   `sku_id` bigint(20) NULL DEFAULT NULL COMMENT '商品sku编号',
@@ -130,7 +130,7 @@ INSERT INTO `oms_order_item` VALUES (2, 2, '202007102108315951281576033585246209
 -- ----------------------------
 DROP TABLE IF EXISTS `oms_order_operate_history`;
 CREATE TABLE `oms_order_operate_history`  (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `order_id` bigint(20) NULL DEFAULT NULL COMMENT '订单id',
   `operate_man` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '操作人[用户；系统；后台管理员]',
   `create_time` datetime(0) NULL DEFAULT NULL COMMENT '操作时间',
@@ -144,8 +144,8 @@ CREATE TABLE `oms_order_operate_history`  (
 -- ----------------------------
 DROP TABLE IF EXISTS `oms_order_return_apply`;
 CREATE TABLE `oms_order_return_apply`  (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `order_id` bigint(20) NULL DEFAULT NULL COMMENT 'order_id',
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `order_id` bigint(20) NULL DEFAULT NULL,
   `sku_id` bigint(20) NULL DEFAULT NULL COMMENT '退货商品id',
   `order_sn` char(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '订单编号',
   `create_time` datetime(0) NULL DEFAULT NULL COMMENT '申请时间',
@@ -180,11 +180,11 @@ CREATE TABLE `oms_order_return_apply`  (
 -- ----------------------------
 DROP TABLE IF EXISTS `oms_order_return_reason`;
 CREATE TABLE `oms_order_return_reason`  (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '退货原因名',
   `sort` int(11) NULL DEFAULT NULL COMMENT '排序',
   `status` tinyint(1) NULL DEFAULT NULL COMMENT '启用状态',
-  `create_time` datetime(0) NULL DEFAULT NULL COMMENT 'create_time',
+  `create_time` datetime(0) NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '退货原因' ROW_FORMAT = Dynamic;
 
@@ -193,7 +193,7 @@ CREATE TABLE `oms_order_return_reason`  (
 -- ----------------------------
 DROP TABLE IF EXISTS `oms_order_setting`;
 CREATE TABLE `oms_order_setting`  (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `flash_order_overtime` int(11) NULL DEFAULT NULL COMMENT '秒杀订单超时关闭时间(分)',
   `normal_order_overtime` int(11) NULL DEFAULT NULL COMMENT '正常订单超时时间(分)',
   `confirm_overtime` int(11) NULL DEFAULT NULL COMMENT '发货后自动确认收货时间（天）',
@@ -208,7 +208,7 @@ CREATE TABLE `oms_order_setting`  (
 -- ----------------------------
 DROP TABLE IF EXISTS `oms_payment_info`;
 CREATE TABLE `oms_payment_info`  (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `order_sn` char(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '订单号（对外业务号）',
   `order_id` bigint(20) NULL DEFAULT NULL COMMENT '订单id',
   `alipay_trade_no` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '支付宝交易流水号',
@@ -234,7 +234,7 @@ INSERT INTO `oms_payment_info` VALUES (1, '202007051323559261279647175235624962'
 -- ----------------------------
 DROP TABLE IF EXISTS `oms_refund_info`;
 CREATE TABLE `oms_refund_info`  (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `order_return_id` bigint(20) NULL DEFAULT NULL COMMENT '退款的订单',
   `refund` decimal(18, 4) NULL DEFAULT NULL COMMENT '退款金额',
   `refund_sn` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '退款交易流水号',

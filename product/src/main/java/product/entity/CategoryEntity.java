@@ -20,47 +20,31 @@ public class CategoryEntity implements Serializable {
 	@Serial
 	private static final long serialVersionUID = 1L;
 
-	/**
-	 * 主键。
-	 */
+	/** 主键。 */
 	@TableId
 	private Long catId;
-	/**
-	 * 分类名称。
-	 */
+	/** 分类名称。 */
 	private String name;
-	/**
-	 * 父分类 ID，一级分类为 0。
-	 */
+	/** 父分类 ID，一级分类为 0。 */
 	private Long parentCid;
-	/**
-	 * 分类层级，一级分类为 1，最深到三级。
-	 */
+	/** 分类层级，一级分类为 1，最深到三级。 */
 	private Integer catLevel;
 	/**
 	 * 是否显示[0-不显示，1-显示]。本表是物理删除，没有 {@code @TableLogic} 逻辑删标记；
 	 * 只有前台导航按它过滤，见 {@code CategoryServiceImpl#getCatalogTree}。
 	 */
 	private Integer showStatus;
-	/**
-	 * 同一父分类下的展示顺序。
-	 */
+	/** 同一父分类下的展示顺序。 */
 	private Integer sort;
 	/**
 	 * Element UI 图标类名，如 el-icon-goods，只用于后台分类树渲染。
 	 */
 	private String icon;
-	/**
-	 * 计量单位。
-	 */
+	/** 计量单位。 */
 	private String productUnit;
-	/**
-	 * 该分类下的商品数量。
-	 */
+	/** 该分类下的商品数量。 */
 	private Integer productCount;
-	/**
-	 * 子分类；非数据库字段，用于组装分类树。
-	 */
+	/** 子分类；非数据库字段，用于组装分类树。 */
 	@TableField(exist = false)
 	private List<CategoryEntity> children;
 

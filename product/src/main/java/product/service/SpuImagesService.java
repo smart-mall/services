@@ -6,9 +6,7 @@ import product.entity.SpuImagesEntity;
 
 
 import common.query.PageQuery;
-/**
- * spu 图片服务：维护 spu 图集。
- */
+/** spu 图片服务：维护 spu 图集。 */
 public interface SpuImagesService extends IService<SpuImagesEntity> {
 
     /**

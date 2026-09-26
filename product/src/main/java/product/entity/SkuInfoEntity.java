@@ -18,22 +18,16 @@ import java.math.BigDecimal;
 public class SkuInfoEntity implements Serializable {
 	@Serial private static final long serialVersionUID = 1L;
 
-	/**
-	 * 主键。
-	 */
+	/** 主键。 */
 	@TableId
 	private Long skuId;
 	/**
 	 * 所属 SPU ID，指向 {@code pms_spu_info.id}。
 	 */
 	private Long spuId;
-	/**
-	 * SKU 名称，由商品名与销售属性取值拼接而成。
-	 */
+	/** SKU 名称，由商品名与销售属性取值拼接而成。 */
 	private String skuName;
-	/**
-	 * SKU 介绍描述。
-	 */
+	/** SKU 介绍描述。 */
 	private String skuDesc;
 	/**
 	 * 所属分类 ID，指向 {@code pms_category.cat_id}。
@@ -43,25 +37,15 @@ public class SkuInfoEntity implements Serializable {
 	 * 品牌 ID，指向 {@code pms_brand.brand_id}。
 	 */
 	private Long brandId;
-	/**
-	 * 默认图片地址，列表与详情页的主图取此字段。
-	 */
+	/** 默认图片地址，列表与详情页的主图取此字段。 */
 	private String skuDefaultImg;
-	/**
-	 * 标题。
-	 */
+	/** 标题。 */
 	private String skuTitle;
-	/**
-	 * 副标题，用于促销文案。
-	 */
+	/** 副标题，用于促销文案。 */
 	private String skuSubtitle;
-	/**
-	 * 售价，单位：元。
-	 */
+	/** 售价，单位：元。 */
 	private BigDecimal price;
-	/**
-	 * 销量。
-	 */
+	/** 销量。 */
 	private Long saleCount;
 
 }

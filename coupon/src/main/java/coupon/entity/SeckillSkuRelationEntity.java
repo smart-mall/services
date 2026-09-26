@@ -18,38 +18,22 @@ import lombok.Data;
 public class SeckillSkuRelationEntity implements Serializable {
 	@Serial private static final long serialVersionUID = 1L;
 
-	/**
-	 * 主键。
-	 */
+	/** 主键。 */
 	@TableId
 	private Long id;
-	/**
-	 * 所属秒杀活动 ID。
-	 */
+	/** 所属秒杀活动 ID。 */
 	private Long promotionId;
-	/**
-	 * 所属秒杀场次 ID。
-	 */
+	/** 所属秒杀场次 ID。 */
 	private Long promotionSessionId;
-	/**
-	 * 参与秒杀的商品 SKU ID。
-	 */
+	/** 参与秒杀的商品 SKU ID。 */
 	private Long skuId;
-	/**
-	 * 秒杀价。
-	 */
+	/** 秒杀价。 */
 	private BigDecimal seckillPrice;
-	/**
-	 * 本场秒杀总量。
-	 */
+	/** 本场秒杀总量。 */
 	private BigDecimal seckillCount;
-	/**
-	 * 每个会员在本场的限购数量。
-	 */
+	/** 每个会员在本场的限购数量。 */
 	private BigDecimal seckillLimit;
-	/**
-	 * 同一场次内的排序值。
-	 */
+	/** 同一场次内的排序值。 */
 	private Integer seckillSort;
 
 }

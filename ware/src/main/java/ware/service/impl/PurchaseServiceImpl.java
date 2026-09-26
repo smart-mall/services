@@ -46,7 +46,7 @@ import common.query.PageQuery;
 @Service("purchaseService")
 public class PurchaseServiceImpl extends ServiceImpl<PurchaseDao, PurchaseEntity> implements PurchaseService {
 
-    /** 没传优先级时新建采购单的默认值 */
+    /** 没传优先级时新建采购单的默认值。 */
     private static final int DEFAULT_PRIORITY = 1;
 
     private final PurchaseDetailDao purchaseDetailDao;

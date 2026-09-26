@@ -20,20 +20,20 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class IpLocationServiceImpl implements IpLocationService {
 
-    /** 按指定 IP 查询的接口地址，{@code %s} 处填目标 IP */
+    /** 按指定 IP 查询的接口地址，{@code %s} 处填目标 IP。 */
     private static final String URL_BY_IP = "http://ip-api.com/json/%s?lang=zh-CN";
-    /** 不指定 IP 的接口地址，返回的是服务端出口 IP 的归属地 */
+    /** 不指定 IP 的接口地址，返回的是服务端出口 IP 的归属地。 */
     private static final String URL_BY_EGRESS = "http://ip-api.com/json/?lang=zh-CN";
 
     /** 连接超时，单位毫秒。压得很短：这个调用挂在登录路径上，不能让它拖慢登录 */
     private static final int CONNECT_TIMEOUT_MS = 1000;
-    /** 读取超时，单位毫秒 */
+    /** 读取超时，单位毫秒。 */
     private static final int READ_TIMEOUT_MS = 2000;
 
-    /** 缓存条目上限，超过就整体清空：IP 维度无法预估，不设上限会一直涨 */
+    /** 缓存条目上限，超过就整体清空：IP 维度无法预估，不设上限会一直涨。 */
     private static final int CACHE_LIMIT = 512;
 
-    /** 私网/回环 IP 在缓存里的键：它们查的都是同一个出口 IP */
+    /** 私网/回环 IP 在缓存里的键：它们查的都是同一个出口 IP。 */
     private static final String EGRESS_CACHE_KEY = "egress";
 
     /** 查不到时的缓存值。不缓存的话每次登录都要白跑一次外部请求 */

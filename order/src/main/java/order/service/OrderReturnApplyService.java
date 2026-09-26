@@ -6,9 +6,7 @@ import order.entity.OrderReturnApplyEntity;
 
 
 import common.query.PageQuery;
-/**
- * 退货申请服务：在通用 CRUD 之上提供后台列表的分页查询。
- */
+/** 退货申请服务：在通用 CRUD 之上提供后台列表的分页查询。 */
 public interface OrderReturnApplyService extends IService<OrderReturnApplyEntity> {
 
     /**

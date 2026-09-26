@@ -18,54 +18,30 @@ import java.util.Date;
 public class HomeAdvEntity implements Serializable {
 	@Serial private static final long serialVersionUID = 1L;
 
-	/**
-	 * 主键。
-	 */
+	/** 主键。 */
 	@TableId
 	private Long id;
-	/**
-	 * 广告名称。
-	 */
+	/** 广告名称。 */
 	private String name;
-	/**
-	 * 广告图片地址。
-	 */
+	/** 广告图片地址。 */
 	private String pic;
-	/**
-	 * 投放开始时间。
-	 */
+	/** 投放开始时间。 */
 	private Date startTime;
-	/**
-	 * 投放结束时间。
-	 */
+	/** 投放结束时间。 */
 	private Date endTime;
-	/**
-	 * 广告启用状态。
-	 */
+	/** 广告启用状态。 */
 	private Integer status;
-	/**
-	 * 广告累计点击次数。
-	 */
+	/** 广告累计点击次数。 */
 	private Integer clickCount;
-	/**
-	 * 广告详情页跳转地址。
-	 */
+	/** 广告详情页跳转地址。 */
 	private String url;
-	/**
-	 * 备注。
-	 */
+	/** 备注。 */
 	private String note;
-	/**
-	 * 排序值，控制展示顺序。
-	 */
+	/** 排序值，控制展示顺序。 */
 	private Integer sort;
-	/**
-	 * 发布者用户 ID。
-	 */
+	/** 发布者用户 ID。 */
 	private Long publisherId;
-	/**
-	 * 审核者用户 ID。
-	 */
+	/** 审核者用户 ID。 */
 	private Long authId;
 
 }

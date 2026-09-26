@@ -16,10 +16,10 @@ import java.util.UUID;
 @Slf4j
 public class OutboxStoreImpl implements OutboxStore {
 
-    /** 刚提交的消息正由 afterCommit 投递，扫描时跳过 */
+    /** 刚提交的消息正由 afterCommit 投递，扫描时跳过。 */
     private static final long RESEND_DELAY_MILLIS = 60_000L;
 
-    /** CLAIMED 超过这个时长仍未完成，视为抢占方已挂，允许重新抢占 */
+    /** CLAIMED 超过这个时长仍未完成，视为抢占方已挂，允许重新抢占。 */
     private static final long CLAIM_TIMEOUT_MILLIS = 300_000L;
 
     private final OutboxDao outboxDao;

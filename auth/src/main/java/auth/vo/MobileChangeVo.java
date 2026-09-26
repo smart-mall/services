@@ -13,12 +13,12 @@ import lombok.Data;
 @Data
 public class MobileChangeVo {
 
-    /** 新手机号，换绑成功后作为登录凭据 */
+    /** 新手机号，换绑成功后作为登录凭据。 */
     @NotEmpty(message = "手机号不能为空")
     @Pattern(regexp = "^1[3-9]\\d{9}$", message = "手机号格式不正确")
     private String mobile;
 
-    /** 发送到新手机号的验证码 */
+    /** 发送到新手机号的验证码。 */
     @NotEmpty(message = "验证码不能为空")
     private String code;
 }

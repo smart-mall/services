@@ -6,9 +6,7 @@ import order.entity.OrderReturnReasonEntity;
 
 
 import common.query.PageQuery;
-/**
- * 退货原因服务：在通用 CRUD 之上提供后台列表的分页查询。
- */
+/** 退货原因服务：在通用 CRUD 之上提供后台列表的分页查询。 */
 public interface OrderReturnReasonService extends IService<OrderReturnReasonEntity> {
 
     /**

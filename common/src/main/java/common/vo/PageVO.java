@@ -18,9 +18,9 @@ import java.util.List;
 @AllArgsConstructor
 public class PageVO<T> {
 
-    /** 总行数 */
+    /** 总行数。 */
     private long total;
 
-    /** 当前页的行数据 */
+    /** 当前页的行数据。 */
     private List<T> rows;
 }

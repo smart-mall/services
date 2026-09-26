@@ -15,7 +15,7 @@ import java.util.Map;
  */
 public class ValidationException extends BaseException {
 
-    /** 字段名 → 中文消息，不可修改 */
+    /** 字段名 → 中文消息，不可修改。 */
     private final Map<String, String> errors;
 
     /**

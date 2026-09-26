@@ -24,7 +24,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- ----------------------------
 DROP TABLE IF EXISTS `sms_coupon`;
 CREATE TABLE `sms_coupon`  (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `coupon_type` tinyint(1) NULL DEFAULT NULL COMMENT '优惠卷类型[0->全场赠券；1->会员赠券；2->购物赠券；3->注册赠券]',
   `coupon_img` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '优惠券图片',
   `coupon_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '优惠卷名字',
@@ -52,7 +52,7 @@ CREATE TABLE `sms_coupon`  (
 -- ----------------------------
 DROP TABLE IF EXISTS `sms_coupon_history`;
 CREATE TABLE `sms_coupon_history`  (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `coupon_id` bigint(20) NULL DEFAULT NULL COMMENT '优惠券id',
   `member_id` bigint(20) NULL DEFAULT NULL COMMENT '会员id',
   `member_nick_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '会员名字',
@@ -70,7 +70,7 @@ CREATE TABLE `sms_coupon_history`  (
 -- ----------------------------
 DROP TABLE IF EXISTS `sms_coupon_spu_category_relation`;
 CREATE TABLE `sms_coupon_spu_category_relation`  (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `coupon_id` bigint(20) NULL DEFAULT NULL COMMENT '优惠券id',
   `category_id` bigint(20) NULL DEFAULT NULL COMMENT '产品分类id',
   `category_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '产品分类名称',
@@ -82,10 +82,10 @@ CREATE TABLE `sms_coupon_spu_category_relation`  (
 -- ----------------------------
 DROP TABLE IF EXISTS `sms_coupon_spu_relation`;
 CREATE TABLE `sms_coupon_spu_relation`  (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `coupon_id` bigint(20) NULL DEFAULT NULL COMMENT '优惠券id',
-  `spu_id` bigint(20) NULL DEFAULT NULL COMMENT 'spu_id',
-  `spu_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'spu_name',
+  `spu_id` bigint(20) NULL DEFAULT NULL,
+  `spu_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '优惠券与产品关联' ROW_FORMAT = Dynamic;
 
@@ -94,7 +94,7 @@ CREATE TABLE `sms_coupon_spu_relation`  (
 -- ----------------------------
 DROP TABLE IF EXISTS `sms_home_adv`;
 CREATE TABLE `sms_home_adv`  (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '名字',
   `pic` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '图片地址',
   `start_time` datetime(0) NULL DEFAULT NULL COMMENT '开始时间',
@@ -114,7 +114,7 @@ CREATE TABLE `sms_home_adv`  (
 -- ----------------------------
 DROP TABLE IF EXISTS `sms_home_subject`;
 CREATE TABLE `sms_home_subject`  (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '专题名字',
   `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '专题标题',
   `sub_title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '专题副标题',
@@ -130,10 +130,10 @@ CREATE TABLE `sms_home_subject`  (
 -- ----------------------------
 DROP TABLE IF EXISTS `sms_home_subject_spu`;
 CREATE TABLE `sms_home_subject_spu`  (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '专题名字',
   `subject_id` bigint(20) NULL DEFAULT NULL COMMENT '专题id',
-  `spu_id` bigint(20) NULL DEFAULT NULL COMMENT 'spu_id',
+  `spu_id` bigint(20) NULL DEFAULT NULL,
   `sort` int(11) NULL DEFAULT NULL COMMENT '排序',
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '专题商品' ROW_FORMAT = Dynamic;
@@ -143,8 +143,8 @@ CREATE TABLE `sms_home_subject_spu`  (
 -- ----------------------------
 DROP TABLE IF EXISTS `sms_member_price`;
 CREATE TABLE `sms_member_price`  (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `sku_id` bigint(20) NULL DEFAULT NULL COMMENT 'sku_id',
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `sku_id` bigint(20) NULL DEFAULT NULL,
   `member_level_id` bigint(20) NULL DEFAULT NULL COMMENT '会员等级id',
   `member_level_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '会员等级名',
   `member_price` decimal(18, 4) NULL DEFAULT NULL COMMENT '会员对应价格',
@@ -197,7 +197,7 @@ INSERT INTO `sms_member_price` VALUES (36, 9, 5, '钻石会员', 3288.0000, 1);
 -- ----------------------------
 DROP TABLE IF EXISTS `sms_seckill_promotion`;
 CREATE TABLE `sms_seckill_promotion`  (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '活动标题',
   `start_time` datetime(0) NULL DEFAULT NULL COMMENT '开始日期',
   `end_time` datetime(0) NULL DEFAULT NULL COMMENT '结束日期',
@@ -212,7 +212,7 @@ CREATE TABLE `sms_seckill_promotion`  (
 -- ----------------------------
 DROP TABLE IF EXISTS `sms_seckill_session`;
 CREATE TABLE `sms_seckill_session`  (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '场次名称',
   `start_time` datetime(0) NULL DEFAULT NULL COMMENT '每日开始时间',
   `end_time` datetime(0) NULL DEFAULT NULL COMMENT '每日结束时间',
@@ -232,9 +232,9 @@ INSERT INTO `sms_seckill_session` VALUES (2, '谷粒秒杀', '2020-07-09 05:15:0
 -- ----------------------------
 DROP TABLE IF EXISTS `sms_seckill_sku_notice`;
 CREATE TABLE `sms_seckill_sku_notice`  (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `member_id` bigint(20) NULL DEFAULT NULL COMMENT 'member_id',
-  `sku_id` bigint(20) NULL DEFAULT NULL COMMENT 'sku_id',
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `member_id` bigint(20) NULL DEFAULT NULL,
+  `sku_id` bigint(20) NULL DEFAULT NULL,
   `session_id` bigint(20) NULL DEFAULT NULL COMMENT '活动场次id',
   `subscribe_time` datetime(0) NULL DEFAULT NULL COMMENT '订阅时间',
   `send_time` datetime(0) NULL DEFAULT NULL COMMENT '发送时间',
@@ -247,7 +247,7 @@ CREATE TABLE `sms_seckill_sku_notice`  (
 -- ----------------------------
 DROP TABLE IF EXISTS `sms_seckill_sku_relation`;
 CREATE TABLE `sms_seckill_sku_relation`  (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `promotion_id` bigint(20) NULL DEFAULT NULL COMMENT '活动id',
   `promotion_session_id` bigint(20) NULL DEFAULT NULL COMMENT '活动场次id',
   `sku_id` bigint(20) NULL DEFAULT NULL COMMENT '商品id',
@@ -269,8 +269,8 @@ INSERT INTO `sms_seckill_sku_relation` VALUES (2, NULL, 2, 1, 6666, 200, 1, 0);
 -- ----------------------------
 DROP TABLE IF EXISTS `sms_sku_full_reduction`;
 CREATE TABLE `sms_sku_full_reduction`  (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `sku_id` bigint(20) NULL DEFAULT NULL COMMENT 'sku_id',
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `sku_id` bigint(20) NULL DEFAULT NULL,
   `full_price` decimal(18, 4) NULL DEFAULT NULL COMMENT '满多少',
   `reduce_price` decimal(18, 4) NULL DEFAULT NULL COMMENT '减多少',
   `add_other` tinyint(1) NULL DEFAULT NULL COMMENT '是否参与其他优惠',
@@ -295,8 +295,8 @@ INSERT INTO `sms_sku_full_reduction` VALUES (9, 9, 6666.0000, 200.0000, NULL);
 -- ----------------------------
 DROP TABLE IF EXISTS `sms_sku_ladder`;
 CREATE TABLE `sms_sku_ladder`  (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `sku_id` bigint(20) NULL DEFAULT NULL COMMENT 'sku_id',
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `sku_id` bigint(20) NULL DEFAULT NULL,
   `full_count` int(11) NULL DEFAULT NULL COMMENT '满几件',
   `discount` decimal(4, 2) NULL DEFAULT NULL COMMENT '打几折',
   `price` decimal(18, 4) NULL DEFAULT NULL COMMENT '折后价',
@@ -331,7 +331,7 @@ INSERT INTO `sms_sku_ladder` VALUES (18, 9, 4, 0.80, NULL, 0);
 -- ----------------------------
 DROP TABLE IF EXISTS `sms_spu_bounds`;
 CREATE TABLE `sms_spu_bounds`  (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `spu_id` bigint(20) NULL DEFAULT NULL,
   `grow_bounds` decimal(18, 4) NULL DEFAULT NULL COMMENT '成长积分',
   `buy_bounds` decimal(18, 4) NULL DEFAULT NULL COMMENT '购物积分',

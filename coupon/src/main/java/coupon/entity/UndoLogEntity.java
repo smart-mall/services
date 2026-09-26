@@ -18,42 +18,24 @@ import lombok.Data;
 public class UndoLogEntity implements Serializable {
 	@Serial private static final long serialVersionUID = 1L;
 
-	/**
-	 * 主键。
-	 */
+	/** 主键。 */
 	@TableId
 	private Long id;
-	/**
-	 * 分支事务 ID，与全局事务 ID 共同定位一条回滚记录。
-	 */
+	/** 分支事务 ID，与全局事务 ID 共同定位一条回滚记录。 */
 	private Long branchId;
-	/**
-	 * 全局事务 ID。
-	 */
+	/** 全局事务 ID。 */
 	private String xid;
-	/**
-	 * 回滚上下文，与回滚镜像一并持久化。
-	 */
+	/** 回滚上下文，与回滚镜像一并持久化。 */
 	private String context;
-	/**
-	 * 回滚镜像的二进制数据，保存数据被修改前后的行值。
-	 */
+	/** 回滚镜像的二进制数据，保存数据被修改前后的行值。 */
 	private byte[] rollbackInfo;
-	/**
-	 * 回滚日志状态。
-	 */
+	/** 回滚日志状态。 */
 	private Integer logStatus;
-	/**
-	 * 回滚日志创建时间。
-	 */
+	/** 回滚日志创建时间。 */
 	private Date logCreated;
-	/**
-	 * 回滚日志最后修改时间。
-	 */
+	/** 回滚日志最后修改时间。 */
 	private Date logModified;
-	/**
-	 * 扩展字段。
-	 */
+	/** 扩展字段。 */
 	private String ext;
 
 }

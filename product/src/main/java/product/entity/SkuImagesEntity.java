@@ -15,26 +15,18 @@ import java.io.Serializable;
 public class SkuImagesEntity implements Serializable {
 	@Serial private static final long serialVersionUID = 1L;
 
-	/**
-	 * 主键。
-	 */
+	/** 主键。 */
 	@TableId
 	private Long id;
 	/**
 	 * 所属 SKU ID，指向 {@code pms_sku_info.sku_id}。
 	 */
 	private Long skuId;
-	/**
-	 * 图片地址。
-	 */
+	/** 图片地址。 */
 	private String imgUrl;
-	/**
-	 * 展示顺序。
-	 */
+	/** 展示顺序。 */
 	private Integer imgSort;
-	/**
-	 * 默认图[0-不是默认图，1-是默认图]。
-	 */
+	/** 默认图[0-不是默认图，1-是默认图]。 */
 	private Integer defaultImg;
 
 }

@@ -11,9 +11,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import java.util.List;
 
 
-/**
- * 会员服务的远程调用接口，用于查询与新增收货地址。
- */
+/** 会员服务的远程调用接口，用于查询与新增收货地址。 */
 @FeignClient("member")
 public interface MemberFeignService {
 

@@ -42,9 +42,7 @@ public class SpuVO {
     /** 该 spu 下的全部 sku。 */
     private List<Sku> skus;
 
-    /**
-     * 商品积分策略：购买该 spu 可获得的购物积分与成长积分。
-     */
+    /** 商品积分策略：购买该 spu 可获得的购物积分与成长积分。 */
     @Data
     public static class Bounds {
 
@@ -81,9 +79,7 @@ public class SpuVO {
         private String attrValue;
     }
 
-    /**
-     * sku 图集中的一张图。
-     */
+    /** sku 图集中的一张图。 */
     @Data
     public static class Images {
 
@@ -93,9 +89,7 @@ public class SpuVO {
         private Integer defaultImg;
     }
 
-    /**
-     * 该 sku 在一个会员等级下的价格。
-     */
+    /** 该 sku 在一个会员等级下的价格。 */
     @Data
      public static class MemberPrice {
 
@@ -107,9 +101,7 @@ public class SpuVO {
         private BigDecimal price;
     }
 
-    /**
-     * 商品下的一个 sku，由销售属性取值组合唯一确定。
-     */
+    /** 商品下的一个 sku，由销售属性取值组合唯一确定。 */
     @Data
     public static class Sku {
 

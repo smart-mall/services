@@ -6,9 +6,7 @@ import order.entity.PaymentInfoEntity;
 
 
 import common.query.PageQuery;
-/**
- * 支付信息服务：在通用 CRUD 之上提供后台列表的分页查询。
- */
+/** 支付信息服务：在通用 CRUD 之上提供后台列表的分页查询。 */
 public interface PaymentInfoService extends IService<PaymentInfoEntity> {
 
     /**

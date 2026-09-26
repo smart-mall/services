@@ -17,13 +17,13 @@ import lombok.Data;
 @Data
 public class PayResultVo {
 
-    /** 支付方式，取值见 {@link order.constant.PayConstant}：1 支付宝 / 2 微信 */
+    /** 支付方式，取值见 {@link order.constant.PayConstant}：1 支付宝 / 2 微信。 */
     private Integer payType;
 
-    /** 支付宝：HTML 表单，非空时忽略 codeUrl */
+    /** 支付宝：HTML 表单，非空时忽略 codeUrl。 */
     private String form;
 
-    /** 微信：二维码内容，非空时忽略 form */
+    /** 微信：二维码内容，非空时忽略 form。 */
     private String codeUrl;
 
 }

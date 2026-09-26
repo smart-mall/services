@@ -17,9 +17,7 @@ import java.io.Serializable;
 public class ProductAttrValueEntity implements Serializable {
 	@Serial private static final long serialVersionUID = 1L;
 
-	/**
-	 * 主键。
-	 */
+	/** 主键。 */
 	@TableId
 	private Long id;
 	/**
@@ -30,21 +28,13 @@ public class ProductAttrValueEntity implements Serializable {
 	 * 属性 ID，指向 {@code pms_attr.attr_id}。
 	 */
 	private Long attrId;
-	/**
-	 * 属性名快照。
-	 */
+	/** 属性名快照。 */
 	private String attrName;
-	/**
-	 * 属性值。
-	 */
+	/** 属性值。 */
 	private String attrValue;
-	/**
-	 * 同一 SPU 内的展示顺序。
-	 */
+	/** 同一 SPU 内的展示顺序。 */
 	private Integer attrSort;
-	/**
-	 * 快速展示[0-否，1-是]：是否展示在商品介绍上。
-	 */
+	/** 快速展示[0-否，1-是]：是否展示在商品介绍上。 */
 	private Integer quickShow;
 
 }

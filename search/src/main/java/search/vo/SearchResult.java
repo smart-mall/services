@@ -13,40 +13,26 @@ import java.util.List;
 @Data
 public class SearchResult {
 
-    /**
-     * 命中的商品列表
-     */
+    /** 命中的商品列表。 */
     private List<SkuEsModel> product;
 
 
-    /**
-     * 当前页码
-     */
+    /** 当前页码。 */
     private Integer pageNum;
 
-    /**
-     * 总记录数
-     */
+    /** 总记录数。 */
     private Long total;
 
-    /**
-     * 总页码
-     */
+    /** 总页码。 */
     private Integer totalPages;
 
-    /**
-     * 当前查询到的结果，所有涉及到的品牌
-     */
+    /** 当前查询到的结果，所有涉及到的品牌。 */
     private List<BrandVo> brands;
 
-    /**
-     * 当前查询到的结果，所有涉及到的所有属性
-     */
+    /** 当前查询到的结果，所有涉及到的所有属性。 */
     private List<AttrVo> attrs;
 
-    /**
-     * 当前查询到的结果，所有涉及到的所有分类
-     */
+    /** 当前查询到的结果，所有涉及到的所有分类。 */
     private List<CatalogVo> catalogs;
 
 
@@ -67,23 +53,21 @@ public class SearchResult {
     @Data
     public static class NavVo {
 
-        /** 筛选条件的类别名，例如"品牌"、"分类"、"内存" */
+        /** 筛选条件的类别名，例如"品牌"、"分类"、"内存"。 */
         private String navName;
 
-        /** 展示用的具体值，例如"华为"、"手机"、"8GB"；属性多值时用顿号连接 */
+        /** 展示用的具体值，例如"华为"、"手机"、"8GB"；属性多值时用顿号连接。 */
         private String navValue;
 
-        /** 点击 x 时要移除的查询参数名，例如 brandId / catalog3Id / attrs */
+        /** 点击 x 时要移除的查询参数名，例如 brandId / catalog3Id / attrs。 */
         private String removeKey;
 
-        /** 要移除的参数值，原样未做 URL 编码，例如 "1" / "5" / "1_华为" */
+        /** 要移除的参数值，原样未做 URL 编码，例如 "1" / "5" / "1_华为"。 */
         private String removeValue;
     }
 
 
-    /**
-     * 检索结果中出现过的品牌，供前端渲染品牌筛选项。
-     */
+    /** 检索结果中出现过的品牌，供前端渲染品牌筛选项。 */
     @Data
     public static class BrandVo {
 
@@ -98,9 +82,7 @@ public class SearchResult {
     }
 
 
-    /**
-     * 检索结果中出现过的属性，供前端渲染属性筛选项。
-     */
+    /** 检索结果中出现过的属性，供前端渲染属性筛选项。 */
     @Data
     public static class AttrVo {
 
@@ -115,9 +97,7 @@ public class SearchResult {
     }
 
 
-    /**
-     * 检索结果中出现过的分类，供前端渲染分类筛选项。
-     */
+    /** 检索结果中出现过的分类，供前端渲染分类筛选项。 */
     @Data
     public static class CatalogVo {
 

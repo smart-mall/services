@@ -28,7 +28,7 @@ import java.io.IOException;
 @RabbitListener(queues = MqConstant.Queues.WARE_PRODUCT_DELETED)
 public class ProductDeletedListener {
 
-    /** 最多重试几次（不含首次投递） */
+    /** 最多重试几次（不含首次投递）。 */
     private static final int MAX_RETRY = 3;
 
     private final WareSkuService wareSkuService;

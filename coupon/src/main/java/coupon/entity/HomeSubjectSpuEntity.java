@@ -17,26 +17,18 @@ import java.io.Serializable;
 public class HomeSubjectSpuEntity implements Serializable {
 	@Serial private static final long serialVersionUID = 1L;
 
-	/**
-	 * 主键。
-	 */
+	/** 主键。 */
 	@TableId
 	private Long id;
-	/**
-	 * 所属专题名称。
-	 */
+	/** 所属专题名称。 */
 	private String name;
 	/**
 	 * 所属专题 ID，关联 {@code sms_home_subject.id}。
 	 */
 	private Long subjectId;
-	/**
-	 * 专题内展示的商品 SPU ID。
-	 */
+	/** 专题内展示的商品 SPU ID。 */
 	private Long spuId;
-	/**
-	 * 专题内商品的排序值。
-	 */
+	/** 专题内商品的排序值。 */
 	private Integer sort;
 
 }

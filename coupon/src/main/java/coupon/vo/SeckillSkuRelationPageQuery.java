@@ -13,6 +13,6 @@ import lombok.Setter;
 @Setter
 public class SeckillSkuRelationPageQuery extends PageQuery {
 
-    /** 秒杀活动场次 ID，非空时按场次精确筛选，为空时不加条件 */
+    /** 秒杀活动场次 ID，非空时按场次精确筛选，为空时不加条件。 */
     private String promotionSessionId;
 }

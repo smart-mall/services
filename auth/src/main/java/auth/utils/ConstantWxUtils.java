@@ -14,25 +14,25 @@ import org.springframework.stereotype.Component;
 @Component
 public class ConstantWxUtils implements InitializingBean {
 
-    /** 微信开放平台应用的 app_id */
+    /** 微信开放平台应用的 app_id。 */
     @Value("${wx.open.app_id}")
     private String appId;
 
-    /** 微信开放平台应用的 app_secret */
+    /** 微信开放平台应用的 app_secret。 */
     @Value("${wx.open.app_secret}")
     private String appSecret;
 
-    /** 授权后跳回的业务地址，须与开放平台后台登记的一致 */
+    /** 授权后跳回的业务地址，须与开放平台后台登记的一致。 */
     @Value("${wx.open.redirect_url}")
     private String redirectUrl;
 
-    /** 应用 app_id，由 {@link #afterPropertiesSet()} 从 {@link #appId} 抄入 */
+    /** 应用 app_id，由 {@link #afterPropertiesSet()} 从 {@link #appId} 抄入。 */
     public static String WX_OPEN_APP_ID;
 
-    /** 应用 app_secret，由 {@link #afterPropertiesSet()} 从 {@link #appSecret} 抄入 */
+    /** 应用 app_secret，由 {@link #afterPropertiesSet()} 从 {@link #appSecret} 抄入。 */
     public static String WX_OPEN_APP_SECRET;
 
-    /** 授权回调地址，由 {@link #afterPropertiesSet()} 从 {@link #redirectUrl} 抄入 */
+    /** 授权回调地址，由 {@link #afterPropertiesSet()} 从 {@link #redirectUrl} 抄入。 */
     public static String WX_OPEN_REDIRECT_URL;
 
     /** {@inheritDoc} */

@@ -6,9 +6,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 
-/**
- * 提交订单的入参。
- */
+/** 提交订单的入参。 */
 
 @Data
 public class OrderSubmitVo {

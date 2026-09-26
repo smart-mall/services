@@ -20,18 +20,12 @@ import java.util.Date;
 public class SpuInfoEntity implements Serializable {
 	@Serial private static final long serialVersionUID = 1L;
 
-	/**
-	 * 主键。
-	 */
+	/** 主键。 */
 	@TableId
 	private Long id;
-	/**
-	 * 商品名称。
-	 */
+	/** 商品名称。 */
 	private String spuName;
-	/**
-	 * 商品描述。
-	 */
+	/** 商品描述。 */
 	private String spuDescription;
 	/**
 	 * 所属分类 ID，指向 {@code pms_category.cat_id}。
@@ -41,32 +35,20 @@ public class SpuInfoEntity implements Serializable {
 	 * 品牌 ID，指向 {@code pms_brand.brand_id}。
 	 */
 	private Long brandId;
-	/**
-	 * 商品重量，单位：千克。
-	 */
+	/** 商品重量，单位：千克。 */
 	private BigDecimal weight;
-	/**
-	 * 上架状态[0-新建，1-上架，2-下架]。
-	 */
+	/** 上架状态[0-新建，1-上架，2-下架]。 */
 	private Integer publishStatus;
-	/**
-	 * 创建时间。
-	 */
+	/** 创建时间。 */
 	private Date createTime;
-	/**
-	 * 更新时间。
-	 */
+	/** 更新时间。 */
 	private Date updateTime;
 
-	/**
-	 * 品牌名；非数据库字段，列表查询时回填。
-	 */
+	/** 品牌名；非数据库字段，列表查询时回填。 */
 	@TableField(exist = false)
 	private String brandName;
 
-	/**
-	 * 分类名；非数据库字段，列表查询时回填。
-	 */
+	/** 分类名；非数据库字段，列表查询时回填。 */
 	@TableField(exist = false)
 	private String catalogName;
 

@@ -2,9 +2,7 @@ package search.vo;
 
 import lombok.Data;
 
-/**
- * 分类信息，只包含分类 ID 与名称。
- */
+/** 分类信息，只包含分类 ID 与名称。 */
 @Data
 public class CategoryVo {
 

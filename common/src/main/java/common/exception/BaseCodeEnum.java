@@ -161,9 +161,9 @@ public enum BaseCodeEnum {
     ;
 
 
-    /** 业务状态码，按业务域分段 */
+    /** 业务状态码，按业务域分段。 */
     private final int code;
-    /** 提示文案，直接回给调用方 */
+    /** 提示文案，直接回给调用方。 */
     private final String msg;
     BaseCodeEnum(int code, String msg) {
         this.code = code;

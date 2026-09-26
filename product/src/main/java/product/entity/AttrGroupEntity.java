@@ -19,26 +19,16 @@ import java.util.List;
 public class AttrGroupEntity implements Serializable {
 	@Serial private static final long serialVersionUID = 1L;
 
-	/**
-	 * 主键。
-	 */
+	/** 主键。 */
 	@TableId
 	private Long attrGroupId;
-	/**
-	 * 分组名，如基本信息、芯片。
-	 */
+	/** 分组名，如基本信息、芯片。 */
 	private String attrGroupName;
-	/**
-	 * 同一分类下分组的展示顺序。
-	 */
+	/** 同一分类下分组的展示顺序。 */
 	private Integer sort;
-	/**
-	 * 分组描述。
-	 */
+	/** 分组描述。 */
 	private String descript;
-	/**
-	 * 分组图标地址。
-	 */
+	/** 分组图标地址。 */
 	private String icon;
 	/**
 	 * 所属分类 ID，指向 {@code pms_category.cat_id}。

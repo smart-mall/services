@@ -13,13 +13,13 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Data
 public class ThreadPoolConfigProperties {
 
-    /** 核心线程数 */
+    /** 核心线程数。 */
     private Integer coreSize;
 
-    /** 最大线程数 */
+    /** 最大线程数。 */
     private Integer maxSize;
 
-    /** 非核心线程空闲存活时间，单位秒（由 {@link MyThreadConfig} 按 {@code TimeUnit.SECONDS} 使用） */
+    /** 非核心线程空闲存活时间，单位秒（由 {@link MyThreadConfig} 按 {@code TimeUnit.SECONDS} 使用）。 */
     private Integer keepAliveTime;
 
 

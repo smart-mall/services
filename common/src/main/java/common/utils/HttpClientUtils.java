@@ -209,7 +209,7 @@ public class HttpClientUtils {
 
 
 	/**
-	 * 提交form表单
+	 * 提交form表单。
 	 *
 	 * @param url 请求地址
 	 * @param params 表单参数，编码为 UTF-8；为空时不设置实体
@@ -272,7 +272,7 @@ public class HttpClientUtils {
 
 
 	/**
-	 * 发送一个 GET 请求
+	 * 发送一个 GET 请求。
 	 *
 	 * @param url 请求地址
 	 * @param charset 响应体编码

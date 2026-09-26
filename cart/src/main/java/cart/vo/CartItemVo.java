@@ -16,25 +16,25 @@ import java.util.List;
 @Data
 public class CartItemVo {
 
-    /** 商品 SKU 标识 */
+    /** 商品 SKU 标识。 */
     private Long skuId;
 
     /** 是否勾选参与结算。默认勾选 —— 加购的意图就是要买 */
     private Boolean check = true;
 
-    /** 商品标题 */
+    /** 商品标题。 */
     private String title;
 
-    /** 商品图片地址 */
+    /** 商品图片地址。 */
     private String image;
 
-    /** 商品套餐属性，每项形如 {@code 颜色：黑色}（商品服务用全角冒号拼接） */
+    /** 商品套餐属性，每项形如 {@code 颜色：黑色}（商品服务用全角冒号拼接）。 */
     private List<String> skuAttrValues;
 
-    /** 加购时的价格，读取购物车时被商品服务的最新价覆盖（见 {@code CartServiceImpl#refreshPrices}） */
+    /** 加购时的价格，读取购物车时被商品服务的最新价覆盖（见 {@code CartServiceImpl#refreshPrices}）。 */
     private BigDecimal price;
 
-    /** 购买数量 */
+    /** 购买数量。 */
     private Integer count;
 
     /**

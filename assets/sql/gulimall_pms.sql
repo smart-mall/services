@@ -59,7 +59,7 @@ INSERT INTO `pms_attr` VALUES (12, 'CPU品牌', 1, 1, '', '海思(Hisilicon);高
 -- ----------------------------
 DROP TABLE IF EXISTS `pms_attr_attrgroup_relation`;
 CREATE TABLE `pms_attr_attrgroup_relation`  (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `attr_id` bigint(20) NULL DEFAULT NULL COMMENT '属性id',
   `attr_group_id` bigint(20) NULL DEFAULT NULL COMMENT '属性分组id',
   `attr_sort` int(11) NULL DEFAULT NULL COMMENT '属性组内排序',
@@ -1598,7 +1598,7 @@ INSERT INTO `pms_category_brand_relation` VALUES (2, 1, 225, '荣耀', '手机')
 -- ----------------------------
 DROP TABLE IF EXISTS `pms_comment_replay`;
 CREATE TABLE `pms_comment_replay`  (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `comment_id` bigint(20) NULL DEFAULT NULL COMMENT '评论id',
   `reply_id` bigint(20) NULL DEFAULT NULL COMMENT '回复id',
   PRIMARY KEY (`id`) USING BTREE
@@ -1609,7 +1609,7 @@ CREATE TABLE `pms_comment_replay`  (
 -- ----------------------------
 DROP TABLE IF EXISTS `pms_product_attr_value`;
 CREATE TABLE `pms_product_attr_value`  (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `spu_id` bigint(20) NULL DEFAULT NULL COMMENT '商品id',
   `attr_id` bigint(20) NULL DEFAULT NULL COMMENT '属性id',
   `attr_name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '属性名',
@@ -1636,8 +1636,8 @@ INSERT INTO `pms_product_attr_value` VALUES (36, 3, 12, 'CPU品牌', '海思(His
 -- ----------------------------
 DROP TABLE IF EXISTS `pms_sku_images`;
 CREATE TABLE `pms_sku_images`  (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `sku_id` bigint(20) NULL DEFAULT NULL COMMENT 'sku_id',
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `sku_id` bigint(20) NULL DEFAULT NULL,
   `img_url` varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '图片地址',
   `img_sort` int(11) NULL DEFAULT NULL COMMENT '排序',
   `default_img` int(11) NULL DEFAULT NULL COMMENT '默认图[0 - 不是默认图，1 - 是默认图]',
@@ -1752,9 +1752,9 @@ INSERT INTO `pms_sku_info` VALUES (9, 3, '华为 HUAWEI P40 Pro+ 麒麟990 5G  �
 -- ----------------------------
 DROP TABLE IF EXISTS `pms_sku_sale_attr_value`;
 CREATE TABLE `pms_sku_sale_attr_value`  (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `sku_id` bigint(20) NULL DEFAULT NULL COMMENT 'sku_id',
-  `attr_id` bigint(20) NULL DEFAULT NULL COMMENT 'attr_id',
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `sku_id` bigint(20) NULL DEFAULT NULL,
+  `attr_id` bigint(20) NULL DEFAULT NULL,
   `attr_name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '销售属性名',
   `attr_value` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '销售属性值',
   `attr_sort` int(11) NULL DEFAULT NULL COMMENT '顺序',
@@ -1788,9 +1788,9 @@ INSERT INTO `pms_sku_sale_attr_value` VALUES (18, 9, 6, '套餐', '套餐一', 0
 -- ----------------------------
 DROP TABLE IF EXISTS `pms_spu_comment`;
 CREATE TABLE `pms_spu_comment`  (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `sku_id` bigint(20) NULL DEFAULT NULL COMMENT 'sku_id',
-  `spu_id` bigint(20) NULL DEFAULT NULL COMMENT 'spu_id',
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `sku_id` bigint(20) NULL DEFAULT NULL,
+  `spu_id` bigint(20) NULL DEFAULT NULL,
   `spu_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '商品名字',
   `member_nick_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '会员昵称',
   `star` tinyint(1) NULL DEFAULT NULL COMMENT '星级',
@@ -1812,8 +1812,8 @@ CREATE TABLE `pms_spu_comment`  (
 -- ----------------------------
 DROP TABLE IF EXISTS `pms_spu_images`;
 CREATE TABLE `pms_spu_images`  (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `spu_id` bigint(20) NULL DEFAULT NULL COMMENT 'spu_id',
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `spu_id` bigint(20) NULL DEFAULT NULL,
   `img_name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '图片名',
   `img_url` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '图片地址',
   `img_sort` int(11) NULL DEFAULT NULL COMMENT '顺序',

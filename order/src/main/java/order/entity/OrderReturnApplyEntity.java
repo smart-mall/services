@@ -26,97 +26,55 @@ public class OrderReturnApplyEntity implements Serializable {
 	private Long skuId;
 	/** 订单号。 */
 	private String orderSn;
-	/**
-	 * 申请时间
-	 */
+	/** 申请时间。 */
 	private Date createTime;
-	/**
-	 * 会员用户名
-	 */
+	/** 会员用户名。 */
 	private String memberUsername;
-	/**
-	 * 退款金额
-	 */
+	/** 退款金额。 */
 	private BigDecimal returnAmount;
-	/**
-	 * 退货人姓名
-	 */
+	/** 退货人姓名。 */
 	private String returnName;
-	/**
-	 * 退货人电话
-	 */
+	/** 退货人电话。 */
 	private String returnPhone;
 	/**
-	 * 申请状态[0->待处理；1->退货中；2->已完成；3->已拒绝]
+	 * 申请状态[0->待处理；1->退货中；2->已完成；3->已拒绝]。
 	 */
 	private Integer status;
-	/**
-	 * 处理时间
-	 */
+	/** 处理时间。 */
 	private Date handleTime;
-	/**
-	 * 商品图片
-	 */
+	/** 商品图片。 */
 	private String skuImg;
-	/**
-	 * 商品名称
-	 */
+	/** 商品名称。 */
 	private String skuName;
-	/**
-	 * 商品品牌
-	 */
+	/** 商品品牌。 */
 	private String skuBrand;
-	/**
-	 * 商品销售属性(JSON)
-	 */
+	/** 商品销售属性(JSON)。 */
 	private String skuAttrsVals;
-	/**
-	 * 退货数量
-	 */
+	/** 退货数量。 */
 	private Integer skuCount;
-	/**
-	 * 商品单价
-	 */
+	/** 商品单价。 */
 	private BigDecimal skuPrice;
-	/**
-	 * 商品实际支付单价
-	 */
+	/** 商品实际支付单价。 */
 	private BigDecimal skuRealPrice;
 	/** 退货原因。 */
 	private String reason;
 	/** 退货问题的补充描述。 */
 	private String description;
-	/**
-	 * 凭证图片，以逗号隔开
-	 */
+	/** 凭证图片，以逗号隔开。 */
 	private String descPics;
-	/**
-	 * 处理备注
-	 */
+	/** 处理备注。 */
 	private String handleNote;
-	/**
-	 * 处理人员
-	 */
+	/** 处理人员。 */
 	private String handleMan;
-	/**
-	 * 收货人
-	 */
+	/** 收货人。 */
 	private String receiveMan;
-	/**
-	 * 收货时间
-	 */
+	/** 收货时间。 */
 	private Date receiveTime;
-	/**
-	 * 收货备注
-	 */
+	/** 收货备注。 */
 	private String receiveNote;
-	/**
-	 * 收货电话
-	 */
+	/** 收货电话。 */
 	private String receivePhone;
-	/**
-	 * 公司收货地址
-	 */
+	/** 公司收货地址。 */
 	private String companyAddress;
 
 }

@@ -18,11 +18,11 @@ import static common.constant.CartConstant.MIN_ITEM_COUNT;
 @Data
 public class AddCartItemVo {
 
-    /** 商品 SKU 标识 */
+    /** 商品 SKU 标识。 */
     @NotNull(message = "不能为空")
     private Long skuId;
 
-    /** 加购数量增量，取值区间 {@code [1, 99]} */
+    /** 加购数量增量，取值区间 {@code [1, 99]}。 */
     @NotNull(message = "不能为空")
     @Min(value = MIN_ITEM_COUNT, message = "不能小于1")
     @Max(value = MAX_ITEM_COUNT, message = "不能大于99")

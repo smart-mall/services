@@ -26,7 +26,7 @@ import common.query.PageQuery;
 @Service("memberReceiveAddressService")
 public class MemberReceiveAddressServiceImpl extends ServiceImpl<MemberReceiveAddressDao, MemberReceiveAddressEntity> implements MemberReceiveAddressService {
 
-    /** 每人的地址条数上限，防止单账号灌入过多地址 */
+    /** 每人的地址条数上限，防止单账号灌入过多地址。 */
     private static final int MAX_ADDRESS = 20;
 
     private static final int DEFAULT_YES = 1;

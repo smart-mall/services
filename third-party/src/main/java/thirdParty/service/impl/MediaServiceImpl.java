@@ -99,7 +99,7 @@ public class MediaServiceImpl implements MediaService {
     }
 
 
-    /** 已通过校验、尚未写入对象存储的文件，暂存内容与目标格式 */
+    /** 已通过校验、尚未写入对象存储的文件，暂存内容与目标格式。 */
     private record Pending(byte[] content, ImageFormat format, String originalName) {
     }
 
@@ -238,10 +238,10 @@ public class MediaServiceImpl implements MediaService {
         /** WEBP：RIFF 容器，偏移 0 为 {@code RIFF}、偏移 8 为 {@code WEBP}，扩展名 webp。 */
         WEBP("image/webp", "webp");
 
-        /** 写入对象存储的 Content-Type */
+        /** 写入对象存储的 Content-Type。 */
         final String contentType;
 
-        /** object key 使用的扩展名，不带点 */
+        /** object key 使用的扩展名，不带点。 */
         final String extension;
 
         ImageFormat(String contentType, String extension) {
@@ -277,7 +277,7 @@ public class MediaServiceImpl implements MediaService {
             return null;
         }
 
-        /** 比较内容开头若干字节；长度不足时返回 {@code false} */
+        /** 比较内容开头若干字节；长度不足时返回 {@code false}。 */
         private static boolean startsWith(byte[] content, int... magic) {
             if (content.length < magic.length) {
                 return false;
@@ -290,7 +290,7 @@ public class MediaServiceImpl implements MediaService {
             return true;
         }
 
-        /** 读取指定偏移的字节；越界返回 -1，让后续格式判断自然落空 */
+        /** 读取指定偏移的字节；越界返回 -1，让后续格式判断自然落空。 */
         private static int at(byte[] content, int index) {
             return index < content.length ? content[index] & 0xFF : -1;
         }

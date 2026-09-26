@@ -12,10 +12,10 @@ public class OrderStatusVo {
     /** 订单号，业务主键，非自增 ID。 */
     private String orderSn;
 
-    /** 取值见 {@link order.enume.OrderStatusEnum} */
+    /** 取值见 {@link order.enume.OrderStatusEnum}。 */
     private Integer status;
 
-    /** 状态文案，如"待付款" */
+    /** 状态文案，如"待付款"。 */
     private String statusText;
 
 }

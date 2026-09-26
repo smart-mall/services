@@ -19,35 +19,21 @@ import java.math.BigDecimal;
 public class MemberPriceEntity implements Serializable {
 	@Serial private static final long serialVersionUID = 1L;
 
-	/**
-	 * 主键。
-	 */
+	/** 主键。 */
 	@TableId
 	private Long id;
-	/**
-	 * 商品 SKU ID。
-	 */
+	/** 商品 SKU ID。 */
 	private Long skuId;
-	/**
-	 * 会员等级 ID。
-	 */
+	/** 会员等级 ID。 */
 	private Long memberLevelId;
-	/**
-	 * 会员等级名称。
-	 */
+	/** 会员等级名称。 */
 	private String memberLevelName;
-	/**
-	 * 该等级对应的会员价。
-	 */
+	/** 该等级对应的会员价。 */
 	private BigDecimal memberPrice;
-	/**
-	 * 能否与其它优惠叠加[0-不可叠加优惠，1-可叠加]
-	 */
+	/** 能否与其它优惠叠加[0-不可叠加优惠，1-可叠加]。 */
 	private Integer addOther;
 
-	/**
-	 * SKU 名称，非数据库字段，用于列表回显。
-	 */
+	/** SKU 名称，非数据库字段，用于列表回显。 */
 	@TableField(exist = false)
 	private String skuName;
 

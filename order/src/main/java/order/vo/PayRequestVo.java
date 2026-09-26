@@ -12,7 +12,7 @@ import lombok.Data;
 @Data
 public class PayRequestVo {
 
-    /** 1 支付宝 / 2 微信，取值见 {@link order.constant.PayConstant} */
+    /** 1 支付宝 / 2 微信，取值见 {@link order.constant.PayConstant}。 */
     @NotNull(message = "不能为空")
     private Integer payType;
 

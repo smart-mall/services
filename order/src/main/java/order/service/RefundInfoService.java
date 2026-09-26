@@ -6,9 +6,7 @@ import order.entity.RefundInfoEntity;
 
 
 import common.query.PageQuery;
-/**
- * 退款信息服务：在通用 CRUD 之上提供后台列表的分页查询。
- */
+/** 退款信息服务：在通用 CRUD 之上提供后台列表的分页查询。 */
 public interface RefundInfoService extends IService<RefundInfoEntity> {
 
     /**

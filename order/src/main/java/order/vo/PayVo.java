@@ -2,9 +2,7 @@ package order.vo;
 
 import lombok.Data;
 
-/**
- * 调起支付宝收银台的入参，字段名与支付宝要求的完全一致。
- */
+/** 调起支付宝收银台的入参，字段名与支付宝要求的完全一致。 */
 @Data
 public class PayVo {
 

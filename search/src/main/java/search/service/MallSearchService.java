@@ -4,9 +4,7 @@ package search.service;
 import search.vo.SearchParam;
 import search.vo.SearchResult;
 
-/**
- * 前台商品检索服务。
- */
+/** 前台商品检索服务。 */
 public interface MallSearchService {
 
     /**

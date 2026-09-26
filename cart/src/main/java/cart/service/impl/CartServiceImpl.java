@@ -177,7 +177,7 @@ public class CartServiceImpl implements CartService {
         cartOps(user).delete(fields);
     }
 
-    /** 会员的购物车 Redis Hash：key = {@code gulimall:cart:<userId>} */
+    /** 会员的购物车 Redis Hash：key = {@code gulimall:cart:<userId>}。 */
     private BoundHashOperations<String, Object, Object> cartOps(MemberResponseVo user) {
         return redisTemplate.boundHashOps(CART_PREFIX + user.getId());
     }
@@ -193,13 +193,13 @@ public class CartServiceImpl implements CartService {
                 .collect(Collectors.toList());
     }
 
-    /** 从 Hash 中读出一项并反序列化；field 不存在时返回 {@code null} */
+    /** 从 Hash 中读出一项并反序列化；field 不存在时返回 {@code null}。 */
     private CartItemVo readItem(BoundHashOperations<String, Object, Object> cartOps, Long skuId) {
         String value = (String) cartOps.get(skuId.toString());
         return value == null ? null : JSON.parseObject(value, CartItemVo.class);
     }
 
-    /** 用商品服务的最新价覆盖车里存的价：Redis 里是加购那一刻的价，不刷新会和结算页对不上 */
+    /** 用商品服务的最新价覆盖车里存的价：Redis 里是加购那一刻的价，不刷新会和结算页对不上。 */
     private void refreshPrices(List<CartItemVo> items) {
         for (CartItemVo item : items) {
             item.setPrice(productFeignService.getPrice(item.getSkuId()));

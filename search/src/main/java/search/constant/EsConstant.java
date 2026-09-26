@@ -1,8 +1,6 @@
 package search.constant;
 
-/**
- * search 模块的常量：ES 索引名与分页边界。
- */
+/** search 模块的常量：ES 索引名与分页边界。 */
 public class EsConstant {
     public static final String PRODUCT_INDEX = "product";
 

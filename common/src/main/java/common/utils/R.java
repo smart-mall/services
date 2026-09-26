@@ -15,18 +15,18 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class R<T> {
 
-    /** 成功码，业务错误码见 {@link BaseCodeEnum} */
+    /** 成功码，业务错误码见 {@link BaseCodeEnum}。 */
     public static final int SUCCESS_CODE = 0;
 
     private static final String SUCCESS_MSG = "success";
 
-    /** 业务状态码，0 表示成功，其余见 {@link BaseCodeEnum} */
+    /** 业务状态码，0 表示成功，其余见 {@link BaseCodeEnum}。 */
     private int code;
 
-    /** 提示文案，成功时为 {@code "success"} */
+    /** 提示文案，成功时为 {@code "success"}。 */
     private String msg;
 
-    /** 业务数据，类型由类型参数决定 */
+    /** 业务数据，类型由类型参数决定。 */
     private T data;
 
     private R(int code, String msg, T data) {

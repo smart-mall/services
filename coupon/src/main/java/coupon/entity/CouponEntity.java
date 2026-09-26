@@ -19,86 +19,50 @@ import java.util.Date;
 public class CouponEntity implements Serializable {
 	@Serial private static final long serialVersionUID = 1L;
 
-	/**
-	 * 主键。
-	 */
+	/** 主键。 */
 	@TableId
 	private Long id;
 	/**
-	 * 优惠券类型[0->全场赠券；1->会员赠券；2->购物赠券；3->注册赠券]
+	 * 优惠券类型[0->全场赠券；1->会员赠券；2->购物赠券；3->注册赠券]。
 	 */
 	private Integer couponType;
-	/**
-	 * 优惠券图片的地址。
-	 */
+	/** 优惠券图片的地址。 */
 	private String couponImg;
-	/**
-	 * 优惠券名称，展示给会员。
-	 */
+	/** 优惠券名称，展示给会员。 */
 	private String couponName;
-	/**
-	 * 优惠券数量。
-	 */
+	/** 优惠券数量。 */
 	private Integer num;
-	/**
-	 * 券面金额，核销时按此金额抵扣。
-	 */
+	/** 券面金额，核销时按此金额抵扣。 */
 	private BigDecimal amount;
-	/**
-	 * 每个会员最多可领取的张数。
-	 */
+	/** 每个会员最多可领取的张数。 */
 	private Integer perLimit;
-	/**
-	 * 使用门槛金额，订单金额达到该值才可使用。
-	 */
+	/** 使用门槛金额，订单金额达到该值才可使用。 */
 	private BigDecimal minPoint;
-	/**
-	 * 优惠券可使用的开始时间。
-	 */
+	/** 优惠券可使用的开始时间。 */
 	private Date startTime;
-	/**
-	 * 优惠券可使用的结束时间。
-	 */
+	/** 优惠券可使用的结束时间。 */
 	private Date endTime;
 	/**
-	 * 适用范围类型[0->全场通用；1->指定分类；2->指定商品]
+	 * 适用范围类型[0->全场通用；1->指定分类；2->指定商品]。
 	 */
 	private Integer useType;
-	/**
-	 * 备注。
-	 */
+	/** 备注。 */
 	private String note;
-	/**
-	 * 已发行数量。
-	 */
+	/** 已发行数量。 */
 	private Integer publishCount;
-	/**
-	 * 已核销数量。
-	 */
+	/** 已核销数量。 */
 	private Integer useCount;
-	/**
-	 * 已领取数量。
-	 */
+	/** 已领取数量。 */
 	private Integer receiveCount;
-	/**
-	 * 可领取的开始时间。
-	 */
+	/** 可领取的开始时间。 */
 	private Date enableStartTime;
-	/**
-	 * 可领取的结束时间。
-	 */
+	/** 可领取的结束时间。 */
 	private Date enableEndTime;
-	/**
-	 * 优惠码。
-	 */
+	/** 优惠码。 */
 	private String code;
-	/**
-	 * 可领取的会员等级[0->不限等级，其他-对应等级]
-	 */
+	/** 可领取的会员等级[0->不限等级，其他-对应等级]。 */
 	private Integer memberLevel;
-	/**
-	 * 发布状态[0-未发布，1-已发布]
-	 */
+	/** 发布状态[0-未发布，1-已发布]。 */
 	private Integer publish;
 
 }

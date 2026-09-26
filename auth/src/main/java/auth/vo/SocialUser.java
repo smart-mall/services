@@ -10,19 +10,19 @@ import lombok.Data;
 @Data
 public class SocialUser {
 
-    /** 微博接口调用凭据，可直接冒用，禁止写进日志 */
+    /** 微博接口调用凭据，可直接冒用，禁止写进日志。 */
     private String access_token;
 
-    /** 微博返回的 access_token 剩余有效期提醒（秒） */
+    /** 微博返回的 access_token 剩余有效期提醒（秒）。 */
     private String remind_in;
 
-    /** access_token 有效期，单位秒 */
+    /** access_token 有效期，单位秒。 */
     private long expires_in;
 
-    /** 微博用户 ID，member 服务按它识别社交账号 */
+    /** 微博用户 ID，member 服务按它识别社交账号。 */
     private String uid;
 
-    /** 微博账号是否实名认证，取值为字符串形式的 true / false */
+    /** 微博账号是否实名认证，取值为字符串形式的 true / false。 */
     private String isRealName;
 
 }

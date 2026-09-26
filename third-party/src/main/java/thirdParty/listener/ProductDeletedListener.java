@@ -31,7 +31,7 @@ import java.util.List;
 @RabbitListener(queues = MqConstant.Queues.THIRDPARTY_PRODUCT_DELETED)
 public class ProductDeletedListener {
 
-    /** 最多重试几次（不含首次投递） */
+    /** 最多重试几次（不含首次投递）。 */
     private static final int MAX_RETRY = 3;
 
     private final MediaService mediaService;

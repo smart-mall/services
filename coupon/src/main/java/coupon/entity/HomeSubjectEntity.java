@@ -17,38 +17,22 @@ import java.io.Serializable;
 public class HomeSubjectEntity implements Serializable {
 	@Serial private static final long serialVersionUID = 1L;
 
-	/**
-	 * 主键。
-	 */
+	/** 主键。 */
 	@TableId
 	private Long id;
-	/**
-	 * 专题名称。
-	 */
+	/** 专题名称。 */
 	private String name;
-	/**
-	 * 专题标题。
-	 */
+	/** 专题标题。 */
 	private String title;
-	/**
-	 * 专题副标题。
-	 */
+	/** 专题副标题。 */
 	private String subTitle;
-	/**
-	 * 显示状态。
-	 */
+	/** 显示状态。 */
 	private Integer status;
-	/**
-	 * 专题详情页跳转地址。
-	 */
+	/** 专题详情页跳转地址。 */
 	private String url;
-	/**
-	 * 排序值，控制展示顺序。
-	 */
+	/** 排序值，控制展示顺序。 */
 	private Integer sort;
-	/**
-	 * 专题图片地址。
-	 */
+	/** 专题图片地址。 */
 	private String img;
 
 }

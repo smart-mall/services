@@ -7,9 +7,7 @@ import product.entity.SkuImagesEntity;
 import java.util.List;
 
 import common.query.PageQuery;
-/**
- * sku 图片服务：维护 sku 图集。
- */
+/** sku 图片服务：维护 sku 图集。 */
 public interface SkuImagesService extends IService<SkuImagesEntity> {
 
     /**

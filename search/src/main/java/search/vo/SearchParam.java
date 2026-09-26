@@ -16,19 +16,13 @@ import java.util.regex.Pattern;
 @Data
 public class SearchParam {
 
-    /**
-     * 全文匹配关键字，匹配商品标题
-     */
+    /** 全文匹配关键字，匹配商品标题。 */
     private String keyword;
 
-    /**
-     * 品牌 ID，可多选，多个之间是 OR
-     */
+    /** 品牌 ID，可多选，多个之间是 OR。 */
     private List<Long> brandId;
 
-    /**
-     * 三级分类 ID
-     */
+    /** 三级分类 ID。 */
     private Long catalog3Id;
 
     /**
@@ -37,24 +31,20 @@ public class SearchParam {
      */
     private String sort;
 
-    /**
-     * 是否有货：0-无货，1-有货；不传表示不按库存过滤
-     */
+    /** 是否有货：0-无货，1-有货；不传表示不按库存过滤。 */
     private Integer hasStock;
 
     /**
-     * 价格区间，格式为 {@code 最低价_最高价}，任一端可省略
+     * 价格区间，格式为 {@code 最低价_最高价}，任一端可省略。
      */
     private String skuPrice;
 
     /**
-     * 属性筛选，每项格式为 {@code <属性id>_<属性值>}
+     * 属性筛选，每项格式为 {@code <属性id>_<属性值>}。
      */
     private List<String> attrs;
 
-    /**
-     * 页码，从 1 开始
-     */
+    /** 页码，从 1 开始。 */
     private Integer pageNum = 1;
 
     /**

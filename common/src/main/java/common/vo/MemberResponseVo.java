@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import lombok.ToString;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Date;
 
@@ -16,7 +17,7 @@ import java.util.Date;
 @Data
 public class MemberResponseVo implements Serializable {
 
-    private static final long serialVersionUID = 5573669251256409786L;
+    @Serial private static final long serialVersionUID = 5573669251256409786L;
 
     /** 会员 ID。 */
     private Long id;

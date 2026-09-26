@@ -3,9 +3,7 @@ package order.vo;
 import lombok.Data;
 
 
-/**
- * 收货地址，结算页展示与算运费时由 order 侧只读使用。
- */
+/** 收货地址，结算页展示与算运费时由 order 侧只读使用。 */
 @Data
 public class MemberAddressVo {
 

@@ -14,16 +14,16 @@ import java.util.List;
 @Data
 public class OrderCreateTo {
 
-    /** 订单主表，订单号、收货人与运费已填好 */
+    /** 订单主表，订单号、收货人与运费已填好。 */
     private OrderEntity order;
 
-    /** 该订单的全部订单项 */
+    /** 该订单的全部订单项。 */
     private List<OrderItemEntity> orderItems;
 
-    /** 订单计算的应付价格 */
+    /** 订单计算的应付价格。 */
     private BigDecimal payPrice;
 
-    /** 运费 */
+    /** 运费。 */
     private BigDecimal fare;
 
 }

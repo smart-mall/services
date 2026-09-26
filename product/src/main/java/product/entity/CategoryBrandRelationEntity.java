@@ -19,9 +19,7 @@ import java.io.Serializable;
 public class CategoryBrandRelationEntity implements Serializable {
 	@Serial private static final long serialVersionUID = 1L;
 
-	/**
-	 * 主键。
-	 */
+	/** 主键。 */
 	@TableId
 	private Long id;
 	/**
@@ -32,13 +30,9 @@ public class CategoryBrandRelationEntity implements Serializable {
 	 * 分类 ID，指向 {@code pms_category.cat_id}。
 	 */
 	private Long catalogId;
-	/**
-	 * 品牌名快照，随品牌重命名同步刷新。
-	 */
+	/** 品牌名快照，随品牌重命名同步刷新。 */
 	private String brandName;
-	/**
-	 * 分类名快照，随分类重命名同步刷新。
-	 */
+	/** 分类名快照，随分类重命名同步刷新。 */
 	private String catalogName;
 
 }

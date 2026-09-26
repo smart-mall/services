@@ -15,17 +15,17 @@ import org.hibernate.validator.constraints.Length;
 @Data
 public class UserMobileVo {
 
-    /** 新建账号时使用的用户名，老用户走本链路时被忽略 */
+    /** 新建账号时使用的用户名，老用户走本链路时被忽略。 */
     @NotEmpty(message = "账号不能为空")
     @Length(min = 6, max = 19, message = "账号长度在6-19字符")
     private String username;
 
-    /** 收码手机号，也是识别账号的依据 */
+    /** 收码手机号，也是识别账号的依据。 */
     @NotEmpty(message = "手机号不能为空")
     @Pattern(regexp = "^1[3-9]\\d{9}$", message = "手机号格式不正确")
     private String mobile;
 
-    /** 用户提交的短信验证码 */
+    /** 用户提交的短信验证码。 */
     @NotEmpty(message = "验证码不能为空")
     private String code;
 

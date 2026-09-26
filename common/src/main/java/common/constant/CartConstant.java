@@ -11,13 +11,13 @@ package common.constant;
  */
 public class CartConstant {
 
-    /** 购物车 Redis Hash 的 key 前缀，拼上 userId 使用 */
+    /** 购物车 Redis Hash 的 key 前缀，拼上 userId 使用。 */
     public final static String CART_PREFIX = "gulimall:cart:";
 
-    /** 单个购物项的数量下限 */
+    /** 单个购物项的数量下限。 */
     public final static int MIN_ITEM_COUNT = 1;
 
-    /** 单个购物项的数量上限 */
+    /** 单个购物项的数量上限。 */
     public final static int MAX_ITEM_COUNT = 99;
 
 }

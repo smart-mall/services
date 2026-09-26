@@ -5,9 +5,7 @@ import lombok.Data;
 import java.math.BigDecimal;
 
 
-/**
- * 运费计算结果：收货地址 + 该地址对应的运费。
- */
+/** 运费计算结果：收货地址 + 该地址对应的运费。 */
 @Data
 public class FareVo {
 

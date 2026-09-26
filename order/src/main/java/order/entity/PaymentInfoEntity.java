@@ -20,41 +20,25 @@ public class PaymentInfoEntity implements Serializable {
 	/** 主键。 */
 	@TableId
 	private Long id;
-	/**
-	 * 订单号（对外业务号）
-	 */
+	/** 订单号（对外业务号）。 */
 	private String orderSn;
 	/** 关联的订单 ID。 */
 	private Long orderId;
-	/**
-	 * 支付宝交易流水号
-	 */
+	/** 支付宝交易流水号。 */
 	private String alipayTradeNo;
-	/**
-	 * 支付总金额
-	 */
+	/** 支付总金额。 */
 	private BigDecimal totalAmount;
-	/**
-	 * 交易内容
-	 */
+	/** 交易内容。 */
 	private String subject;
 	/** 支付状态，保存支付宝回调返回的 {@code trade_status} 原文。 */
 	private String paymentStatus;
-	/**
-	 * 创建时间
-	 */
+	/** 创建时间。 */
 	private Date createTime;
-	/**
-	 * 确认时间
-	 */
+	/** 确认时间。 */
 	private Date confirmTime;
-	/**
-	 * 回调内容
-	 */
+	/** 回调内容。 */
 	private String callbackContent;
-	/**
-	 * 回调时间
-	 */
+	/** 回调时间。 */
 	private Date callbackTime;
 
 }

@@ -20,28 +20,28 @@ public class OutboxMessage implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    /** 同时作为 CorrelationData id，confirm 回调靠它定位记录 */
+    /** 同时作为 CorrelationData id，confirm 回调靠它定位记录。 */
     @TableId
     private String messageId;
 
-    /** 消息体 JSON */
+    /** 消息体 JSON。 */
     private String content;
 
-    /** 目标交换机名，重投时原样使用 */
+    /** 目标交换机名，重投时原样使用。 */
     private String toExchange;
 
-    /** 目标路由键，重投时原样使用 */
+    /** 目标路由键，重投时原样使用。 */
     private String routingKey;
 
-    /** 消息体全限定类名，重投时靠它反序列化 */
+    /** 消息体全限定类名，重投时靠它反序列化。 */
     private String classType;
 
-    /** 见 {@link OutboxStatus} */
+    /** 见 {@link OutboxStatus}。 */
     private Integer messageStatus;
 
-    /** 创建时间，重投扫描按它跳过刚提交、还在投递中的消息 */
+    /** 创建时间，重投扫描按它跳过刚提交、还在投递中的消息。 */
     private Date createTime;
 
-    /** 最近一次状态变更时间，重投扫描判定 CLAIMED 超时与清理已发送记录都用它 */
+    /** 最近一次状态变更时间，重投扫描判定 CLAIMED 超时与清理已发送记录都用它。 */
     private Date updateTime;
 }

@@ -12,7 +12,7 @@ import lombok.Setter;
 
 public class NoStockException extends RuntimeException {
 
-    /** 库存不足的 SKU ID；按文案构造时为 {@code null} */
+    /** 库存不足的 SKU ID；按文案构造时为 {@code null}。 */
     @Getter @Setter
     private Long skuId;
 

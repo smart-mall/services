@@ -3,9 +3,7 @@ package common.to;
 import lombok.Data;
 
 
-/**
- * SKU 库存查询结果。
- */
+/** SKU 库存查询结果。 */
 @Data
 public class SkuHasStockVo {
 

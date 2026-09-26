@@ -13,9 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.util.List;
 
 
-/**
- * 仓库服务的远程调用接口，用于查库存、算运费与锁定库存。
- */
+/** 仓库服务的远程调用接口，用于查库存、算运费与锁定库存。 */
 @FeignClient("ware")
 public interface WmsFeignService {
 

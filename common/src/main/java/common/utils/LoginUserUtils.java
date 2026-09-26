@@ -125,7 +125,7 @@ public final class LoginUserUtils {
         return request == null ? null : request.getHeader(name);
     }
 
-    /** 解不出来返回 null，当作未登录 */
+    /** 解不出来返回 null，当作未登录。 */
     private static <T> T decode(String value, Class<T> type) {
         if (value == null || value.isBlank()) {
             return null;
@@ -139,7 +139,7 @@ public final class LoginUserUtils {
         }
     }
 
-    /** Base64URL：HTTP 头按 ISO-8859-1 处理，中文昵称直接塞进去会乱码；fastjson 默认不输出 null 字段 */
+    /** Base64URL：HTTP 头按 ISO-8859-1 处理，中文昵称直接塞进去会乱码；fastjson 默认不输出 null 字段。 */
     private static String encode(Map<String, Object> claims) {
         return Base64.getUrlEncoder().withoutPadding().encodeToString(JSON.toJSONBytes(claims));
     }

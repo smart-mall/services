@@ -32,7 +32,7 @@ public class JwtUtils {
     /** 会员积分的 claim 名。 */
     public static final String CLAIM_INTEGRATION = "integration";
 
-    /** HS256 的密钥不能小于 256 位，否则 jjwt 直接抛 WeakKeyException */
+    /** HS256 的密钥不能小于 256 位，否则 jjwt 直接抛 WeakKeyException。 */
     private static final int MIN_SECRET_BYTES = 32;
 
     /** HS256 签名与验签用的密钥。 */

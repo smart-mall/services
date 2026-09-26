@@ -17,9 +17,7 @@ import java.io.Serializable;
 public class AttrAttrgroupRelationEntity implements Serializable {
 	@Serial private static final long serialVersionUID = 1L;
 
-	/**
-	 * 主键。
-	 */
+	/** 主键。 */
 	@TableId
 	private Long id;
 	/**
@@ -30,9 +28,7 @@ public class AttrAttrgroupRelationEntity implements Serializable {
 	 * 属性分组 ID，指向 {@code pms_attr_group.attr_group_id}。
 	 */
 	private Long attrGroupId;
-	/**
-	 * 属性在分组内的展示顺序。
-	 */
+	/** 属性在分组内的展示顺序。 */
 	private Integer attrSort;
 
 }

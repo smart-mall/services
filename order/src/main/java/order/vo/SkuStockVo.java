@@ -2,9 +2,7 @@ package order.vo;
 
 import lombok.Data;
 
-/**
- * 单个 SKU 的库存查询结果。
- */
+/** 单个 SKU 的库存查询结果。 */
 
 @Data
 public class SkuStockVo {

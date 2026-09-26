@@ -21,21 +21,13 @@ public class RefundInfoEntity implements Serializable {
 	private Long id;
 	/** 关联的退货申请 ID，指向 {@code oms_order_return_apply.id}。 */
 	private Long orderReturnId;
-	/**
-	 * 退款金额
-	 */
+	/** 退款金额。 */
 	private BigDecimal refund;
-	/**
-	 * 退款交易流水号
-	 */
+	/** 退款交易流水号。 */
 	private String refundSn;
-	/**
-	 * 退款状态
-	 */
+	/** 退款状态。 */
 	private Integer refundStatus;
-	/**
-	 * 退款渠道[1-支付宝，2-微信，3-银联，4-汇款]
-	 */
+	/** 退款渠道[1-支付宝，2-微信，3-银联，4-汇款]。 */
 	private Integer refundChannel;
 	/** 退款内容，长文本字段，本模块未解析其结构。 */
 	private String refundContent;

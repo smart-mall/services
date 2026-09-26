@@ -133,7 +133,7 @@ public final class MqConstant {
         public static final String SEARCH_PRODUCT_DOWN_DLQ = "search.product.down.dlq";
     }
 
-    /** 延迟 / 重试时长（毫秒），是队列参数的一部分 */
+    /** 延迟 / 重试时长（毫秒），是队列参数的一部分。 */
     public static final class TtlMillis {
 
         private TtlMillis() {

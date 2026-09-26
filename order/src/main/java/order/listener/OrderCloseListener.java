@@ -12,9 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 
-/**
- * 定时关闭订单
- */
+/** 定时关闭订单。 */
 
 @RabbitListener(queues = MqConstant.Queues.ORDER_RELEASE)
 @Service

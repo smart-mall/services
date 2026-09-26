@@ -17,22 +17,16 @@ import java.io.Serializable;
 public class CouponSpuCategoryRelationEntity implements Serializable {
 	@Serial private static final long serialVersionUID = 1L;
 
-	/**
-	 * 主键。
-	 */
+	/** 主键。 */
 	@TableId
 	private Long id;
 	/**
 	 * 优惠券模板 ID，关联 {@code sms_coupon.id}。
 	 */
 	private Long couponId;
-	/**
-	 * 适用商品分类 ID。
-	 */
+	/** 适用商品分类 ID。 */
 	private Long categoryId;
-	/**
-	 * 分类名称，冗余保存便于列表直接展示。
-	 */
+	/** 分类名称，冗余保存便于列表直接展示。 */
 	private String categoryName;
 
 }

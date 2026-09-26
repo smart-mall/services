@@ -6,9 +6,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 
-/**
- * 结算页与下单流程里的单个购物项。
- */
+/** 结算页与下单流程里的单个购物项。 */
 @Data
 public class OrderItemVo {
 

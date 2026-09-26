@@ -18,15 +18,15 @@ import org.springframework.util.unit.DataSize;
 @Component
 public class MediaProperties {
 
-    /** 对外 URL 前缀，浏览器据此访问对象；末尾斜杠可有可无，拼装时会归一化 */
+    /** 对外 URL 前缀，浏览器据此访问对象；末尾斜杠可有可无，拼装时会归一化。 */
     @Value("${minio.clientPoint}")
     private String clientPoint;
 
-    /** 对象存储桶名，上传与删除都落在同一个桶里 */
+    /** 对象存储桶名，上传与删除都落在同一个桶里。 */
     @Value("${minio.bucket}")
     private String bucket;
 
-    /** 单文件大小上限，需与 {@code spring.servlet.multipart.max-file-size} 保持一致 */
+    /** 单文件大小上限，需与 {@code spring.servlet.multipart.max-file-size} 保持一致。 */
     @Value("${minio.max-size:10MB}")
     private DataSize maxSize;
 }

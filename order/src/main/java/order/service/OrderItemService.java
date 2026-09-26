@@ -6,9 +6,7 @@ import order.entity.OrderItemEntity;
 
 
 import common.query.PageQuery;
-/**
- * 订单项服务：在通用 CRUD 之上提供后台列表的分页查询。
- */
+/** 订单项服务：在通用 CRUD 之上提供后台列表的分页查询。 */
 public interface OrderItemService extends IService<OrderItemEntity> {
 
     /**

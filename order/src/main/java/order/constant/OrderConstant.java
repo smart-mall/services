@@ -1,8 +1,6 @@
 package order.constant;
 
-/**
- * 订单防重令牌的常量：Redis 键前缀与令牌有效期。
- */
+/** 订单防重令牌的常量：Redis 键前缀与令牌有效期。 */
 public class OrderConstant {
 
     /** 防重令牌的 Redis 键前缀，实际键为前缀拼接 memberId。 */

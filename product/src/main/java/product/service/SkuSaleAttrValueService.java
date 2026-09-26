@@ -8,9 +8,7 @@ import product.vo.SkuItemSaleAttrVo;
 import java.util.List;
 
 import common.query.PageQuery;
-/**
- * sku 销售属性值服务：维护每个 sku 的销售属性取值。
- */
+/** sku 销售属性值服务：维护每个 sku 的销售属性取值。 */
 public interface SkuSaleAttrValueService extends IService<SkuSaleAttrValueEntity> {
 
     /**

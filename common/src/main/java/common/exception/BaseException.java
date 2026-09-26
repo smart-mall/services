@@ -8,7 +8,7 @@ package common.exception;
  */
 public class BaseException extends RuntimeException {
 
-    /** 业务状态码，取值见 {@link BaseCodeEnum} */
+    /** 业务状态码，取值见 {@link BaseCodeEnum}。 */
     private final int code;
 
     /**

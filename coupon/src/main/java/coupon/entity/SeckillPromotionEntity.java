@@ -19,39 +19,23 @@ import java.util.Date;
 public class SeckillPromotionEntity implements Serializable {
 	@Serial private static final long serialVersionUID = 1L;
 
-	/**
-	 * 主键。
-	 */
+	/** 主键。 */
 	@TableId
 	private Long id;
-	/**
-	 * 活动标题。
-	 */
+	/** 活动标题。 */
 	private String title;
-	/**
-	 * 活动开始日期。
-	 */
+	/** 活动开始日期。 */
 	private Date startTime;
-	/**
-	 * 活动结束日期。
-	 */
+	/** 活动结束日期。 */
 	private Date endTime;
-	/**
-	 * 上下线状态。
-	 */
+	/** 上下线状态。 */
 	private Integer status;
-	/**
-	 * 活动创建时间。
-	 */
+	/** 活动创建时间。 */
 	private Date createTime;
-	/**
-	 * 创建人用户 ID。
-	 */
+	/** 创建人用户 ID。 */
 	private Long userId;
 
-	/**
-	 * 创建人名称，非数据库字段，用于列表回显。
-	 */
+	/** 创建人名称，非数据库字段，用于列表回显。 */
 	@TableField(exist = false)
 	private String userName;
 

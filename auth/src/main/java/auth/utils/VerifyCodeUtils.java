@@ -16,10 +16,10 @@ import java.util.function.Consumer;
 @Slf4j
 public final class VerifyCodeUtils {
 
-    /** 同一个目标两次发码的最小间隔，单位毫秒 */
+    /** 同一个目标两次发码的最小间隔，单位毫秒。 */
     private static final long SEND_INTERVAL_MILLIS = 60_000L;
 
-    /** value 里验证码与时间戳之间的分隔符 */
+    /** value 里验证码与时间戳之间的分隔符。 */
     private static final char SEPARATOR = '_';
 
     private VerifyCodeUtils() {

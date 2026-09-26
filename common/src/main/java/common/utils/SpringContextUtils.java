@@ -3,7 +3,7 @@
  *
  * https://www.renren.io
  *
- * 版权所有，侵权必究！
+ * 版权所有，侵权必究！。
  */
 
 package common.utils;
@@ -21,7 +21,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class SpringContextUtils implements ApplicationContextAware {
-	/** 容器引用，由 Spring 在启动阶段写入；未注入时为 null */
+	/** 容器引用，由 Spring 在启动阶段写入；未注入时为 null。 */
 	public static ApplicationContext applicationContext; 
 
 	/**

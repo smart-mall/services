@@ -17,9 +17,7 @@ public class PurchaseDoneVO {
     /** 逐条采购需求的采购结果，不能为空。 */
     private List<PurchaseItemVO> items;
 
-    /**
-     * 单条采购需求的采购结果。
-     */
+    /** 单条采购需求的采购结果。 */
     @Data
     public static class PurchaseItemVO {
         /** 采购需求单 ID，必须属于该采购单。 */

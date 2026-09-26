@@ -4,9 +4,7 @@ import lombok.Data;
 
 import java.util.List;
 
-/**
- * 锁定库存的入参：按订单号锁住一批购物项。
- */
+/** 锁定库存的入参：按订单号锁住一批购物项。 */
 
 @Data
 public class WareSkuLockVo {
