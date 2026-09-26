@@ -15,14 +15,13 @@ import ware.service.WareSkuService;
 import java.io.IOException;
 
 /**
- * 消费 {@code product.deleted}，清掉已删 sku 的零库存行。
+ * 消费 {@code product.deleted}（队列 {@code ware.product.deleted.queue}），清掉已删 sku 的零库存行。
  *
- * <p>为什么走消息而不是让 product 同步调一次删除：这条清理必须发生在商品删除<b>成功之后</b>，
- * 而跨服务的删除不可回滚。消息和 product 那 7 张表的删除在同一个事务里落 outbox，
- * 商品删失败就不会发消息，也就不会出现"库存行没了、商品还在"。</p>
+ * <p>消息体 {@link ProductDeletedTo} 由 product 删除商品成功后在事务内落 outbox 发出，必须晚于删除本身：
+ * 跨服务删除不可回滚，商品没删掉就不能清库存行，否则会出现"库存行没了、商品还在"。</p>
  *
- * <p>失败处理照 coupon / third-party 那套三段式，不照抄本服务 StockReleaseListener 的
- * {@code basicReject(requeue=true)} —— 那种写法没有退避、没有上限、没有出口。</p>
+ * <p>失败处理走三段式：{@code basicNack(requeue=false)} → 队列 DLX → 重试队列躺 1 分钟 → 回到本队列，
+ * 重试满 3 次仍失败则投死信队列等人工处理。不用 {@code requeue=true}，那等于全速无限重投，没有退避与上限。</p>
  */
 @Slf4j
 @Component
@@ -40,6 +39,16 @@ public class ProductDeletedListener {
         this.mqPublisher = mqPublisher;
     }
 
+    /**
+     * 消费一条商品删除事件，清理这些 SKU 的零库存行。
+     *
+     * <p>成功即 ack；失败按已重试次数分流：未到上限则 nack 交给重试队列延迟重投，到上限则投死信队列后 ack。</p>
+     *
+     * @param to      商品删除事件，含被删商品下的全部 SKU ID
+     * @param message 当前消息，从中取投递标签与 {@code x-death} 重试次数
+     * @param channel 消费通道，用于 ack / nack
+     * @throws IOException ack / nack 与 broker 通信失败时抛出
+     */
     @RabbitHandler
     public void onProductDeleted(ProductDeletedTo to, Message message, Channel channel) throws IOException {
         long deliveryTag = message.getMessageProperties().getDeliveryTag();
@@ -52,11 +61,12 @@ public class ProductDeletedListener {
             if (retried >= MAX_RETRY) {
                 mqPublisher.publish(MqConstant.Exchanges.WARE_PRODUCT_DELETED_DLX,
                         MqConstant.Queues.WARE_PRODUCT_DELETED_DLQ, to);
+                // 已经落到死信队列，必须 ack 掉原消息；不 ack 会被重新投递，同一条消息反复进死信
                 channel.basicAck(deliveryTag, false);
                 log.error("清理商品库存行重试 {} 次仍失败，已投入死信队列 {}：skuIds={}",
                         retried, MqConstant.Queues.WARE_PRODUCT_DELETED_DLQ, to.getSkuIds(), e);
             } else {
-                // requeue=false：交给队列自己的 DLX → 重试队列延迟 1 分钟
+                // requeue=false：不走"塞回队头"，而是交给队列自己的 DLX → 重试队列延迟 1 分钟
                 channel.basicNack(deliveryTag, false, false);
                 log.warn("清理商品库存行失败，交由重试队列延迟重投（已重试 {} 次）：skuIds={}",
                         retried, to.getSkuIds(), e);

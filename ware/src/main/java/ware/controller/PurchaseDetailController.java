@@ -17,6 +17,12 @@ import java.util.Map;
 
 
 import ware.vo.PurchaseDetailPageQuery;
+/**
+ * 采购需求单接口：需求单的查询、新建、修改与删除。
+ *
+ * <p>状态与归属由服务端决定，前端传的 {@code status} / {@code purchaseId} 会被忽略；
+ * 状态流转规则见 {@link ware.costant.PurchaseDetailEnum}。
+ */
 @RestController
 @RequestMapping("ware/purchasedetail")
 @Slf4j
@@ -30,7 +36,12 @@ public class PurchaseDetailController {
     }
 
     /**
-     * 列表
+     * 分页查询采购需求单。
+     *
+     * <p>每行的 {@code skuName} 由远程调用商品服务补齐，商品服务不可用时整页查询失败。</p>
+     *
+     * @param query 分页与筛选条件
+     * @return 需求单分页数据，每行带 {@code allowedActions}
      */
     @RequestMapping("/list")
     public R<PageVO<PurchaseDetailEntity>> list(PurchaseDetailPageQuery query){
@@ -42,7 +53,10 @@ public class PurchaseDetailController {
 
 
     /**
-     * 信息
+     * 查询采购需求单详情。
+     *
+     * @param id 需求单 ID
+     * @return 需求单；不存在时 {@code data} 为 {@code null}
      */
     @RequestMapping("/info/{id}")
     public R<PurchaseDetailEntity> info(@PathVariable("id") Long id){
@@ -53,7 +67,12 @@ public class PurchaseDetailController {
     }
 
     /**
-     * 保存。状态和归属由服务端定，前端传的 status / purchaseId 会被忽略
+     * 新建采购需求单。
+     *
+     * <p>状态固定为"新建"、归属清空，并且会远程确认 SKU 仍存在，商品已删则拒绝建单。</p>
+     *
+     * @param purchaseDetail 需求单内容，{@code skuId}、{@code skuNum}、{@code wareId} 必填
+     * @return 成功响应，无数据体
      */
     @RequestMapping("/save")
     public R<Void> save(@RequestBody PurchaseDetailEntity purchaseDetail){
@@ -64,7 +83,12 @@ public class PurchaseDetailController {
     }
 
     /**
-     * 修改。只在"新建"状态允许，并入采购单之后要先取消分配
+     * 修改采购需求单，只在"新建"状态允许。
+     *
+     * <p>并入采购单之后要先取消分配才能改，否则会出现"买 10 件、系统入库 100 件"。</p>
+     *
+     * @param purchaseDetail 需求单内容，必须带 {@code id}
+     * @return 成功响应，无数据体
      */
     @RequestMapping("/update")
     public R<Void> update(@RequestBody PurchaseDetailEntity purchaseDetail){
@@ -75,7 +99,10 @@ public class PurchaseDetailController {
     }
 
     /**
-     * 删除。同样只在"新建"状态允许
+     * 删除采购需求单，同样只在"新建"状态允许。
+     *
+     * @param ids 需求单 ID 数组；为空时服务端按参数校验失败处理
+     * @return 成功响应，无数据体
      */
     @RequestMapping("/delete")
     public R<Void> delete(@RequestBody Long[] ids){
