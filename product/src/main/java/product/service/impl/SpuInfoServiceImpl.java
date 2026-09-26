@@ -144,7 +144,7 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
 
 
         // 2. 商品描述图：地址用逗号拼接存进一列
-        List<String> discrip = spuInfo.getDecript();
+        List<String> discrip = spuInfo.getDescription();
         if (discrip != null && !discrip.isEmpty()) {
             SpuInfoDescEntity spuInfoDescEntity = new SpuInfoDescEntity();
             spuInfoDescEntity.setSpuId(spuInfoEntity.getId());
