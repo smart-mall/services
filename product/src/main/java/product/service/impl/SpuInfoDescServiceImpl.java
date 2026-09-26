@@ -8,7 +8,6 @@ import product.dao.SpuInfoDescDao;
 import product.entity.SpuInfoDescEntity;
 import product.service.SpuInfoDescService;
 
-import java.util.Map;
 
 
 import common.query.PageQuery;

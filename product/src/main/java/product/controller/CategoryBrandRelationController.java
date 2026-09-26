@@ -13,7 +13,6 @@ import product.vo.BrandVO;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 
 import common.query.PageQuery;

@@ -9,7 +9,6 @@ import product.vo.AttrGroupWithAttrsVO;
 import product.vo.SpuItemAttrGroupVo;
 
 import java.util.List;
-import java.util.Map;
 
 import common.query.KeyPageQuery;
 import common.query.PageQuery;

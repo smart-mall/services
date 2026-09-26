@@ -8,7 +8,6 @@ import product.dao.SpuCommentDao;
 import product.entity.SpuCommentEntity;
 import product.service.SpuCommentService;
 
-import java.util.Map;
 
 
 import common.query.PageQuery;

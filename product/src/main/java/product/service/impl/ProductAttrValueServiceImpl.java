@@ -1,7 +1,6 @@
 package product.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.constant.ProductConstant;
@@ -18,7 +17,6 @@ import product.entity.SpuInfoEntity;
 import product.service.ProductAttrValueService;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 

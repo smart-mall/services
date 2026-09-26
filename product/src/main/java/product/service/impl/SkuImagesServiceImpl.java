@@ -1,7 +1,6 @@
 package product.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.vo.PageVO;
@@ -11,7 +10,6 @@ import product.entity.SkuImagesEntity;
 import product.service.SkuImagesService;
 
 import java.util.List;
-import java.util.Map;
 
 
 import common.query.PageQuery;

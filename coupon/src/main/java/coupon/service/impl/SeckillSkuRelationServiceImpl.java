@@ -10,7 +10,6 @@ import coupon.service.SeckillSkuRelationService;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.util.Map;
 
 
 import coupon.vo.SeckillSkuRelationPageQuery;

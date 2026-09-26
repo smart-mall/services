@@ -5,7 +5,6 @@ import common.vo.PageVO;
 import coupon.entity.SpuBoundsEntity;
 
 import java.util.List;
-import java.util.Map;
 
 import common.query.KeyPageQuery;
 /**

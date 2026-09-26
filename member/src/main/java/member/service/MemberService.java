@@ -9,7 +9,6 @@ import member.vo.MemberUserRegisterVo;
 import member.vo.QQUserInfo;
 import member.vo.SocialUser;
 
-import java.util.Map;
 
 import common.query.PageQuery;
 /**

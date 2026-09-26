@@ -9,7 +9,6 @@ import product.entity.AttrAttrgroupRelationEntity;
 import product.service.AttrAttrgroupRelationService;
 
 import java.util.Arrays;
-import java.util.Map;
 
 
 import common.query.PageQuery;

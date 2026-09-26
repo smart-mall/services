@@ -8,7 +8,6 @@ import product.entity.ProductAttrValueEntity;
 import product.service.ProductAttrValueService;
 
 import java.util.Arrays;
-import java.util.Map;
 
 
 import common.query.PageQuery;

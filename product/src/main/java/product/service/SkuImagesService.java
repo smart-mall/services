@@ -5,7 +5,6 @@ import common.vo.PageVO;
 import product.entity.SkuImagesEntity;
 
 import java.util.List;
-import java.util.Map;
 
 import common.query.PageQuery;
 /**

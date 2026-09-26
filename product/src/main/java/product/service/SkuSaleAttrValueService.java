@@ -6,7 +6,6 @@ import product.entity.SkuSaleAttrValueEntity;
 import product.vo.SkuItemSaleAttrVo;
 
 import java.util.List;
-import java.util.Map;
 
 import common.query.PageQuery;
 /**

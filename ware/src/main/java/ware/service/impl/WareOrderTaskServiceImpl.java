@@ -1,6 +1,5 @@
 package ware.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.vo.PageVO;
@@ -9,7 +8,6 @@ import ware.dao.WareOrderTaskDao;
 import ware.entity.WareOrderTaskEntity;
 import ware.service.WareOrderTaskService;
 
-import java.util.Map;
 
 
 import common.query.PageQuery;

@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import common.vo.PageVO;
 import coupon.entity.SeckillSkuRelationEntity;
 
-import java.util.Map;
 
 import coupon.vo.SeckillSkuRelationPageQuery;
 /**

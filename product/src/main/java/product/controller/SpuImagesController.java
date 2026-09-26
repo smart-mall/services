@@ -8,7 +8,6 @@ import product.entity.SpuImagesEntity;
 import product.service.SpuImagesService;
 
 import java.util.Arrays;
-import java.util.Map;
 
 
 import common.query.PageQuery;

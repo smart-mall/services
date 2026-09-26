@@ -10,7 +10,6 @@ import ware.vo.SkuHasStockVo;
 import ware.vo.WareSkuLockVo;
 
 import java.util.List;
-import java.util.Map;
 
 import ware.vo.WareSkuPageQuery;
 /**

@@ -8,7 +8,6 @@ import ware.vo.PurchaseAssignVO;
 import ware.vo.PurchaseDoneVO;
 
 import java.util.List;
-import java.util.Map;
 
 import ware.vo.PurchasePageQuery;
 import common.query.PageQuery;

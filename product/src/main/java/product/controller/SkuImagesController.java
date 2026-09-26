@@ -8,7 +8,6 @@ import product.entity.SkuImagesEntity;
 import product.service.SkuImagesService;
 
 import java.util.Arrays;
-import java.util.Map;
 
 
 import common.query.PageQuery;

@@ -7,7 +7,6 @@ import product.vo.AttrRespVO;
 import product.vo.AttrVO;
 
 import java.util.List;
-import java.util.Map;
 
 import common.query.PageQuery;
 import common.query.KeyPageQuery;

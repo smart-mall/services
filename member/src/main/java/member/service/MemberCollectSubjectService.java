@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import common.vo.PageVO;
 import member.entity.MemberCollectSubjectEntity;
 
-import java.util.Map;
 
 import common.query.PageQuery;
 /**

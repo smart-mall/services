@@ -14,7 +14,6 @@ import product.entity.BrandEntity;
 import product.service.BrandService;
 
 import java.util.Arrays;
-import java.util.Map;
 
 
 import common.query.KeyPageQuery;
