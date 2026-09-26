@@ -5,7 +5,7 @@ import org.apache.ibatis.annotations.Mapper;
 import product.entity.AttrAttrgroupRelationEntity;
 
 /**
- * 属性&属性分组关联
+ * {@code pms_attr_attrgroup_relation} 表的 MyBatis-Plus Mapper，无自定义 SQL。
  */
 @Mapper
 public interface AttrAttrgroupRelationDao extends BaseMapper<AttrAttrgroupRelationEntity> {

@@ -5,7 +5,7 @@ import org.apache.ibatis.annotations.Mapper;
 import product.entity.CategoryEntity;
 
 /**
- * 商品三级分类
+ * {@code pms_category} 表的 MyBatis-Plus Mapper，无自定义 SQL。
  */
 @Mapper
 public interface CategoryDao extends BaseMapper<CategoryEntity> {

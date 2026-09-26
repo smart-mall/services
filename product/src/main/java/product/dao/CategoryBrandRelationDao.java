@@ -5,7 +5,7 @@ import org.apache.ibatis.annotations.Mapper;
 import product.entity.CategoryBrandRelationEntity;
 
 /**
- * 品牌分类关联
+ * {@code pms_category_brand_relation} 表的 MyBatis-Plus Mapper，无自定义 SQL。
  */
 @Mapper
 public interface CategoryBrandRelationDao extends BaseMapper<CategoryBrandRelationEntity> {

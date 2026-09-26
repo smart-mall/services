@@ -8,7 +8,7 @@ import product.vo.SpuItemAttrGroupVo;
 import java.util.List;
 
 /**
- * 属性分组
+ * {@code pms_attr_group} 表的 MyBatis-Plus Mapper，无自定义 SQL。
  */
 @Mapper
 public interface AttrGroupDao extends BaseMapper<AttrGroupEntity> {

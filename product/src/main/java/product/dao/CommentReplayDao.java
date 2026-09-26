@@ -5,7 +5,7 @@ import org.apache.ibatis.annotations.Mapper;
 import product.entity.CommentReplayEntity;
 
 /**
- * 商品评价回复关系
+ * {@code pms_comment_replay} 表的 MyBatis-Plus Mapper，无自定义 SQL。
  */
 @Mapper
 public interface CommentReplayDao extends BaseMapper<CommentReplayEntity> {

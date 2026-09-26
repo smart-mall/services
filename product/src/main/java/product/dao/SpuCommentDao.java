@@ -5,7 +5,7 @@ import org.apache.ibatis.annotations.Mapper;
 import product.entity.SpuCommentEntity;
 
 /**
- * 商品评价
+ * {@code pms_spu_comment} 表的 MyBatis-Plus Mapper，无自定义 SQL。
  */
 @Mapper
 public interface SpuCommentDao extends BaseMapper<SpuCommentEntity> {

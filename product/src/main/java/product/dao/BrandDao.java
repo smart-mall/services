@@ -5,7 +5,7 @@ import org.apache.ibatis.annotations.Mapper;
 import product.entity.BrandEntity;
 
 /**
- * 品牌
+ * {@code pms_brand} 表的 MyBatis-Plus Mapper，无自定义 SQL。
  */
 @Mapper
 public interface BrandDao extends BaseMapper<BrandEntity> {

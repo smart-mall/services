@@ -5,7 +5,7 @@ import org.apache.ibatis.annotations.Mapper;
 import product.entity.ProductAttrValueEntity;
 
 /**
- * spu属性值
+ * {@code pms_product_attr_value} 表的 MyBatis-Plus Mapper，无自定义 SQL。
  */
 @Mapper
 public interface ProductAttrValueDao extends BaseMapper<ProductAttrValueEntity> {

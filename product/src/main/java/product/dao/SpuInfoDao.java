@@ -5,7 +5,7 @@ import org.apache.ibatis.annotations.Mapper;
 import product.entity.SpuInfoEntity;
 
 /**
- * spu信息
+ * {@code pms_spu_info} 表的 MyBatis-Plus Mapper，无自定义 SQL。
  */
 @Mapper
 public interface SpuInfoDao extends BaseMapper<SpuInfoEntity> {

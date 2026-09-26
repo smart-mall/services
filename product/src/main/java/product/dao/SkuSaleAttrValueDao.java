@@ -9,7 +9,7 @@ import product.vo.SkuItemSaleAttrVo;
 import java.util.List;
 
 /**
- * sku销售属性&值
+ * {@code pms_sku_sale_attr_value} 表的 MyBatis-Plus Mapper，无自定义 SQL。
  */
 @Mapper
 public interface SkuSaleAttrValueDao extends BaseMapper<SkuSaleAttrValueEntity> {
