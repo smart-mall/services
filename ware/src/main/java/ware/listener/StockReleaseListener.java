@@ -28,8 +28,6 @@ public class StockReleaseListener {
         log.info("******收到解锁库存的信息******");
         try {
 
-            //当前消息是否被第二次及以后（重新）派发过来了
-            // Boolean redelivered = message.getMessageProperties().getRedelivered();
 
             //解锁库存
             wareSkuService.unlockStock(to);

@@ -34,6 +34,4 @@ public class ItemDetailVO {
     // 商品规格参数(spu，属性分组与属性)
     private List<ItemAttrGroupWithAttrVO> spuAttrGroups;
 
-//    // 商品参与的最近场次秒杀信息
-//    private SeckillSkuTO seckillInfo;
 }

@@ -36,8 +36,7 @@ public class SeckillScheduled {
     }
 
     //TODO 保证幂等性问题
-    // @Scheduled(cron = "*/5 * * * * ? ")
-    //    秒 分 时 日 月 周
+    // cron 字段顺序：秒 分 时 日 月 周
     @Scheduled(cron = "0 0 0 * * ?")
     public void uploadSeckillSkuLatest3Days() {
         //1、重复上架无需处理

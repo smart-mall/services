@@ -21,7 +21,6 @@ public interface ProductFeignService {
     public R<SpuInfoVo> getSpuInfoBySkuId(@PathVariable("skuId") Long skuId);
 
     @RequestMapping("/product/skuinfo/info/{skuId}")
-    //@RequiresPermissions("product:skuinfo:info")
     public R<SkuInfoVo> getSkuInfoBySkuId(@PathVariable("skuId") Long skuId);
 
 }

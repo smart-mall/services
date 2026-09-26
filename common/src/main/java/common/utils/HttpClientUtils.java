@@ -322,11 +322,6 @@ public class HttpClientUtils {
 	public static void main(String[] args) {
 		try {
 			String str= post("https://localhost:443/ssl/test.shtml","name=12&page=34","application/x-www-form-urlencoded", "UTF-8", 10000, 10000);
-			//String str= get("https://localhost:443/ssl/test.shtml?name=12&page=34","GBK");
-            /*Map<String,String> map = new HashMap<String,String>();
-            map.put("name", "111");
-            map.put("page", "222");
-            String str= postForm("https://localhost:443/ssl/test.shtml",map,null, 10000, 10000);*/
 			System.out.println(str);
 		} catch (ConnectTimeoutException e) {
 			e.printStackTrace();

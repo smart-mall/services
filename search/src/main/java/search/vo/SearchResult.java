@@ -47,8 +47,6 @@ public class SearchResult {
     private List<CatalogVo> catalogs;
 
 
-//    private Long[] attrIds;
-    //===========================以上是返回给页面的所有信息============================//
 
 
     /* 已选筛选条件（前端当筛选 chips 用） */

@@ -94,9 +94,6 @@ public class MediaServiceImpl implements MediaService {
         return failed;
     }
 
-    // ------------------------------------------------------------------
-    // 内部
-    // ------------------------------------------------------------------
 
     /** 一批文件在写对象之前的中间态 */
     private record Pending(byte[] content, ImageFormat format, String originalName) {
