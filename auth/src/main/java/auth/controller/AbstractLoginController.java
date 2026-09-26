@@ -1,7 +1,6 @@
 package auth.controller;
 
 import auth.service.LoginLogService;
-import common.exception.BaseCodeEnum;
 import common.utils.ClientIpUtils;
 import common.utils.JwtUtils;
 import common.utils.R;
@@ -38,11 +37,11 @@ public abstract class AbstractLoginController {
      * 顺带记一条登录记录。
      *
      * <p>为什么 token 放在 data 里再套一层而不是平铺：前端 request.ts 的取值习惯是
-     * {@code res.data.data}（对应后端 {@code R.ok().setData(x)}）。</p>
+     * {@code res.data.data}（对应后端 {@code R.ok(x)}）。</p>
      *
      * <p>入参 {@code user} 会被就地改写（置空两个敏感字段），所以别在调用后再用它。</p>
      */
-    protected final R issueToken(MemberResponseVo user, HttpServletRequest request) {
+    protected final R<Map<String, Object>> issueToken(MemberResponseVo user, HttpServletRequest request) {
         // member 返回的是完整 MemberEntity，password 是 BCrypt 哈希，accessToken 是微博令牌。
         // MemberResponseVo 上虽然有 @JsonIgnore，但那只是双保险之一：
         // auth 用 fastjson 的 getData(...) 反序列化时它并不生效，所以这里必须显式置空。
@@ -58,17 +57,7 @@ public abstract class AbstractLoginController {
 
         log.info("登录成功: memberId={}, 有效期={}秒", user.getId(), jwtUtils.getExpireSeconds());
         loginLogService.recordWebLogin(user.getId(), ClientIpUtils.currentIp(request));
-        return R.ok().setData(data);
+        return R.ok(data);
     }
 
-    /**
-     * 跨字段校验失败的错误结构，和 GlobalExceptionHandler 里 {@code @Valid} 那一套完全一致，
-     * 免得前端要认两种格式。
-     */
-    protected final R fieldError(String field, String message) {
-        Map<String, String> errors = new HashMap<>();
-        errors.put(field, message);
-        return R.error(BaseCodeEnum.VALID_EXCEPTION.getCode(), BaseCodeEnum.VALID_EXCEPTION.getMsg())
-                .put("errors", errors);
-    }
 }

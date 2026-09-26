@@ -1,7 +1,7 @@
 package product.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import product.entity.SkuInfoEntity;
 import product.vo.SkuItemVo;
 import product.vo.SkuSelectVO;
@@ -19,9 +19,9 @@ import java.util.concurrent.ExecutionException;
  */
 public interface SkuInfoService extends IService<SkuInfoEntity> {
 
-    PageUtils queryPage(Map<String, Object> params);
+    PageVO<SkuInfoEntity> queryPage(Map<String, Object> params);
 
-    PageUtils queryPageByCondition(Map<String, Object> params);
+    PageVO<SkuInfoEntity> queryPageByCondition(Map<String, Object> params);
 
     SkuItemVo item(Long skuId) throws ExecutionException, InterruptedException;
 

@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import member.entity.MemberStatisticsInfoEntity;
 import member.service.MemberStatisticsInfoService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.R;
 
 
@@ -34,10 +34,10 @@ public class MemberStatisticsInfoController {
      * 列表
      */
     @RequestMapping("/list")
-    public R list(@RequestParam Map<String, Object> params){
-        PageUtils page = memberStatisticsInfoService.queryPage(params);
+    public R<PageVO<MemberStatisticsInfoEntity>> list(@RequestParam Map<String, Object> params){
+        PageVO<MemberStatisticsInfoEntity> page = memberStatisticsInfoService.queryPage(params);
 
-        return R.ok().put("page", page);
+        return R.ok(page);
     }
 
 
@@ -45,17 +45,17 @@ public class MemberStatisticsInfoController {
      * 信息
      */
     @RequestMapping("/info/{id}")
-    public R info(@PathVariable("id") Long id){
+    public R<MemberStatisticsInfoEntity> info(@PathVariable("id") Long id){
 		MemberStatisticsInfoEntity memberStatisticsInfo = memberStatisticsInfoService.getById(id);
 
-        return R.ok().put("memberStatisticsInfo", memberStatisticsInfo);
+        return R.ok(memberStatisticsInfo);
     }
 
     /**
      * 保存
      */
     @RequestMapping("/save")
-    public R save(@RequestBody MemberStatisticsInfoEntity memberStatisticsInfo){
+    public R<Void> save(@RequestBody MemberStatisticsInfoEntity memberStatisticsInfo){
 		memberStatisticsInfoService.save(memberStatisticsInfo);
 
         return R.ok();
@@ -65,7 +65,7 @@ public class MemberStatisticsInfoController {
      * 修改
      */
     @RequestMapping("/update")
-    public R update(@RequestBody MemberStatisticsInfoEntity memberStatisticsInfo){
+    public R<Void> update(@RequestBody MemberStatisticsInfoEntity memberStatisticsInfo){
 		memberStatisticsInfoService.updateById(memberStatisticsInfo);
 
         return R.ok();
@@ -75,7 +75,7 @@ public class MemberStatisticsInfoController {
      * 删除
      */
     @RequestMapping("/delete")
-    public R delete(@RequestBody Long[] ids){
+    public R<Void> delete(@RequestBody Long[] ids){
 		memberStatisticsInfoService.removeByIds(Arrays.asList(ids));
 
         return R.ok();

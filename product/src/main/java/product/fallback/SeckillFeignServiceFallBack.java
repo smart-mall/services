@@ -8,12 +8,13 @@ import org.springframework.stereotype.Component;
 import product.feign.SeckillFeignService;
 
 
+import product.vo.SeckillSkuVo;
 @Slf4j
 @Component
 public class SeckillFeignServiceFallBack implements SeckillFeignService {
     @Override
-    public R getSkuSeckilInfo(Long skuId) {
+    public R<SeckillSkuVo> getSkuSeckilInfo(Long skuId) {
         log.info("熔断方法调用：getSkuSeckilInfo");
-        return R.error(BaseCodeEnum.TO_MANY_REQUEST.getCode(),BaseCodeEnum.TO_MANY_REQUEST.getMsg());
+        return R.error(BaseCodeEnum.TO_MANY_REQUEST);
     }
 }

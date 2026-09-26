@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import coupon.entity.MemberPriceEntity;
 import coupon.service.MemberPriceService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.R;
 
 
@@ -34,10 +34,10 @@ public class MemberPriceController {
      * 列表
      */
     @RequestMapping("/list")
-    public R list(@RequestParam Map<String, Object> params){
-        PageUtils page = memberPriceService.queryPage(params);
+    public R<PageVO<MemberPriceEntity>> list(@RequestParam Map<String, Object> params){
+        PageVO<MemberPriceEntity> page = memberPriceService.queryPage(params);
 
-        return R.ok().put("page", page);
+        return R.ok(page);
     }
 
 
@@ -45,17 +45,17 @@ public class MemberPriceController {
      * 信息
      */
     @RequestMapping("/info/{id}")
-    public R info(@PathVariable("id") Long id){
+    public R<MemberPriceEntity> info(@PathVariable("id") Long id){
 		MemberPriceEntity memberPrice = memberPriceService.getById(id);
 
-        return R.ok().put("memberPrice", memberPrice);
+        return R.ok(memberPrice);
     }
 
     /**
      * 保存
      */
     @RequestMapping("/save")
-    public R save(@RequestBody MemberPriceEntity memberPrice){
+    public R<Void> save(@RequestBody MemberPriceEntity memberPrice){
 		memberPriceService.save(memberPrice);
 
         return R.ok();
@@ -65,7 +65,7 @@ public class MemberPriceController {
      * 修改
      */
     @RequestMapping("/update")
-    public R update(@RequestBody MemberPriceEntity memberPrice){
+    public R<Void> update(@RequestBody MemberPriceEntity memberPrice){
 		memberPriceService.updateById(memberPrice);
 
         return R.ok();
@@ -75,7 +75,7 @@ public class MemberPriceController {
      * 删除
      */
     @RequestMapping("/delete")
-    public R delete(@RequestBody Long[] ids){
+    public R<Void> delete(@RequestBody Long[] ids){
 		memberPriceService.removeByIds(Arrays.asList(ids));
 
         return R.ok();

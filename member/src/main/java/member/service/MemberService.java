@@ -1,7 +1,7 @@
 package member.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import member.entity.MemberEntity;
 import member.exception.UsernameException;
 import member.vo.MemberProfileUpdateVo;
@@ -20,7 +20,7 @@ import java.util.Map;
  */
 public interface MemberService extends IService<MemberEntity> {
 
-    PageUtils queryPage(Map<String, Object> params);
+    PageVO<MemberEntity> queryPage(Map<String, Object> params);
 
     /**
      * 账号密码注册。

@@ -3,7 +3,7 @@ package member.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.Query;
 import member.dao.MemberLevelDao;
 import member.entity.MemberLevelEntity;
@@ -19,7 +19,7 @@ import java.util.Map;
 public class MemberLevelServiceImpl extends ServiceImpl<MemberLevelDao, MemberLevelEntity> implements MemberLevelService {
 
     @Override
-    public PageUtils queryPage(Map<String, Object> params) {
+    public PageVO<MemberLevelEntity> queryPage(Map<String, Object> params) {
         String key = (String)params.get("key");
 
         LambdaQueryWrapper<MemberLevelEntity> wrapper = new LambdaQueryWrapper<>();
@@ -35,7 +35,7 @@ public class MemberLevelServiceImpl extends ServiceImpl<MemberLevelDao, MemberLe
                 wrapper
         );
 
-        return new PageUtils(page);
+        return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
     @Override

@@ -1,7 +1,7 @@
 package order.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import order.entity.PaymentInfoEntity;
 
 import java.util.Map;
@@ -15,6 +15,6 @@ import java.util.Map;
  */
 public interface PaymentInfoService extends IService<PaymentInfoEntity> {
 
-    PageUtils queryPage(Map<String, Object> params);
+    PageVO<PaymentInfoEntity> queryPage(Map<String, Object> params);
 }
 

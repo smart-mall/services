@@ -1,6 +1,6 @@
 package product.controller;
 
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.R;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -28,10 +28,10 @@ public class SkuImagesController {
      * 列表
      */
     @RequestMapping("/list")
-    public R list(@RequestParam Map<String, Object> params){
-        PageUtils page = skuImagesService.queryPage(params);
+    public R<PageVO<SkuImagesEntity>> list(@RequestParam Map<String, Object> params){
+        PageVO<SkuImagesEntity> page = skuImagesService.queryPage(params);
 
-        return R.ok().put("page", page);
+        return R.ok(page);
     }
 
 
@@ -39,17 +39,17 @@ public class SkuImagesController {
      * 信息
      */
     @RequestMapping("/info/{id}")
-    public R info(@PathVariable("id") Long id){
+    public R<SkuImagesEntity> info(@PathVariable("id") Long id){
 		SkuImagesEntity skuImages = skuImagesService.getById(id);
 
-        return R.ok().put("skuImages", skuImages);
+        return R.ok(skuImages);
     }
 
     /**
      * 保存
      */
     @RequestMapping("/save")
-    public R save(@RequestBody SkuImagesEntity skuImages){
+    public R<Void> save(@RequestBody SkuImagesEntity skuImages){
 		skuImagesService.save(skuImages);
 
         return R.ok();
@@ -59,7 +59,7 @@ public class SkuImagesController {
      * 修改
      */
     @RequestMapping("/update")
-    public R update(@RequestBody SkuImagesEntity skuImages){
+    public R<Void> update(@RequestBody SkuImagesEntity skuImages){
 		skuImagesService.updateById(skuImages);
 
         return R.ok();
@@ -69,7 +69,7 @@ public class SkuImagesController {
      * 删除
      */
     @RequestMapping("/delete")
-    public R delete(@RequestBody Long[] ids){
+    public R<Void> delete(@RequestBody Long[] ids){
 		skuImagesService.removeByIds(Arrays.asList(ids));
 
         return R.ok();

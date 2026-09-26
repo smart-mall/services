@@ -1,7 +1,7 @@
 package product.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import product.entity.UndoLogEntity;
 
 import java.util.Map;
@@ -15,6 +15,6 @@ import java.util.Map;
  */
 public interface UndoLogService extends IService<UndoLogEntity> {
 
-    PageUtils queryPage(Map<String, Object> params);
+    PageVO<UndoLogEntity> queryPage(Map<String, Object> params);
 }
 

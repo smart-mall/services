@@ -1,7 +1,7 @@
 package coupon.controller;
 
 import common.to.SkuReductionTo;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.R;
 import coupon.entity.SkuFullReductionEntity;
 import coupon.service.SkuFullReductionService;
@@ -30,7 +30,7 @@ public class SkuFullReductionController {
      * 报错商品优惠信息
      */
     @RequestMapping("/saveInfo")
-    public R saveInfo(@RequestBody SkuReductionTo skuReductionTo){
+    public R<Void> saveInfo(@RequestBody SkuReductionTo skuReductionTo){
         skuFullReductionService.saveSkuReduction(skuReductionTo);
 
         return R.ok();
@@ -40,10 +40,10 @@ public class SkuFullReductionController {
      * 列表
      */
     @RequestMapping("/list")
-    public R list(@RequestParam Map<String, Object> params){
-        PageUtils page = skuFullReductionService.queryPage(params);
+    public R<PageVO<SkuFullReductionEntity>> list(@RequestParam Map<String, Object> params){
+        PageVO<SkuFullReductionEntity> page = skuFullReductionService.queryPage(params);
 
-        return R.ok().put("page", page);
+        return R.ok(page);
     }
 
 
@@ -51,17 +51,17 @@ public class SkuFullReductionController {
      * 信息
      */
     @RequestMapping("/info/{id}")
-    public R info(@PathVariable("id") Long id){
+    public R<SkuFullReductionEntity> info(@PathVariable("id") Long id){
 		SkuFullReductionEntity skuFullReduction = skuFullReductionService.getById(id);
 
-        return R.ok().put("skuFullReduction", skuFullReduction);
+        return R.ok(skuFullReduction);
     }
 
     /**
      * 保存
      */
     @RequestMapping("/save")
-    public R save(@RequestBody SkuFullReductionEntity skuFullReduction){
+    public R<Void> save(@RequestBody SkuFullReductionEntity skuFullReduction){
 		skuFullReductionService.save(skuFullReduction);
 
         return R.ok();
@@ -71,7 +71,7 @@ public class SkuFullReductionController {
      * 修改
      */
     @RequestMapping("/update")
-    public R update(@RequestBody SkuFullReductionEntity skuFullReduction){
+    public R<Void> update(@RequestBody SkuFullReductionEntity skuFullReduction){
 		skuFullReductionService.updateById(skuFullReduction);
 
         return R.ok();
@@ -81,7 +81,7 @@ public class SkuFullReductionController {
      * 删除
      */
     @RequestMapping("/delete")
-    public R delete(@RequestBody Long[] ids){
+    public R<Void> delete(@RequestBody Long[] ids){
 		skuFullReductionService.removeByIds(Arrays.asList(ids));
 
         return R.ok();

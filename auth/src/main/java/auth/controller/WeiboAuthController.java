@@ -4,7 +4,6 @@ import auth.feign.MemberFeignService;
 import auth.service.LoginLogService;
 import auth.vo.SocialUser;
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.TypeReference;
 import common.utils.HttpUtils;
 import common.utils.JwtUtils;
 import common.utils.R;
@@ -72,13 +71,13 @@ public class WeiboAuthController extends AbstractSocialAuthController {
         log.info("微博授权成功, uid={}", socialUser.getUid());
 
         //3、让 member 服务按社交账号登录或自动注册
-        R oauthLogin = memberFeignService.oauthLogin(socialUser);
+        R<MemberResponseVo> oauthLogin = memberFeignService.oauthLogin(socialUser);
         if (oauthLogin.getCode() != 0) {
             log.warn("微博登录失败: {}", oauthLogin.getMsg());
             return toLoginPage("weibo_login_failed");
         }
 
-        MemberResponseVo user = oauthLogin.getData("data", new TypeReference<MemberResponseVo>() {});
+        MemberResponseVo user = oauthLogin.getData();
         return toFrontWithToken(user, "weibo", request);
     }
 }

@@ -6,6 +6,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import thirdParty.service.AddressService;
 
+import java.util.List;
+import thirdParty.vo.AreaTreeNode;
 /** 省市区地址树。前后台共用且不需要登录态，挂在 front 约定下的公开路径上 */
 @RestController
 @RequestMapping("thirdParty/front/address")
@@ -19,8 +21,8 @@ public class AddressController {
 
     // 获取地址树形结构信息
     @RequestMapping("/tree")
-    public R getAddressTree() {
+    public R<List<AreaTreeNode>> getAddressTree() {
         log.info("获取地址树形结构信息");
-        return R.ok().setData(addressService.getAddressTree());
+        return R.ok(addressService.getAddressTree());
     }
 }

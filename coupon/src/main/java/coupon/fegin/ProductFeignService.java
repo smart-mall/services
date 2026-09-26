@@ -7,11 +7,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 
+import java.util.Map;
 @FeignClient("product")
 public interface ProductFeignService {
     @PostMapping(value = "/product/spuinfo/getSpuNames")
-    R getSpuNames(@RequestBody List<Long> spuIds);
+    R<Map<Long, String>> getSpuNames(@RequestBody List<Long> spuIds);
 
     @PostMapping(value = "/product/skuinfo/getSkuNames")
-    R getSkuNames(@RequestBody List<Long> spuIds);
+    R<Map<Long, String>> getSkuNames(@RequestBody List<Long> spuIds);
 }

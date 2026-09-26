@@ -1,7 +1,7 @@
 package order.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import order.entity.OrderReturnApplyEntity;
 
 import java.util.Map;
@@ -15,6 +15,6 @@ import java.util.Map;
  */
 public interface OrderReturnApplyService extends IService<OrderReturnApplyEntity> {
 
-    PageUtils queryPage(Map<String, Object> params);
+    PageVO<OrderReturnApplyEntity> queryPage(Map<String, Object> params);
 }
 

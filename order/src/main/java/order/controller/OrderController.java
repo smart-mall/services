@@ -2,7 +2,7 @@ package order.controller;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.R;
 import lombok.extern.slf4j.Slf4j;
 import order.entity.OrderEntity;
@@ -15,6 +15,7 @@ import java.util.Map;
 
 
 
+import order.vo.OrderStatusVo;
 /**
  * 订单
  *
@@ -33,11 +34,11 @@ public class OrderController {
      * 列表
      */
     @RequestMapping("/list")
-    public R list(@RequestParam Map<String, Object> params){
+    public R<PageVO<OrderEntity>> list(@RequestParam Map<String, Object> params){
         log.info("查询订单列表: {}", JSON.toJSONString( params, SerializerFeature.PrettyFormat));
-        PageUtils page = orderService.queryPage(params);
+        PageVO<OrderEntity> page = orderService.queryPage(params);
 
-        return R.ok().put("page", page);
+        return R.ok(page);
     }
 
 
@@ -55,8 +56,8 @@ public class OrderController {
      * 报错会让它抛异常、消息无限重投。</p>
      */
     @GetMapping("/status/{orderSn}")
-    public R status(@PathVariable("orderSn") String orderSn){
-        return R.ok().setData(orderService.getOrderStatus(orderSn));
+    public R<OrderStatusVo> status(@PathVariable("orderSn") String orderSn){
+        return R.ok(orderService.getOrderStatus(orderSn));
     }
 
 
@@ -64,18 +65,18 @@ public class OrderController {
      * 信息
      */
     @RequestMapping("/info/{id}")
-    public R info(@PathVariable("id") Long id){
+    public R<OrderEntity> info(@PathVariable("id") Long id){
         log.info("信息: {}", id);
 		OrderEntity order = orderService.getById(id);
 
-        return R.ok().put("order", order);
+        return R.ok(order);
     }
 
     /**
      * 保存
      */
     @RequestMapping("/save")
-    public R save(@RequestBody OrderEntity order){
+    public R<Void> save(@RequestBody OrderEntity order){
         log.info("保存订单: {}", JSON.toJSONString(order, SerializerFeature.PrettyFormat));
 		orderService.save(order);
 
@@ -86,7 +87,7 @@ public class OrderController {
      * 修改
      */
     @RequestMapping("/update")
-    public R update(@RequestBody OrderEntity order){
+    public R<Void> update(@RequestBody OrderEntity order){
         log.info("修改订单: {}", JSON.toJSONString(order, SerializerFeature.PrettyFormat));
 		orderService.updateById(order);
 
@@ -97,7 +98,7 @@ public class OrderController {
      * 删除
      */
     @RequestMapping("/delete")
-    public R delete(@RequestBody Long[] ids){
+    public R<Void> delete(@RequestBody Long[] ids){
         log.info("删除订单: {}", JSON.toJSONString(ids, SerializerFeature.PrettyFormat));
 		orderService.removeByIds(Arrays.asList(ids));
 

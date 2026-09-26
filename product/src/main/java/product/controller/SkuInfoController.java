@@ -2,7 +2,7 @@ package product.controller;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.R;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -34,22 +34,22 @@ public class SkuInfoController {
 
     // 获取sku下拉框选择信息
     @GetMapping(value = "/getSkuSelect")
-    public R getSkuSelect() {
+    public R<List<SkuSelectVO>> getSkuSelect() {
         log.info("获取sku下拉框选择信息");
         List<SkuSelectVO> skuSelect = skuInfoService.getSkuSelect();
 
-        return R.ok().setData(skuSelect);
+        return R.ok(skuSelect);
     }
 
 
     // 批量获取spuName
     @PostMapping(value = "/getSkuNames")
-    public R getSkuNames(@RequestBody List<Long> spuIds) {
+    public R<Map<Long, String>> getSkuNames(@RequestBody List<Long> spuIds) {
         log.info("批量获取spuName：{}", JSON.toJSONString(spuIds, SerializerFeature.PrettyFormat));
 
         Map<Long, String> map = skuInfoService.getUserNames(spuIds);
 
-        return R.ok().setData(map);
+        return R.ok(map);
     }
 
     /**
@@ -73,10 +73,10 @@ public class SkuInfoController {
      * 列表
      */
     @RequestMapping("/list")
-    public R list(@RequestParam Map<String, Object> params){
-        PageUtils page = skuInfoService.queryPageByCondition(params);
+    public R<PageVO<SkuInfoEntity>> list(@RequestParam Map<String, Object> params){
+        PageVO<SkuInfoEntity> page = skuInfoService.queryPageByCondition(params);
 
-        return R.ok().put("page", page);
+        return R.ok(page);
     }
 
 
@@ -84,17 +84,17 @@ public class SkuInfoController {
      * 信息
      */
     @RequestMapping("/info/{skuId}")
-    public R info(@PathVariable("skuId") Long skuId){
+    public R<SkuInfoEntity> info(@PathVariable("skuId") Long skuId){
 		SkuInfoEntity skuInfo = skuInfoService.getById(skuId);
 
-        return R.ok().put("skuInfo", skuInfo);
+        return R.ok(skuInfo);
     }
 
     /**
      * 保存
      */
     @RequestMapping("/save")
-    public R save(@RequestBody SkuInfoEntity skuInfo){
+    public R<Void> save(@RequestBody SkuInfoEntity skuInfo){
 		skuInfoService.save(skuInfo);
 
         return R.ok();
@@ -104,7 +104,7 @@ public class SkuInfoController {
      * 修改
      */
     @RequestMapping("/update")
-    public R update(@RequestBody SkuInfoEntity skuInfo){
+    public R<Void> update(@RequestBody SkuInfoEntity skuInfo){
 		skuInfoService.updateById(skuInfo);
 
         return R.ok();

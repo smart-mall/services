@@ -23,7 +23,6 @@ import org.springframework.data.elasticsearch.core.query.highlight.HighlightFiel
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import search.constant.EsConstant;
-import search.fegin.ProductFeignService;
 import search.service.MallSearchService;
 import search.vo.SearchParam;
 import search.vo.SearchResult;
@@ -36,11 +35,9 @@ import java.util.List;
 @Service
 public class MallSearchServiceImpl implements MallSearchService {
     private final ElasticsearchTemplate elasticsearchTemplate;
-    private final ProductFeignService productFeignService;
 
-    public MallSearchServiceImpl(ElasticsearchTemplate elasticsearchTemplate, ProductFeignService productFeignService) {
+    public MallSearchServiceImpl(ElasticsearchTemplate elasticsearchTemplate) {
         this.elasticsearchTemplate = elasticsearchTemplate;
-        this.productFeignService = productFeignService;
     }
 
     @Override

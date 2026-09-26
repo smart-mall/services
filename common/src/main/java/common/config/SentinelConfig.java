@@ -11,13 +11,13 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
-
-@Component  // 改为 @Component
-public class SentinelConfig implements BlockExceptionHandler {  // 实现 BlockExceptionHandler 接口
+/** Sentinel 限流被拦时的响应体，和正常接口保持同一个形状 */
+@Component
+public class SentinelConfig implements BlockExceptionHandler {
 
     @Override
     public void handle(HttpServletRequest request, HttpServletResponse response, BlockException ex) throws IOException {
-        R error = R.error(BaseCodeEnum.TO_MANY_REQUEST.getCode(), BaseCodeEnum.TO_MANY_REQUEST.getMsg());
+        R<Void> error = R.error(BaseCodeEnum.TO_MANY_REQUEST);
         response.setCharacterEncoding("UTF-8");
         response.setContentType("application/json");
         response.getWriter().write(JSON.toJSONString(error));

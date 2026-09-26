@@ -5,7 +5,7 @@ import java.util.Map;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.Query;
 
 import coupon.dao.HomeAdvDao;
@@ -17,13 +17,13 @@ import coupon.service.HomeAdvService;
 public class HomeAdvServiceImpl extends ServiceImpl<HomeAdvDao, HomeAdvEntity> implements HomeAdvService {
 
     @Override
-    public PageUtils queryPage(Map<String, Object> params) {
+    public PageVO<HomeAdvEntity> queryPage(Map<String, Object> params) {
         IPage<HomeAdvEntity> page = this.page(
                 new Query<HomeAdvEntity>().getPage(params),
                 new QueryWrapper<HomeAdvEntity>()
         );
 
-        return new PageUtils(page);
+        return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
 }

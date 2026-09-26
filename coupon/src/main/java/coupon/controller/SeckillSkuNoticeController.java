@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import coupon.entity.SeckillSkuNoticeEntity;
 import coupon.service.SeckillSkuNoticeService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.R;
 
 
@@ -34,10 +34,10 @@ public class SeckillSkuNoticeController {
      * 列表
      */
     @RequestMapping("/list")
-    public R list(@RequestParam Map<String, Object> params){
-        PageUtils page = seckillSkuNoticeService.queryPage(params);
+    public R<PageVO<SeckillSkuNoticeEntity>> list(@RequestParam Map<String, Object> params){
+        PageVO<SeckillSkuNoticeEntity> page = seckillSkuNoticeService.queryPage(params);
 
-        return R.ok().put("page", page);
+        return R.ok(page);
     }
 
 
@@ -45,17 +45,17 @@ public class SeckillSkuNoticeController {
      * 信息
      */
     @RequestMapping("/info/{id}")
-    public R info(@PathVariable("id") Long id){
+    public R<SeckillSkuNoticeEntity> info(@PathVariable("id") Long id){
 		SeckillSkuNoticeEntity seckillSkuNotice = seckillSkuNoticeService.getById(id);
 
-        return R.ok().put("seckillSkuNotice", seckillSkuNotice);
+        return R.ok(seckillSkuNotice);
     }
 
     /**
      * 保存
      */
     @RequestMapping("/save")
-    public R save(@RequestBody SeckillSkuNoticeEntity seckillSkuNotice){
+    public R<Void> save(@RequestBody SeckillSkuNoticeEntity seckillSkuNotice){
 		seckillSkuNoticeService.save(seckillSkuNotice);
 
         return R.ok();
@@ -65,7 +65,7 @@ public class SeckillSkuNoticeController {
      * 修改
      */
     @RequestMapping("/update")
-    public R update(@RequestBody SeckillSkuNoticeEntity seckillSkuNotice){
+    public R<Void> update(@RequestBody SeckillSkuNoticeEntity seckillSkuNotice){
 		seckillSkuNoticeService.updateById(seckillSkuNotice);
 
         return R.ok();
@@ -75,7 +75,7 @@ public class SeckillSkuNoticeController {
      * 删除
      */
     @RequestMapping("/delete")
-    public R delete(@RequestBody Long[] ids){
+    public R<Void> delete(@RequestBody Long[] ids){
 		seckillSkuNoticeService.removeByIds(Arrays.asList(ids));
 
         return R.ok();

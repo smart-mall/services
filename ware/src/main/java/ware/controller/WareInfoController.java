@@ -1,6 +1,6 @@
 package ware.controller;
 
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.R;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,13 +29,13 @@ public class WareInfoController {
     private WareInfoService wareInfoService;
 
     @GetMapping(value = "/fare")
-    public R getFare(@RequestParam("addrId") Long addrId) {
+    public R<FareVo> getFare(@RequestParam("addrId") Long addrId) {
         log.info("获取运费：{}", addrId);
 
 
         FareVo fare = wareInfoService.getFare(addrId);
 
-        return R.ok().setData(fare);
+        return R.ok(fare);
     }
 
 
@@ -43,10 +43,10 @@ public class WareInfoController {
      * 列表
      */
     @RequestMapping("/list")
-    public R list(@RequestParam Map<String, Object> params){
-        PageUtils page = wareInfoService.queryPage(params);
+    public R<PageVO<WareInfoEntity>> list(@RequestParam Map<String, Object> params){
+        PageVO<WareInfoEntity> page = wareInfoService.queryPage(params);
 
-        return R.ok().put("page", page);
+        return R.ok(page);
     }
 
 
@@ -54,17 +54,17 @@ public class WareInfoController {
      * 信息
      */
     @RequestMapping("/info/{id}")
-    public R info(@PathVariable("id") Long id){
+    public R<WareInfoEntity> info(@PathVariable("id") Long id){
 		WareInfoEntity wareInfo = wareInfoService.getById(id);
 
-        return R.ok().put("wareInfo", wareInfo);
+        return R.ok(wareInfo);
     }
 
     /**
      * 保存
      */
     @RequestMapping("/save")
-    public R save(@RequestBody WareInfoEntity wareInfo){
+    public R<Void> save(@RequestBody WareInfoEntity wareInfo){
 		wareInfoService.save(wareInfo);
 
         return R.ok();
@@ -74,7 +74,7 @@ public class WareInfoController {
      * 修改
      */
     @RequestMapping("/update")
-    public R update(@RequestBody WareInfoEntity wareInfo){
+    public R<Void> update(@RequestBody WareInfoEntity wareInfo){
 		wareInfoService.updateById(wareInfo);
 
         return R.ok();
@@ -84,7 +84,7 @@ public class WareInfoController {
      * 删除
      */
     @RequestMapping("/delete")
-    public R delete(@RequestBody Long[] ids){
+    public R<Void> delete(@RequestBody Long[] ids){
 		wareInfoService.deleteByIds(ids == null ? List.of() : Arrays.asList(ids));
 
         return R.ok();

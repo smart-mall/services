@@ -1,7 +1,7 @@
 package coupon.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import coupon.entity.SeckillSessionEntity;
 
 import java.util.List;
@@ -16,7 +16,7 @@ import java.util.Map;
  */
 public interface SeckillSessionService extends IService<SeckillSessionEntity> {
 
-    PageUtils queryPage(Map<String, Object> params);
+    PageVO<SeckillSessionEntity> queryPage(Map<String, Object> params);
 
     List<SeckillSessionEntity> getLates3DaySession();
 }

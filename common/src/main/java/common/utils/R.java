@@ -1,98 +1,65 @@
-/**
- * Copyright (c) 2016-2019 人人开源 All rights reserved.
- *
- * https://www.renren.io
- *
- * 版权所有，侵权必究！
- */
-
 package common.utils;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.TypeReference;
-import org.apache.http.HttpStatus;
-
-import java.io.Serial;
-import java.util.HashMap;
-import java.util.Map;
+import common.exception.BaseCodeEnum;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
- * 返回数据
+ * 统一响应结构 {@code {code, msg, data}}，所有接口都返回它。
  *
- * @author Mark sunlightcs@gmail.com
+ * <p>data 的类型由类型参数确定。以前它是 {@code HashMap<String, Object>}：取数据靠
+ * {@code getData("key", new TypeReference<>(){})} 在运行期反序列化，key 写错编译期不报错。</p>
+ *
+ * @param <T> 业务数据类型；无返回值时用 {@link Void}
  */
-public class R extends HashMap<String, Object> {
-	@Serial private static final long serialVersionUID = 1L;
+@Data
+@NoArgsConstructor
+public class R<T> {
 
-	public R setData(Object data) {
-		put("data",data);
-		return this;
-	}
+    /** 成功码。业务错误码见 {@link BaseCodeEnum} */
+    public static final int SUCCESS_CODE = 0;
 
-	//利用fastjson进行反序列化
-	public <T> T getData(TypeReference<T> typeReference) {
-		Object data = get("data");	//默认是map
-		String jsonString = JSON.toJSONString(data);
-		T t = JSON.parseObject(jsonString, typeReference);
-		return t;
-	}
+    private static final String SUCCESS_MSG = "success";
 
-	//利用fastjson进行反序列化
-	public <T> T getData(String key,TypeReference<T> typeReference) {
-		Object data = get(key);	//默认是map
-		String jsonString = JSON.toJSONString(data);
-		T t = JSON.parseObject(jsonString, typeReference);
-		return t;
-	}
+    private int code;
 
-	public R() {
-		put("code", 0);
-		put("msg", "success");
-	}
+    private String msg;
 
-	public static R error() {
-		return error(HttpStatus.SC_INTERNAL_SERVER_ERROR, "未知异常，请联系管理员");
-	}
+    private T data;
 
-	public static R error(String msg) {
-		return error(HttpStatus.SC_INTERNAL_SERVER_ERROR, msg);
-	}
+    private R(int code, String msg, T data) {
+        this.code = code;
+        this.msg = msg;
+        this.data = data;
+    }
 
-	public static R error(int code, String msg) {
-		R r = new R();
-		r.put("code", code);
-		r.put("msg", msg);
-		return r;
-	}
+    /** 成功，无返回数据 */
+    public static R<Void> ok() {
+        return new R<>(SUCCESS_CODE, SUCCESS_MSG, null);
+    }
 
-	public static R ok(String msg) {
-		R r = new R();
-		r.put("msg", msg);
-		return r;
-	}
+    /** 成功并携带数据 */
+    public static <T> R<T> ok(T data) {
+        return new R<>(SUCCESS_CODE, SUCCESS_MSG, data);
+    }
 
-	public static R ok(Map<String, Object> map) {
-		R r = new R();
-		r.putAll(map);
-		return r;
-	}
+    /** 失败，码和文案都取自枚举 */
+    public static <T> R<T> error(BaseCodeEnum baseCodeEnum) {
+        return new R<>(baseCodeEnum.getCode(), baseCodeEnum.getMsg(), null);
+    }
 
-	public static R ok() {
-		return new R();
-	}
+    /** 失败，码取自枚举、data 带明细（字段级校验失败走这个） */
+    public static <T> R<T> error(BaseCodeEnum baseCodeEnum, T data) {
+        return new R<>(baseCodeEnum.getCode(), baseCodeEnum.getMsg(), data);
+    }
 
-	public R put(String key, Object value) {
-		super.put(key, value);
-		return this;
-	}
+    /** 失败，码和文案都由调用方给出，用于转发下游服务的错误 */
+    public static <T> R<T> error(int code, String msg) {
+        return new R<>(code, msg, null);
+    }
 
-	public Integer getCode() {
-
-		return (Integer) this.get("code");
-	}
-
-	public String getMsg() {
-		return (String) this.get("msg");
-	}
-
+    /** 失败并带数据，码和文案由调用方给出 */
+    public static <T> R<T> error(int code, String msg, T data) {
+        return new R<>(code, msg, data);
+    }
 }

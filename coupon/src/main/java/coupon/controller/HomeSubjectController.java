@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import coupon.entity.HomeSubjectEntity;
 import coupon.service.HomeSubjectService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.R;
 
 
@@ -34,10 +34,10 @@ public class HomeSubjectController {
      * 列表
      */
     @RequestMapping("/list")
-    public R list(@RequestParam Map<String, Object> params){
-        PageUtils page = homeSubjectService.queryPage(params);
+    public R<PageVO<HomeSubjectEntity>> list(@RequestParam Map<String, Object> params){
+        PageVO<HomeSubjectEntity> page = homeSubjectService.queryPage(params);
 
-        return R.ok().put("page", page);
+        return R.ok(page);
     }
 
 
@@ -45,17 +45,17 @@ public class HomeSubjectController {
      * 信息
      */
     @RequestMapping("/info/{id}")
-    public R info(@PathVariable("id") Long id){
+    public R<HomeSubjectEntity> info(@PathVariable("id") Long id){
 		HomeSubjectEntity homeSubject = homeSubjectService.getById(id);
 
-        return R.ok().put("homeSubject", homeSubject);
+        return R.ok(homeSubject);
     }
 
     /**
      * 保存
      */
     @RequestMapping("/save")
-    public R save(@RequestBody HomeSubjectEntity homeSubject){
+    public R<Void> save(@RequestBody HomeSubjectEntity homeSubject){
 		homeSubjectService.save(homeSubject);
 
         return R.ok();
@@ -65,7 +65,7 @@ public class HomeSubjectController {
      * 修改
      */
     @RequestMapping("/update")
-    public R update(@RequestBody HomeSubjectEntity homeSubject){
+    public R<Void> update(@RequestBody HomeSubjectEntity homeSubject){
 		homeSubjectService.updateById(homeSubject);
 
         return R.ok();
@@ -75,7 +75,7 @@ public class HomeSubjectController {
      * 删除
      */
     @RequestMapping("/delete")
-    public R delete(@RequestBody Long[] ids){
+    public R<Void> delete(@RequestBody Long[] ids){
 		homeSubjectService.removeByIds(Arrays.asList(ids));
 
         return R.ok();

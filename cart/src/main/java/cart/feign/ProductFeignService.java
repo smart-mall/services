@@ -1,5 +1,6 @@
 package cart.feign;
 
+import cart.vo.SkuInfoVo;
 import common.utils.R;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,7 +21,7 @@ public interface ProductFeignService {
      * @return
      */
     @RequestMapping("/product/skuinfo/info/{skuId}")
-    R getInfo(@PathVariable("skuId") Long skuId);
+    R<SkuInfoVo> getInfo(@PathVariable("skuId") Long skuId);
 
     /**
      * 根据skuId查询pms_sku_sale_attr_value表中的信息

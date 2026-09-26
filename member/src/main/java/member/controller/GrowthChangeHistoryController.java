@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import member.entity.GrowthChangeHistoryEntity;
 import member.service.GrowthChangeHistoryService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.R;
 
 
@@ -34,10 +34,10 @@ public class GrowthChangeHistoryController {
      * 列表
      */
     @RequestMapping("/list")
-    public R list(@RequestParam Map<String, Object> params){
-        PageUtils page = growthChangeHistoryService.queryPage(params);
+    public R<PageVO<GrowthChangeHistoryEntity>> list(@RequestParam Map<String, Object> params){
+        PageVO<GrowthChangeHistoryEntity> page = growthChangeHistoryService.queryPage(params);
 
-        return R.ok().put("page", page);
+        return R.ok(page);
     }
 
 
@@ -45,17 +45,17 @@ public class GrowthChangeHistoryController {
      * 信息
      */
     @RequestMapping("/info/{id}")
-    public R info(@PathVariable("id") Long id){
+    public R<GrowthChangeHistoryEntity> info(@PathVariable("id") Long id){
 		GrowthChangeHistoryEntity growthChangeHistory = growthChangeHistoryService.getById(id);
 
-        return R.ok().put("growthChangeHistory", growthChangeHistory);
+        return R.ok(growthChangeHistory);
     }
 
     /**
      * 保存
      */
     @RequestMapping("/save")
-    public R save(@RequestBody GrowthChangeHistoryEntity growthChangeHistory){
+    public R<Void> save(@RequestBody GrowthChangeHistoryEntity growthChangeHistory){
 		growthChangeHistoryService.save(growthChangeHistory);
 
         return R.ok();
@@ -65,7 +65,7 @@ public class GrowthChangeHistoryController {
      * 修改
      */
     @RequestMapping("/update")
-    public R update(@RequestBody GrowthChangeHistoryEntity growthChangeHistory){
+    public R<Void> update(@RequestBody GrowthChangeHistoryEntity growthChangeHistory){
 		growthChangeHistoryService.updateById(growthChangeHistory);
 
         return R.ok();
@@ -75,7 +75,7 @@ public class GrowthChangeHistoryController {
      * 删除
      */
     @RequestMapping("/delete")
-    public R delete(@RequestBody Long[] ids){
+    public R<Void> delete(@RequestBody Long[] ids){
 		growthChangeHistoryService.removeByIds(Arrays.asList(ids));
 
         return R.ok();

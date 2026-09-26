@@ -1,7 +1,7 @@
 package order.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import order.entity.RefundInfoEntity;
 
 import java.util.Map;
@@ -15,6 +15,6 @@ import java.util.Map;
  */
 public interface RefundInfoService extends IService<RefundInfoEntity> {
 
-    PageUtils queryPage(Map<String, Object> params);
+    PageVO<RefundInfoEntity> queryPage(Map<String, Object> params);
 }
 

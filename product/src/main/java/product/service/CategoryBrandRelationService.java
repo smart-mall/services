@@ -1,7 +1,7 @@
 package product.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import product.entity.BrandEntity;
 import product.entity.CategoryBrandRelationEntity;
 
@@ -17,7 +17,7 @@ import java.util.Map;
  */
 public interface CategoryBrandRelationService extends IService<CategoryBrandRelationEntity> {
 
-    PageUtils queryPage(Map<String, Object> params);
+    PageVO<CategoryBrandRelationEntity> queryPage(Map<String, Object> params);
 
     List<CategoryBrandRelationEntity> listCategoryBrandRelation(Long brandId);
 

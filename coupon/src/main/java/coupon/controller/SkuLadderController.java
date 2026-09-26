@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import coupon.entity.SkuLadderEntity;
 import coupon.service.SkuLadderService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.R;
 
 
@@ -34,10 +34,10 @@ public class SkuLadderController {
      * 列表
      */
     @RequestMapping("/list")
-    public R list(@RequestParam Map<String, Object> params){
-        PageUtils page = skuLadderService.queryPage(params);
+    public R<PageVO<SkuLadderEntity>> list(@RequestParam Map<String, Object> params){
+        PageVO<SkuLadderEntity> page = skuLadderService.queryPage(params);
 
-        return R.ok().put("page", page);
+        return R.ok(page);
     }
 
 
@@ -45,17 +45,17 @@ public class SkuLadderController {
      * 信息
      */
     @RequestMapping("/info/{id}")
-    public R info(@PathVariable("id") Long id){
+    public R<SkuLadderEntity> info(@PathVariable("id") Long id){
 		SkuLadderEntity skuLadder = skuLadderService.getById(id);
 
-        return R.ok().put("skuLadder", skuLadder);
+        return R.ok(skuLadder);
     }
 
     /**
      * 保存
      */
     @RequestMapping("/save")
-    public R save(@RequestBody SkuLadderEntity skuLadder){
+    public R<Void> save(@RequestBody SkuLadderEntity skuLadder){
 		skuLadderService.save(skuLadder);
 
         return R.ok();
@@ -65,7 +65,7 @@ public class SkuLadderController {
      * 修改
      */
     @RequestMapping("/update")
-    public R update(@RequestBody SkuLadderEntity skuLadder){
+    public R<Void> update(@RequestBody SkuLadderEntity skuLadder){
 		skuLadderService.updateById(skuLadder);
 
         return R.ok();
@@ -75,7 +75,7 @@ public class SkuLadderController {
      * 删除
      */
     @RequestMapping("/delete")
-    public R delete(@RequestBody Long[] ids){
+    public R<Void> delete(@RequestBody Long[] ids){
 		skuLadderService.removeByIds(Arrays.asList(ids));
 
         return R.ok();

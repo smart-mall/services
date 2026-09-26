@@ -38,7 +38,7 @@ public class LoginLogServiceImpl implements LoginLogService {
             to.setCity(ipLocationService.resolveCity(clientIp));
             to.setLoginType(LoginLogTo.LOGIN_TYPE_WEB);
 
-            R r = memberFeignService.recordLoginLog(to);
+            R<Void> r = memberFeignService.recordLoginLog(to);
             if (r.getCode() != 0) {
                 log.warn("记录登录日志失败: memberId={}, code={}, msg={}", memberId, r.getCode(), r.getMsg());
             }

@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.Query;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -50,13 +50,13 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
     }
 
     @Override
-    public PageUtils queryPage(Map<String, Object> params) {
+    public PageVO<CategoryEntity> queryPage(Map<String, Object> params) {
         IPage<CategoryEntity> page = this.page(
                 new Query<CategoryEntity>().getPage(params),
                 new QueryWrapper<>()
         );
 
-        return new PageUtils(page);
+        return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
     @Override

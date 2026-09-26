@@ -1,6 +1,8 @@
 package order.feign;
 
 import common.utils.R;
+import order.vo.SkuInfoVo;
+import order.vo.SpuInfoVo;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,10 +24,10 @@ public interface ProductFeignService {
      * @return
      */
     @GetMapping(value = "/product/spuinfo/skuId/{skuId}")
-    public R getSpuInfoBySkuId(@PathVariable("skuId") Long skuId);
+    public R<SpuInfoVo> getSpuInfoBySkuId(@PathVariable("skuId") Long skuId);
 
     @RequestMapping("/product/skuinfo/info/{skuId}")
     //@RequiresPermissions("product:skuinfo:info")
-    public R getSkuInfoBySkuId(@PathVariable("skuId") Long skuId);
+    public R<SkuInfoVo> getSkuInfoBySkuId(@PathVariable("skuId") Long skuId);
 
 }

@@ -2,7 +2,7 @@ package member.controller;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.R;
 import lombok.extern.slf4j.Slf4j;
 import member.entity.MemberLevelEntity;
@@ -33,22 +33,22 @@ public class MemberLevelController {
 
     // 获取spu下拉框选择信息
     @GetMapping(value = "/getMemberSelect")
-    public R getSpuSelect() {
+    public R<List<MemberSelectVO>> getSpuSelect() {
         log.info("获取会员等级下拉框选择信息");
         List<MemberSelectVO> spuSelect = memberLevelService.getMemberSelect();
 
-        return R.ok().setData(spuSelect);
+        return R.ok(spuSelect);
     }
 
     /**
      * 列表
      */
     @RequestMapping("/list")
-    public R list(@RequestParam Map<String, Object> params){
+    public R<PageVO<MemberLevelEntity>> list(@RequestParam Map<String, Object> params){
         log.info("列表: {}", JSON.toJSONString(params, SerializerFeature.PrettyFormat));
-        PageUtils page = memberLevelService.queryPage(params);
+        PageVO<MemberLevelEntity> page = memberLevelService.queryPage(params);
 
-        return R.ok().put("page", page);
+        return R.ok(page);
     }
 
 
@@ -56,18 +56,18 @@ public class MemberLevelController {
      * 信息
      */
     @RequestMapping("/info/{id}")
-    public R info(@PathVariable("id") Long id){
+    public R<MemberLevelEntity> info(@PathVariable("id") Long id){
         log.info("信息: {}", id);
 		MemberLevelEntity memberLevel = memberLevelService.getById(id);
 
-        return R.ok().put("memberLevel", memberLevel);
+        return R.ok(memberLevel);
     }
 
     /**
      * 保存
      */
     @RequestMapping("/save")
-    public R save(@RequestBody MemberLevelEntity memberLevel){
+    public R<Void> save(@RequestBody MemberLevelEntity memberLevel){
         log.info("保存会员等级: {}", JSON.toJSONString(memberLevel, SerializerFeature.PrettyFormat));
 		memberLevelService.save(memberLevel);
 
@@ -78,7 +78,7 @@ public class MemberLevelController {
      * 修改
      */
     @RequestMapping("/update")
-    public R update(@RequestBody MemberLevelEntity memberLevel){
+    public R<Void> update(@RequestBody MemberLevelEntity memberLevel){
         log.info("修改会员等级: {}", JSON.toJSONString(memberLevel, SerializerFeature.PrettyFormat));
 		memberLevelService.updateById(memberLevel);
 
@@ -89,7 +89,7 @@ public class MemberLevelController {
      * 删除
      */
     @RequestMapping("/delete")
-    public R delete(@RequestBody Long[] ids){
+    public R<Void> delete(@RequestBody Long[] ids){
         log.info("删除会员等级: {}", JSON.toJSONString(ids, SerializerFeature.PrettyFormat));
 		memberLevelService.removeByIds(Arrays.asList(ids));
 

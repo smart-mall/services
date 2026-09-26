@@ -1,11 +1,10 @@
 package product.service.impl;
 
-import com.alibaba.fastjson.TypeReference;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.Query;
 import common.utils.R;
 import lombok.extern.slf4j.Slf4j;
@@ -49,17 +48,17 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
     }
 
     @Override
-    public PageUtils queryPage(Map<String, Object> params) {
+    public PageVO<SkuInfoEntity> queryPage(Map<String, Object> params) {
         IPage<SkuInfoEntity> page = this.page(
                 new Query<SkuInfoEntity>().getPage(params),
                 new QueryWrapper<>()
         );
 
-        return new PageUtils(page);
+        return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
     @Override
-    public PageUtils queryPageByCondition(Map<String, Object> params) {
+    public PageVO<SkuInfoEntity> queryPageByCondition(Map<String, Object> params) {
         LambdaQueryWrapper<SkuInfoEntity> queryWrapper = new LambdaQueryWrapper<>();
 
         String key = (String) params.get("key");
@@ -89,7 +88,7 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
                 queryWrapper
         );
 
-        return new PageUtils(page);
+        return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
     @Override
@@ -140,10 +139,10 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
 
         //3、远程调用查询当前sku是否参与秒杀优惠活动
         CompletableFuture<Void> seckillFuture = CompletableFuture.runAsync(() -> {
-            R skuSeckillInfo = seckillFeignService.getSkuSeckilInfo(skuId);
+            R<SeckillSkuVo> skuSeckillInfo = seckillFeignService.getSkuSeckilInfo(skuId);
             if (skuSeckillInfo.getCode() == 0) {
                 //查询成功
-                SeckillSkuVo seckillInfoData = skuSeckillInfo.getData("data", new TypeReference<>() {});
+                SeckillSkuVo seckillInfoData = skuSeckillInfo.getData();
                 skuItemVo.setSeckillSkuVo(seckillInfoData);
 
                 if (seckillInfoData != null) {
@@ -159,9 +158,9 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
         //4、远程调用库存服务，查询当前sku是否有货
         CompletableFuture<Void> stockFuture = CompletableFuture.runAsync(() -> {
             try {
-                R skuStockInfo = wareFeignService.getSkusHasStock(List.of(skuId));
+                R<List<SkuHasStockVo>> skuStockInfo = wareFeignService.getSkusHasStock(List.of(skuId));
                 if (skuStockInfo.getCode() == 0) {
-                    List<SkuHasStockVo> skuHasStockVos = skuStockInfo.getData("data", new TypeReference<>() {});
+                    List<SkuHasStockVo> skuHasStockVos = skuStockInfo.getData();
                     if (skuHasStockVos != null && !skuHasStockVos.isEmpty()
                             && skuHasStockVos.get(0).getHasStock() != null) {
                         skuItemVo.setHasStock(skuHasStockVos.get(0).getHasStock());

@@ -1,7 +1,7 @@
 package product.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import product.entity.SkuImagesEntity;
 
 import java.util.List;
@@ -16,7 +16,7 @@ import java.util.Map;
  */
 public interface SkuImagesService extends IService<SkuImagesEntity> {
 
-    PageUtils queryPage(Map<String, Object> params);
+    PageVO<SkuImagesEntity> queryPage(Map<String, Object> params);
 
     List<SkuImagesEntity> getImagesBySkuId(Long skuId);
 }

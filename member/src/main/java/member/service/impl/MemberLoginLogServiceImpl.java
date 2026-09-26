@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.exception.ValidationException;
 import common.to.LoginLogTo;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.Query;
 import member.dao.MemberLoginLogDao;
 import member.entity.MemberLoginLogEntity;
@@ -24,13 +24,13 @@ public class MemberLoginLogServiceImpl extends ServiceImpl<MemberLoginLogDao, Me
     private static final int MAX_PAGE_SIZE = 100;
 
     @Override
-    public PageUtils queryPage(Map<String, Object> params) {
+    public PageVO<MemberLoginLogEntity> queryPage(Map<String, Object> params) {
         IPage<MemberLoginLogEntity> page = this.page(
                 new Query<MemberLoginLogEntity>().getPage(params),
                 new QueryWrapper<MemberLoginLogEntity>()
         );
 
-        return new PageUtils(page);
+        return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
     @Override
@@ -46,7 +46,7 @@ public class MemberLoginLogServiceImpl extends ServiceImpl<MemberLoginLogDao, Me
     }
 
     @Override
-    public PageUtils queryMine(Long memberId, Map<String, Object> params) {
+    public PageVO<MemberLoginLogEntity> queryMine(Long memberId, Map<String, Object> params) {
         long pageNum = parseNumber(params.get("pageNum"), 1, "pageNum");
         long pageSize = Math.min(parseNumber(params.get("pageSize"), DEFAULT_PAGE_SIZE, "pageSize"), MAX_PAGE_SIZE);
 
@@ -57,7 +57,7 @@ public class MemberLoginLogServiceImpl extends ServiceImpl<MemberLoginLogDao, Me
                         .orderByDesc("create_time")
         );
 
-        return new PageUtils(page);
+        return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
     private long parseNumber(Object raw, long defaultValue, String name) {

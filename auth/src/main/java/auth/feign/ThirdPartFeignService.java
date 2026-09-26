@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 public interface ThirdPartFeignService {
 
     @GetMapping(value = "/thirdParty/sms/sendCode")
-    R sendCode(@RequestParam("mobile") String mobile, @RequestParam("code") String code, @RequestParam("time") int time);
+    R<Void> sendCode(@RequestParam("mobile") String mobile, @RequestParam("code") String code, @RequestParam("time") int time);
 
     /**
      * 发邮箱验证码，third-party 那边用 Resend 发信。
@@ -26,6 +26,6 @@ public interface ThirdPartFeignService {
      * （key 不对 401 / 域名没验证 403 / 参数不合法 422 / 限流 429）。</p>
      */
     @GetMapping(value = "/thirdParty/email/sendCode")
-    R emailSendCode(@RequestParam("email") String email, @RequestParam("code") String code);
+    R<Void> emailSendCode(@RequestParam("email") String email, @RequestParam("code") String code);
 
 }

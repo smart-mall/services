@@ -1,13 +1,12 @@
 package ware.service.impl;
 
-import com.alibaba.fastjson.TypeReference;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
 import common.exception.ValidationException;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.Query;
 import common.utils.R;
 import org.springframework.stereotype.Service;
@@ -37,7 +36,7 @@ public class PurchaseDetailServiceImpl extends ServiceImpl<PurchaseDetailDao, Pu
     }
 
     @Override
-    public PageUtils queryPage(Map<String, Object> params) {
+    public PageVO<PurchaseDetailEntity> queryPage(Map<String, Object> params) {
         LambdaQueryWrapper<PurchaseDetailEntity> queryWrapper = new LambdaQueryWrapper<>();
 
         String key = (String) params.get("key");
@@ -82,14 +81,13 @@ public class PurchaseDetailServiceImpl extends ServiceImpl<PurchaseDetailDao, Pu
                 .toList();
 
         if (!skuIds.isEmpty()) {
-            R r = productFeignService.getSkuNames(skuIds);
+            R<Map<Long, String>> r = productFeignService.getSkuNames(skuIds);
 
             if (r.getCode() != 0) {
                 throw new BaseException("远程服务异常" + r.getMsg());
             }
 
-            Map<Long, String> skuNameMap = r.getData(new TypeReference<>() {
-            });
+            Map<Long, String> skuNameMap = r.getData();
 
             page.getRecords().forEach(item -> item.setSkuName(skuNameMap.get(item.getSkuId())));
         }
@@ -104,7 +102,7 @@ public class PurchaseDetailServiceImpl extends ServiceImpl<PurchaseDetailDao, Pu
             });
         }
 
-        return new PageUtils(page);
+        return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
     /**
@@ -203,14 +201,14 @@ public class PurchaseDetailServiceImpl extends ServiceImpl<PurchaseDetailDao, Pu
      * 商品没了库存却回来了。</p>
      */
     private void assertSkuExists(Long skuId) {
-        R r;
+        R<Map<String, Object>> r;
         try {
             r = productFeignService.getProduct(skuId);
         } catch (Exception e) {
             // 读不到商品服务时不许建单：宁可建不了，也不要建出一条指向不存在商品的需求
             throw new BaseException("商品服务暂时不可用，无法确认商品是否存在，请稍后重试");
         }
-        if (r == null || r.getCode() == null || r.getCode() != 0 || r.get("skuInfo") == null) {
+        if (r == null || r.getCode() != 0 || r.getData() == null) {
             throw new ValidationException("skuId", "商品不存在");
         }
     }

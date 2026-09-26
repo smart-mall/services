@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import order.entity.RefundInfoEntity;
 import order.service.RefundInfoService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.R;
 
 
@@ -34,10 +34,10 @@ public class RefundInfoController {
      * 列表
      */
     @RequestMapping("/list")
-    public R list(@RequestParam Map<String, Object> params){
-        PageUtils page = refundInfoService.queryPage(params);
+    public R<PageVO<RefundInfoEntity>> list(@RequestParam Map<String, Object> params){
+        PageVO<RefundInfoEntity> page = refundInfoService.queryPage(params);
 
-        return R.ok().put("page", page);
+        return R.ok(page);
     }
 
 
@@ -45,17 +45,17 @@ public class RefundInfoController {
      * 信息
      */
     @RequestMapping("/info/{id}")
-    public R info(@PathVariable("id") Long id){
+    public R<RefundInfoEntity> info(@PathVariable("id") Long id){
 		RefundInfoEntity refundInfo = refundInfoService.getById(id);
 
-        return R.ok().put("refundInfo", refundInfo);
+        return R.ok(refundInfo);
     }
 
     /**
      * 保存
      */
     @RequestMapping("/save")
-    public R save(@RequestBody RefundInfoEntity refundInfo){
+    public R<Void> save(@RequestBody RefundInfoEntity refundInfo){
 		refundInfoService.save(refundInfo);
 
         return R.ok();
@@ -65,7 +65,7 @@ public class RefundInfoController {
      * 修改
      */
     @RequestMapping("/update")
-    public R update(@RequestBody RefundInfoEntity refundInfo){
+    public R<Void> update(@RequestBody RefundInfoEntity refundInfo){
 		refundInfoService.updateById(refundInfo);
 
         return R.ok();
@@ -75,7 +75,7 @@ public class RefundInfoController {
      * 删除
      */
     @RequestMapping("/delete")
-    public R delete(@RequestBody Long[] ids){
+    public R<Void> delete(@RequestBody Long[] ids){
 		refundInfoService.removeByIds(Arrays.asList(ids));
 
         return R.ok();

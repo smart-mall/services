@@ -8,7 +8,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.constant.ProductConstant;
 import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.Query;
 import common.utils.R;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +37,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 
+import product.entity.AttrEntity;
 @Service("attrService")
 @Slf4j
 public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements AttrService {
@@ -65,13 +66,13 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
     }
 
     @Override
-    public PageUtils queryPage(Map<String, Object> params) {
+    public PageVO<AttrEntity> queryPage(Map<String, Object> params) {
         IPage<AttrEntity> page = this.page(
                 new Query<AttrEntity>().getPage(params),
                 new QueryWrapper<>()
         );
 
-        return new PageUtils(page);
+        return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
     @Override
@@ -89,7 +90,7 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
     }
 
     @Override
-    public PageUtils queryBaseAttrPage(Map<String, Object> params, Long categoryId, String attrType) {
+    public PageVO<AttrRespVO> queryBaseAttrPage(Map<String, Object> params, Long categoryId, String attrType) {
 
         LambdaQueryWrapper<AttrEntity> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(AttrEntity::getAttrType,
@@ -141,9 +142,7 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
             return attrRespVO;
         }).toList();
 
-        PageUtils pageUtils = new PageUtils(page);
-        pageUtils.setList(list);
-        return pageUtils;
+        return new PageVO<>(page.getTotal(), list);
     }
 
     @Override
@@ -177,7 +176,7 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
         log.debug("更新文件");
         String oldPath = this.getById(attr.getAttrId()).getIcon();
         if (StringUtils.hasText(oldPath) && !oldPath.equals(attr.getIcon())) {
-            R r = thirdPartyFeignService.deleteFile(List.of(oldPath));
+            R<List<String>> r = thirdPartyFeignService.deleteFile(List.of(oldPath));
             if (r.getCode() != 0) {
                 throw new BaseException("删除失败" + r.getMsg());
             }
@@ -226,7 +225,7 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
     }
 
     @Override
-    public PageUtils getNoRelationAttr(Long attrGroupId, Map<String, Object> params) {
+    public PageVO<AttrEntity> getNoRelationAttr(Long attrGroupId, Map<String, Object> params) {
         AttrGroupEntity attrGroupEntity = attrGroupDao.selectById(attrGroupId);
         log.debug("获取分组信息：{}", attrGroupEntity);
 
@@ -265,7 +264,7 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
                 wrapper
         );
 
-        return new PageUtils(page);
+        return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
     @Override
@@ -299,7 +298,7 @@ public class AttrServiceImpl extends ServiceImpl<AttrDao, AttrEntity> implements
                 .in(AttrAttrgroupRelationEntity::getAttrId, existingIds));
 
         List<String> objectNames = attrEntities.stream().map(AttrEntity::getIcon).toList();
-        R r = thirdPartyFeignService.deleteFile(objectNames);
+        R<List<String>> r = thirdPartyFeignService.deleteFile(objectNames);
         if (r.getCode() != 0) {
             throw new BaseException("删除失败" + r.getMsg());
         }

@@ -1,7 +1,7 @@
 package member.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import member.entity.MemberReceiveAddressEntity;
 import member.vo.AddressSaveVo;
 
@@ -17,7 +17,7 @@ import java.util.Map;
  */
 public interface MemberReceiveAddressService extends IService<MemberReceiveAddressEntity> {
 
-    PageUtils queryPage(Map<String, Object> params);
+    PageVO<MemberReceiveAddressEntity> queryPage(Map<String, Object> params);
 
     /**
      * 按会员查地址。给 order 的结算页和 seckill 的秒杀下单用（它们从登录态拿自己的 memberId）。

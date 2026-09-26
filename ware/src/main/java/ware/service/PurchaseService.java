@@ -1,7 +1,7 @@
 package ware.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import ware.entity.PurchaseEntity;
 import ware.vo.MergeVO;
 import ware.vo.PurchaseAssignVO;
@@ -19,9 +19,9 @@ import java.util.Map;
  */
 public interface PurchaseService extends IService<PurchaseEntity> {
 
-    PageUtils queryPage(Map<String, Object> params);
+    PageVO<PurchaseEntity> queryPage(Map<String, Object> params);
 
-    PageUtils queryPageUnreceive(Map<String, Object> params);
+    PageVO<PurchaseEntity> queryPageUnreceive(Map<String, Object> params);
 
     void merge(MergeVO mergeVO);
 

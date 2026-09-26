@@ -1,6 +1,5 @@
 package ware.service.impl;
 
-import com.alibaba.fastjson.TypeReference;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -13,7 +12,7 @@ import common.to.OrderTo;
 import common.to.SkuDeleteBlockerTo;
 import common.to.mq.StockDetailTo;
 import common.to.mq.StockLockedTo;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.Query;
 import common.utils.R;
 import lombok.Data;
@@ -75,7 +74,7 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
     }
 
     @Override
-    public PageUtils queryPage(Map<String, Object> params) {
+    public PageVO<WareSkuEntity> queryPage(Map<String, Object> params) {
         List<WareInfoEntity> wareInfoEntities = wareInfoService.list();
 
         LambdaQueryWrapper<WareSkuEntity> queryWrapper = new LambdaQueryWrapper<>();
@@ -102,7 +101,7 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
                 .map(WareInfoEntity::getName)
                 .orElse(null)));
 
-        return new PageUtils(page);
+        return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
     @Override
@@ -124,12 +123,10 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
             wareSkuEntity.setStock(0);
             wareSkuEntity.setStockLocked(0);
             try {
-                R info = productFeignService.getProduct(skuId);
+                R<Map<String, Object>> info = productFeignService.getProduct(skuId);
 
-                @SuppressWarnings("unchecked")
-                Map<String, Object> skuInfo =  (Map<String, Object>) info.get("skuInfo");
-
-                if (info.getCode() == 0) {
+                Map<String, Object> skuInfo = info.getData();
+                if (info.getCode() == 0 && skuInfo != null) {
                     wareSkuEntity.setSkuName((String) skuInfo.get("skuName"));
                 }
             } catch (Exception ignored) {
@@ -254,10 +251,10 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
             //获取订单号查询订单状态
             String orderSn = orderTaskInfo.getOrderSn();
             //远程查询订单信息
-            R orderData = orderFeignService.getOrderStatus(orderSn);
+            R<OrderVo> orderData = orderFeignService.getOrderStatus(orderSn);
             if (orderData.getCode() == 0) {
                 //订单数据返回成功
-                OrderVo orderInfo = orderData.getData("data", new TypeReference<OrderVo>() {});
+                OrderVo orderInfo = orderData.getData();
 
                 //判断订单状态是否已取消或者支付或者订单不存在
                 if (orderInfo == null || orderInfo.getStatus() == 4) {

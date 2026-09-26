@@ -5,7 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * 字段级校验失败：除了 code/msg，还带 {@code errors}（字段名 → 中文消息）。
+ * 字段级校验失败：除了 code/msg，data 里还带字段明细（字段名 → 中文消息）。
  *
  * <p>和 {@link BaseException} 只差这一个字段，但值得单独一个类：{@code BaseException}
  * 是全项目的通用业务异常（11000 商品上架、15003 密码错、17000 订单不存在…），
@@ -18,10 +18,9 @@ import java.util.Map;
  * <p>它和注解那两条路径（{@code MethodArgumentNotValidException}、
  * {@code ConstraintViolationException}）最终产出的响应体完全一致：</p>
  *
- * <pre>{@code {code:10001, msg:"参数格式校验失败", errors:{"字段名":"中文消息"}}}</pre>
+ * <pre>{@code {code:10001, msg:"参数格式校验失败", data:{"字段名":"中文消息"}}}</pre>
  *
- * <p>调用方判断"这是字段级错误"的依据是<b>响应体里有没有 errors</b>，而不是 code ——
- * 因为请求体不是合法 JSON（10002）同样带字段级信息。</p>
+ * <p>字段明细和其它接口一样放 {@code data}，调用方只认一种响应体形状。</p>
  */
 public class ValidationException extends BaseException {
 

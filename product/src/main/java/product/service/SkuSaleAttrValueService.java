@@ -1,7 +1,7 @@
 package product.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import product.entity.SkuSaleAttrValueEntity;
 import product.vo.SkuItemSaleAttrVo;
 
@@ -17,7 +17,7 @@ import java.util.Map;
  */
 public interface SkuSaleAttrValueService extends IService<SkuSaleAttrValueEntity> {
 
-    PageUtils queryPage(Map<String, Object> params);
+    PageVO<SkuSaleAttrValueEntity> queryPage(Map<String, Object> params);
 
     List<SkuItemSaleAttrVo> getSaleAttrBySpuId(Long spuId);
 

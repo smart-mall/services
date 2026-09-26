@@ -1,12 +1,11 @@
 package coupon.service.impl;
 
-import com.alibaba.fastjson.TypeReference;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.exception.BaseException;
 import common.to.SkuReductionTo;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.Query;
 import common.utils.R;
 import coupon.dao.MemberPriceDao;
@@ -41,7 +40,7 @@ public class SkuFullReductionServiceImpl extends ServiceImpl<SkuFullReductionDao
 
 
     @Override
-    public PageUtils queryPage(Map<String, Object> params) {
+    public PageVO<SkuFullReductionEntity> queryPage(Map<String, Object> params) {
         String key = (String) params.get("key");
 
         IPage<SkuFullReductionEntity> page = this.page(
@@ -57,29 +56,28 @@ public class SkuFullReductionServiceImpl extends ServiceImpl<SkuFullReductionDao
                 .toList();
 
 
-        R r = productFeignService.getSkuNames(spuIds);
+        R<Map<Long, String>> r = productFeignService.getSkuNames(spuIds);
 
         if (r.getCode() != 0) {
             throw new BaseException("远程服务调用失败" + r.getMsg() );
         }
 
-        Map<Long, String> spuNameMap = r.getData(new TypeReference<>() {
-        });
+        Map<Long, String> spuNameMap = r.getData();
 
         page.getRecords().forEach(item -> item.setSkuName(spuNameMap.get(item.getSkuId())));
 
 
 
         if (key == null || key.trim().isEmpty()) {
-            return new PageUtils(page);
+            return new PageVO<>(page.getTotal(), page.getRecords());
         }
 
         List<SkuFullReductionEntity> collect = page.getRecords().stream()
                 .filter(item -> key.equals(item.getId().toString()) || item.getSkuName().contains(key))
                 .toList();
 
-        PageUtils pageUtils = new PageUtils(page);
-        pageUtils.setList(collect);
+        PageVO<SkuFullReductionEntity> pageUtils = new PageVO<>(page.getTotal(), page.getRecords());
+        pageUtils.setRows(collect);
         return pageUtils;
     }
 

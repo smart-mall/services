@@ -1,7 +1,7 @@
 package ware.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import ware.entity.PurchaseDetailEntity;
 
 import java.util.List;
@@ -16,7 +16,7 @@ import java.util.Map;
  */
 public interface PurchaseDetailService extends IService<PurchaseDetailEntity> {
 
-    PageUtils queryPage(Map<String, Object> params);
+    PageVO<PurchaseDetailEntity> queryPage(Map<String, Object> params);
 
     void saveDetail(PurchaseDetailEntity detail);
 

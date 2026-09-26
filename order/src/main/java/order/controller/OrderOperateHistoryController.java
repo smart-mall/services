@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import order.entity.OrderOperateHistoryEntity;
 import order.service.OrderOperateHistoryService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.R;
 
 
@@ -34,10 +34,10 @@ public class OrderOperateHistoryController {
      * 列表
      */
     @RequestMapping("/list")
-    public R list(@RequestParam Map<String, Object> params){
-        PageUtils page = orderOperateHistoryService.queryPage(params);
+    public R<PageVO<OrderOperateHistoryEntity>> list(@RequestParam Map<String, Object> params){
+        PageVO<OrderOperateHistoryEntity> page = orderOperateHistoryService.queryPage(params);
 
-        return R.ok().put("page", page);
+        return R.ok(page);
     }
 
 
@@ -45,17 +45,17 @@ public class OrderOperateHistoryController {
      * 信息
      */
     @RequestMapping("/info/{id}")
-    public R info(@PathVariable("id") Long id){
+    public R<OrderOperateHistoryEntity> info(@PathVariable("id") Long id){
 		OrderOperateHistoryEntity orderOperateHistory = orderOperateHistoryService.getById(id);
 
-        return R.ok().put("orderOperateHistory", orderOperateHistory);
+        return R.ok(orderOperateHistory);
     }
 
     /**
      * 保存
      */
     @RequestMapping("/save")
-    public R save(@RequestBody OrderOperateHistoryEntity orderOperateHistory){
+    public R<Void> save(@RequestBody OrderOperateHistoryEntity orderOperateHistory){
 		orderOperateHistoryService.save(orderOperateHistory);
 
         return R.ok();
@@ -65,7 +65,7 @@ public class OrderOperateHistoryController {
      * 修改
      */
     @RequestMapping("/update")
-    public R update(@RequestBody OrderOperateHistoryEntity orderOperateHistory){
+    public R<Void> update(@RequestBody OrderOperateHistoryEntity orderOperateHistory){
 		orderOperateHistoryService.updateById(orderOperateHistory);
 
         return R.ok();
@@ -75,7 +75,7 @@ public class OrderOperateHistoryController {
      * 删除
      */
     @RequestMapping("/delete")
-    public R delete(@RequestBody Long[] ids){
+    public R<Void> delete(@RequestBody Long[] ids){
 		orderOperateHistoryService.removeByIds(Arrays.asList(ids));
 
         return R.ok();

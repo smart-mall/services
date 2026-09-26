@@ -4,8 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import common.constant.ProductConstant;
 import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
@@ -19,7 +17,7 @@ import common.to.mq.ProductDeletedTo;
 import common.to.mq.ProductDownTo;
 import es.SkuEsModel;
 import lombok.extern.slf4j.Slf4j;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.Query;
 import common.utils.R;
 import org.springframework.beans.BeanUtils;
@@ -41,6 +39,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 
+import product.entity.SpuInfoEntity;
 @Service("spuInfoService")
 @Slf4j
 public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> implements SpuInfoService {
@@ -68,9 +67,8 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
     private final WareFeignService wareFeignService;
     private final SearchFeignService searchFeignService;
     private final ReliableMqPublisher reliableMqPublisher;
-    private final ObjectMapper objectMapper;
 
-    public SpuInfoServiceImpl(SpuInfoDao spuInfoDao, SpuInfoDescDao spuInfoDescDao, SpuImagesDao spuImagesDao, ProductAttrValueDao productAttrValueDao, ProductAttrValueService productAttrValueService, AttrDao attrDao, SkuInfoDao skuInfoDao, SkuImagesDao skuImagesDao, SkuSaleAttrValueDao skuSaleAttrValueDao, CouponFeignService couponFeignService, SkuInfoServiceImpl skuInfoService, BrandService brandService, CategoryService categoryService, AttrService attrService, WareFeignService wareFeignService, SearchFeignService searchFeignService, ReliableMqPublisher reliableMqPublisher, ObjectMapper objectMapper) {
+    public SpuInfoServiceImpl(SpuInfoDao spuInfoDao, SpuInfoDescDao spuInfoDescDao, SpuImagesDao spuImagesDao, ProductAttrValueDao productAttrValueDao, ProductAttrValueService productAttrValueService, AttrDao attrDao, SkuInfoDao skuInfoDao, SkuImagesDao skuImagesDao, SkuSaleAttrValueDao skuSaleAttrValueDao, CouponFeignService couponFeignService, SkuInfoServiceImpl skuInfoService, BrandService brandService, CategoryService categoryService, AttrService attrService, WareFeignService wareFeignService, SearchFeignService searchFeignService, ReliableMqPublisher reliableMqPublisher) {
         this.spuInfoDao = spuInfoDao;
         this.spuInfoDescDao = spuInfoDescDao;
         this.spuImagesDao = spuImagesDao;
@@ -88,18 +86,17 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
         this.wareFeignService = wareFeignService;
         this.searchFeignService = searchFeignService;
         this.reliableMqPublisher = reliableMqPublisher;
-        this.objectMapper = objectMapper;
     }
 
 
     @Override
-    public PageUtils queryPage(Map<String, Object> params) {
+    public PageVO<SpuInfoEntity> queryPage(Map<String, Object> params) {
         IPage<SpuInfoEntity> page = this.page(
                 new Query<SpuInfoEntity>().getPage(params),
                 new QueryWrapper<>()
         );
 
-        return new PageUtils(page);
+        return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
     @Override
@@ -148,7 +145,7 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
 
         spuBoundTo.setSpuId(spuInfoEntity.getId());
         BeanUtils.copyProperties(spuInfo.getBounds(), spuBoundTo);
-        R r1 = couponFeignService.saveSpuBounds(spuBoundTo);
+        R<Void> r1 = couponFeignService.saveSpuBounds(spuBoundTo);
         if (r1.getCode() != 0) {
             throw new RuntimeException("保存积分信息失败");
         }
@@ -224,7 +221,7 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
                 skuReductionTo.setSkuId(skuInfoEntity.getSkuId());
 
                 if (skuReductionTo.getFullCount() > 0 || skuReductionTo.getFullPrice().compareTo(new BigDecimal("0")) > 0) {
-                    R r = couponFeignService.saveSkuReduction(skuReductionTo);
+                    R<Void> r = couponFeignService.saveSkuReduction(skuReductionTo);
                     if (r.getCode() != 0) {
                         log.error("保存sku优惠信息失败");
                     }
@@ -321,14 +318,12 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
 
         List<SkuDeleteBlockerTo> blockers = new ArrayList<>();
         try {
-            R r = wareFeignService.canDelete(skuIds);
-            if (r == null || r.getCode() == null || r.getCode() != 0) {
+            R<List<SkuDeleteBlockerTo>> r = wareFeignService.canDelete(skuIds);
+            if (r == null || r.getCode() != 0) {
                 throw new IllegalStateException("ware 返回了非成功响应：" + (r == null ? "null" : r.getMsg()));
             }
-            Object data = r.get("data");
-            if (data instanceof List<?>) {
-                blockers = objectMapper.convertValue(data, new TypeReference<>() {
-                });
+            if (r.getData() != null) {
+                blockers = r.getData();
             }
         } catch (Exception e) {
             log.error("询问仓库能否删除商品失败，按不能删处理：skuIds={}", skuIds, e);
@@ -428,7 +423,7 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
     }
 
     @Override
-    public PageUtils queryPageByCondition(Map<String, Object> params) {
+    public PageVO<SpuInfoEntity> queryPageByCondition(Map<String, Object> params) {
         LambdaQueryWrapper<SpuInfoEntity> queryWrapper = new LambdaQueryWrapper<>();
 
         String key = (String) params.get("key");
@@ -469,7 +464,7 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
         });
 
 
-        return new PageUtils(page);
+        return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
     @Override
@@ -494,14 +489,9 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
         List<Long> skuIdList = skus.stream().map(SkuInfoEntity::getSkuId).toList();
         Map<Long, Boolean> stockMap = null;
         try {
-            R res = wareFeignService.getSkusHasStock(skuIdList);
-            Object o = res.get("data");
-            List<SkuHasStockVo> skuHasStockVos = new ArrayList<>();
-            if (o instanceof List) {
-                skuHasStockVos = objectMapper.convertValue(o,
-                        new TypeReference<>() {
-                        });
-            }
+            R<List<SkuHasStockVo>> res = wareFeignService.getSkusHasStock(skuIdList);
+            List<SkuHasStockVo> skuHasStockVos =
+                    res.getData() == null ? new ArrayList<>() : res.getData();
             stockMap = skuHasStockVos.stream().collect(Collectors.toMap(SkuHasStockVo::getSkuId, SkuHasStockVo::getHasStock));
         } catch (Exception e) {
             log.error("库存服务异常", e);
@@ -536,7 +526,7 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
             return model;
         }).toList();
 
-        R r = searchFeignService.productStatusUp(list);
+        R<Void> r = searchFeignService.productStatusUp(list);
         if (r.getCode() == 0) {
             this.baseMapper.updateSpuStatus(spuId, ProductConstant.ProductStatusEnum.UP.getCode());
         }

@@ -9,6 +9,7 @@ import common.vo.AdminResponseVo;
 import common.vo.MemberResponseVo;
 import getway.config.AuthRuleProperties;
 import getway.feign.AdminAuthFeignService;
+import getway.vo.AdminVerifyVo;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
@@ -157,7 +158,7 @@ public class AuthFilter extends OncePerRequestFilter {
             return fail(response, BaseCodeEnum.ADMIN_NOT_LOGIN_EXCEPTION);
         }
 
-        R verified;
+        AdminVerifyVo verified;
         try {
             verified = adminAuthFeignService.verify(token);
         } catch (Exception e) {
@@ -165,16 +166,14 @@ public class AuthFilter extends OncePerRequestFilter {
             return fail(response, BaseCodeEnum.AUTH_UNAVAILABLE);
         }
 
-        // renren 的 R 把数据平铺在顶层，没有 userId 就是凭证无效
-        Object id = verified == null ? null : verified.get("userId");
-        if (id == null) {
+        // renren 的响应把身份平铺在顶层，没有 userId 就是凭证无效
+        if (verified == null || verified.getUserId() == null) {
             return fail(response, BaseCodeEnum.ADMIN_NOT_LOGIN_EXCEPTION);
         }
 
-        Object username = verified.get("username");
         AdminResponseVo admin = new AdminResponseVo();
-        admin.setId(Long.valueOf(id.toString()));
-        admin.setUsername(username == null ? null : username.toString());
+        admin.setId(verified.getUserId());
+        admin.setUsername(verified.getUsername());
 
         identity.put(ADMIN_HEADER, LoginUserUtils.encode(admin));
         return true;

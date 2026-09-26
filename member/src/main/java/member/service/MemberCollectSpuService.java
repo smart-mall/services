@@ -1,7 +1,7 @@
 package member.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import member.entity.MemberCollectSpuEntity;
 
 import java.util.Map;
@@ -15,6 +15,6 @@ import java.util.Map;
  */
 public interface MemberCollectSpuService extends IService<MemberCollectSpuEntity> {
 
-    PageUtils queryPage(Map<String, Object> params);
+    PageVO<MemberCollectSpuEntity> queryPage(Map<String, Object> params);
 }
 

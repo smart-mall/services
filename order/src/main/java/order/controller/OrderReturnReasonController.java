@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import order.entity.OrderReturnReasonEntity;
 import order.service.OrderReturnReasonService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.R;
 
 
@@ -34,10 +34,10 @@ public class OrderReturnReasonController {
      * 列表
      */
     @RequestMapping("/list")
-    public R list(@RequestParam Map<String, Object> params){
-        PageUtils page = orderReturnReasonService.queryPage(params);
+    public R<PageVO<OrderReturnReasonEntity>> list(@RequestParam Map<String, Object> params){
+        PageVO<OrderReturnReasonEntity> page = orderReturnReasonService.queryPage(params);
 
-        return R.ok().put("page", page);
+        return R.ok(page);
     }
 
 
@@ -45,17 +45,17 @@ public class OrderReturnReasonController {
      * 信息
      */
     @RequestMapping("/info/{id}")
-    public R info(@PathVariable("id") Long id){
+    public R<OrderReturnReasonEntity> info(@PathVariable("id") Long id){
 		OrderReturnReasonEntity orderReturnReason = orderReturnReasonService.getById(id);
 
-        return R.ok().put("orderReturnReason", orderReturnReason);
+        return R.ok(orderReturnReason);
     }
 
     /**
      * 保存
      */
     @RequestMapping("/save")
-    public R save(@RequestBody OrderReturnReasonEntity orderReturnReason){
+    public R<Void> save(@RequestBody OrderReturnReasonEntity orderReturnReason){
 		orderReturnReasonService.save(orderReturnReason);
 
         return R.ok();
@@ -65,7 +65,7 @@ public class OrderReturnReasonController {
      * 修改
      */
     @RequestMapping("/update")
-    public R update(@RequestBody OrderReturnReasonEntity orderReturnReason){
+    public R<Void> update(@RequestBody OrderReturnReasonEntity orderReturnReason){
 		orderReturnReasonService.updateById(orderReturnReason);
 
         return R.ok();
@@ -75,7 +75,7 @@ public class OrderReturnReasonController {
      * 删除
      */
     @RequestMapping("/delete")
-    public R delete(@RequestBody Long[] ids){
+    public R<Void> delete(@RequestBody Long[] ids){
 		orderReturnReasonService.removeByIds(Arrays.asList(ids));
 
         return R.ok();

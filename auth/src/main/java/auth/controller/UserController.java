@@ -4,7 +4,6 @@ import auth.feign.MemberFeignService;
 import auth.utils.VerifyCodeUtils;
 import auth.vo.EmailChangeVo;
 import auth.vo.MobileChangeVo;
-import com.alibaba.fastjson.TypeReference;
 import common.constant.AuthServerConstant;
 import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
@@ -42,18 +41,18 @@ public class UserController {
 
     /** 当前登录用户的完整信息 */
     @GetMapping("/info")
-    public R info(HttpServletRequest request) {
+    public R<MemberResponseVo> info(HttpServletRequest request) {
         Long memberId = LoginUserUtils.requireCurrentUser(request).getId();
 
-        R memberR = memberFeignService.getUserInfo(memberId);
+        R<MemberResponseVo> memberR = memberFeignService.getUserInfo(memberId);
         if (memberR.getCode() != 0) {
             log.warn("查询用户信息失败: memberId={}, code={}, msg={}",
                     memberId, memberR.getCode(), memberR.getMsg());
             return R.error(memberR.getCode(), memberR.getMsg());
         }
 
-        // 注意键是 member 不是 data：member 的 /info/{id} 是代码生成器产出的 R.ok().put("member", ...)
-        MemberResponseVo user = memberR.getData("member", new TypeReference<MemberResponseVo>() {});
+        // 注意键是 member 不是 data：member 的 /info/{id} 是代码生成器产出的 R.ok(...)
+        MemberResponseVo user = memberR.getData();
         if (user == null) {
             // 签出来的 token 有效但库里没人（账号被删了），等同于未登录
             log.warn("token 有效但会员不存在: memberId={}", memberId);
@@ -64,19 +63,19 @@ public class UserController {
         user.setPassword(null);
         user.setAccessToken(null);
 
-        return R.ok().setData(user);
+        return R.ok(user);
     }
 
     /** 换绑手机号。验证码只读不删，换绑成功才消费（失败时能拿同一个码重试） */
     @PutMapping("/mobile")
-    public R changeMobile(@Valid @RequestBody MobileChangeVo vo) {
+    public R<Void> changeMobile(@Valid @RequestBody MobileChangeVo vo) {
 
         if (!VerifyCodeUtils.verify(stringRedisTemplate, AuthServerConstant.SMS_CODE_CACHE_PREFIX,
                 vo.getMobile(), vo.getCode())) {
             throw new ValidationException("code", "验证码错误");
         }
 
-        R r = memberFeignService.changeMobile(vo.getMobile());
+        R<Void> r = memberFeignService.changeMobile(vo.getMobile());
         if (r.getCode() != 0) {
             return R.error(r.getCode(), r.getMsg());
         }
@@ -87,14 +86,14 @@ public class UserController {
 
     /** 换绑邮箱，语义同 {@link #changeMobile}，占用时返回 15007 */
     @PutMapping("/email")
-    public R changeEmail(@Valid @RequestBody EmailChangeVo vo) {
+    public R<Void> changeEmail(@Valid @RequestBody EmailChangeVo vo) {
 
         if (!VerifyCodeUtils.verify(stringRedisTemplate, AuthServerConstant.EMAIL_CODE_CACHE_PREFIX,
                 vo.getEmail(), vo.getCode())) {
             throw new ValidationException("code", "验证码错误");
         }
 
-        R r = memberFeignService.changeEmail(vo.getEmail());
+        R<Void> r = memberFeignService.changeEmail(vo.getEmail());
         if (r.getCode() != 0) {
             return R.error(r.getCode(), r.getMsg());
         }

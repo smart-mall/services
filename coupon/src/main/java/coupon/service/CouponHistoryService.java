@@ -1,7 +1,7 @@
 package coupon.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import coupon.entity.CouponHistoryEntity;
 
 import java.util.Map;
@@ -15,6 +15,6 @@ import java.util.Map;
  */
 public interface CouponHistoryService extends IService<CouponHistoryEntity> {
 
-    PageUtils queryPage(Map<String, Object> params);
+    PageVO<CouponHistoryEntity> queryPage(Map<String, Object> params);
 }
 

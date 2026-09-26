@@ -2,10 +2,11 @@ package product.controller;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.R;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+import product.entity.AttrEntity;
 import product.entity.ProductAttrValueEntity;
 import product.service.AttrService;
 import product.service.ProductAttrValueService;
@@ -42,32 +43,32 @@ public class AttrController {
      * 查询商品的规格属性
      */
     @GetMapping("/base/listforspu/{spuId}")
-    public R baseAttrListForSpu(@PathVariable Long spuId) {
+    public R<List<ProductAttrValueEntity>> baseAttrListForSpu(@PathVariable Long spuId) {
         log.info("通过spuId查询商品规格属性：{}", spuId);
         List<ProductAttrValueEntity> productAttrValueEntities = productAttrValueService.baseAttrListForSpu(spuId);
-        return R.ok().put("data",productAttrValueEntities);
+        return R.ok(productAttrValueEntities);
     }
 
     /**
      * 列表
      */
     @RequestMapping("/{attrType}/list/{category}")
-    public R baseAttrList(@RequestParam Map<String, Object> params, @PathVariable Long category, @PathVariable String attrType) {
+    public R<PageVO<AttrRespVO>> baseAttrList(@RequestParam Map<String, Object> params, @PathVariable Long category, @PathVariable String attrType) {
         log.info("查询商品属性：{}--{}--{}", JSON.toJSONString(params, SerializerFeature.PrettyFormat), category, attrType);
-        PageUtils page = attrService.queryBaseAttrPage(params, category, attrType);
+        PageVO<AttrRespVO> page = attrService.queryBaseAttrPage(params, category, attrType);
 
-        return R.ok().put("page", page);
+        return R.ok(page);
     }
 
     /**
      * 列表
      */
     @RequestMapping("/list")
-    public R list(@RequestParam Map<String, Object> params) {
+    public R<PageVO<AttrEntity>> list(@RequestParam Map<String, Object> params) {
         log.info("查询商品属性：{}", JSON.toJSONString(params, SerializerFeature.PrettyFormat));
-        PageUtils page = attrService.queryPage(params);
+        PageVO<AttrEntity> page = attrService.queryPage(params);
 
-        return R.ok().put("page", page);
+        return R.ok(page);
     }
 
 
@@ -75,18 +76,18 @@ public class AttrController {
      * 信息
      */
     @RequestMapping("/info/{attrId}")
-    public R info(@PathVariable("attrId") Long attrId) {
+    public R<AttrRespVO> info(@PathVariable("attrId") Long attrId) {
         log.info("根据id查询商品属性：{}", attrId);
         AttrRespVO attr = attrService.getAttrInfo(attrId);
 
-        return R.ok().put("attr", attr);
+        return R.ok(attr);
     }
 
     /**
      * 保存
      */
     @RequestMapping("/save")
-    public R save(@RequestBody AttrVO attr) {
+    public R<Void> save(@RequestBody AttrVO attr) {
         log.info("保存商品属性：{}", attr);
         attrService.saveAttr(attr);
 
@@ -97,7 +98,7 @@ public class AttrController {
      * 修改
      */
     @RequestMapping("/update")
-    public R update(@RequestBody AttrVO attr) {
+    public R<Void> update(@RequestBody AttrVO attr) {
         log.info("修改商品属性：{}", attr);
         attrService.updateAttr(attr);
 
@@ -108,7 +109,7 @@ public class AttrController {
      * 修改商品规格
      */
     @RequestMapping("/update/{spuId}")
-    public R update(@RequestBody List<ProductAttrValueEntity> entities, @PathVariable Long spuId) {
+    public R<Void> update(@RequestBody List<ProductAttrValueEntity> entities, @PathVariable Long spuId) {
         log.info("修改商品规格：{}--{}", entities, spuId);
         productAttrValueService.updateSpuAttr(spuId, entities);
         return R.ok();
@@ -118,7 +119,7 @@ public class AttrController {
      * 删除
      */
     @RequestMapping("/delete")
-    public R delete(@RequestBody Long[] attrIds) {
+    public R<Void> delete(@RequestBody Long[] attrIds) {
         log.info("删除商品属性：{}", JSON.toJSONString(attrIds, SerializerFeature.PrettyFormat));
         attrService.deleteByIds(Arrays.asList(attrIds));
 

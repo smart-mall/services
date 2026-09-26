@@ -30,7 +30,7 @@ public class MemberResponseVo implements Serializable {
      * 这里拿到的是 BCrypt 哈希，而登录接口要把它作为 data 返回给前端。</p>
      *
      * <p>只挡得住 Jackson（Spring MVC 出参用它）。auth 用 fastjson 的
-     * {@code R.getData(...)} 把它从 member 的响应里反序列化出来时，
+     * {@code R.getData()} 把它从 member 的响应里取出来时，
      * fastjson 不认这个注解，password 照样会有值 —— 所以别指望它来防内部泄露，
      * 往 token 和请求头里塞字段时一律手写白名单（见 JwtUtils.create / LoginUserUtils.encode）。</p>
      */

@@ -29,26 +29,26 @@ public class MediaController {
 
     /** 单文件上传。结果是一条 {@link MediaFileVo}，在 {@code data} 里 */
     @PostMapping("/upload")
-    public R upload(@RequestParam("file") MultipartFile file) {
-        return R.ok().setData(mediaService.upload(file));
+    public R<MediaFileVo> upload(@RequestParam("file") MultipartFile file) {
+        return R.ok(mediaService.upload(file));
     }
 
     /** 批量上传。整批成功或整批失败，{@code data} 是 {@link MediaFileVo} 数组，顺序同入参 */
     @PostMapping("/uploadBatch")
-    public R uploadBatch(@RequestParam("files") MultipartFile[] files) {
-        return R.ok().setData(mediaService.uploadBatch(files));
+    public R<List<MediaFileVo>> uploadBatch(@RequestParam("files") MultipartFile[] files) {
+        return R.ok(mediaService.uploadBatch(files));
     }
 
     /** 删除单个文件 */
     @DeleteMapping("/delete")
-    public R delete(@RequestParam("url") String url) {
+    public R<Void> delete(@RequestParam("url") String url) {
         mediaService.delete(url);
         return R.ok();
     }
 
     /** 批量删除。尽力而为，{@code data} 是删不掉的那些 URL，全成功时是空数组 */
     @DeleteMapping("/deleteBatch")
-    public R deleteBatch(@RequestBody List<String> urls) {
-        return R.ok().setData(mediaService.deleteBatch(urls));
+    public R<List<String>> deleteBatch(@RequestBody List<String> urls) {
+        return R.ok(mediaService.deleteBatch(urls));
     }
 }

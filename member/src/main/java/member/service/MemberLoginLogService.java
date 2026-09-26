@@ -2,7 +2,7 @@ package member.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import common.to.LoginLogTo;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import member.entity.MemberLoginLogEntity;
 
 import java.util.Map;
@@ -16,11 +16,11 @@ import java.util.Map;
  */
 public interface MemberLoginLogService extends IService<MemberLoginLogEntity> {
 
-    PageUtils queryPage(Map<String, Object> params);
+    PageVO<MemberLoginLogEntity> queryPage(Map<String, Object> params);
 
     /** 落一条登录记录。createTime 由这里填，调用方不用管 */
     void record(LoginLogTo to);
 
     /** 某个会员自己的登录记录，按时间倒序。参数 pageNum / pageSize */
-    PageUtils queryMine(Long memberId, Map<String, Object> params);
+    PageVO<MemberLoginLogEntity> queryMine(Long memberId, Map<String, Object> params);
 }

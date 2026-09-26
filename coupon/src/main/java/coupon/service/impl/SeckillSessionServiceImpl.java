@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.Query;
 import coupon.dao.SeckillSessionDao;
 import coupon.entity.SeckillSessionEntity;
@@ -32,7 +32,7 @@ public class SeckillSessionServiceImpl extends ServiceImpl<SeckillSessionDao, Se
     }
 
     @Override
-    public PageUtils queryPage(Map<String, Object> params) {
+    public PageVO<SeckillSessionEntity> queryPage(Map<String, Object> params) {
 
         LambdaQueryWrapper<SeckillSessionEntity> queryWrapper = new LambdaQueryWrapper<>();
 
@@ -49,7 +49,7 @@ public class SeckillSessionServiceImpl extends ServiceImpl<SeckillSessionDao, Se
                 queryWrapper
         );
 
-        return new PageUtils(page);
+        return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
     @Override

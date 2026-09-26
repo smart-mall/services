@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import coupon.entity.HomeSubjectSpuEntity;
 import coupon.service.HomeSubjectSpuService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.R;
 
 
@@ -34,10 +34,10 @@ public class HomeSubjectSpuController {
      * 列表
      */
     @RequestMapping("/list")
-    public R list(@RequestParam Map<String, Object> params){
-        PageUtils page = homeSubjectSpuService.queryPage(params);
+    public R<PageVO<HomeSubjectSpuEntity>> list(@RequestParam Map<String, Object> params){
+        PageVO<HomeSubjectSpuEntity> page = homeSubjectSpuService.queryPage(params);
 
-        return R.ok().put("page", page);
+        return R.ok(page);
     }
 
 
@@ -45,17 +45,17 @@ public class HomeSubjectSpuController {
      * 信息
      */
     @RequestMapping("/info/{id}")
-    public R info(@PathVariable("id") Long id){
+    public R<HomeSubjectSpuEntity> info(@PathVariable("id") Long id){
 		HomeSubjectSpuEntity homeSubjectSpu = homeSubjectSpuService.getById(id);
 
-        return R.ok().put("homeSubjectSpu", homeSubjectSpu);
+        return R.ok(homeSubjectSpu);
     }
 
     /**
      * 保存
      */
     @RequestMapping("/save")
-    public R save(@RequestBody HomeSubjectSpuEntity homeSubjectSpu){
+    public R<Void> save(@RequestBody HomeSubjectSpuEntity homeSubjectSpu){
 		homeSubjectSpuService.save(homeSubjectSpu);
 
         return R.ok();
@@ -65,7 +65,7 @@ public class HomeSubjectSpuController {
      * 修改
      */
     @RequestMapping("/update")
-    public R update(@RequestBody HomeSubjectSpuEntity homeSubjectSpu){
+    public R<Void> update(@RequestBody HomeSubjectSpuEntity homeSubjectSpu){
 		homeSubjectSpuService.updateById(homeSubjectSpu);
 
         return R.ok();
@@ -75,7 +75,7 @@ public class HomeSubjectSpuController {
      * 删除
      */
     @RequestMapping("/delete")
-    public R delete(@RequestBody Long[] ids){
+    public R<Void> delete(@RequestBody Long[] ids){
 		homeSubjectSpuService.removeByIds(Arrays.asList(ids));
 
         return R.ok();

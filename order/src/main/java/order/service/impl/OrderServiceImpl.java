@@ -1,7 +1,6 @@
 package order.service.impl;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.TypeReference;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.alipay.api.AlipayApiException;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -19,7 +18,7 @@ import common.mq.MqConstant;
 import common.mq.MqPublisher;
 import common.to.OrderTo;
 import common.to.mq.SeckillOrderTo;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.Query;
 import common.utils.R;
 import common.vo.MemberResponseVo;
@@ -121,13 +120,13 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
 
     @Override
-    public PageUtils queryPage(Map<String, Object> params) {
+    public PageVO<OrderEntity> queryPage(Map<String, Object> params) {
         IPage<OrderEntity> page = this.page(
                 new Query<OrderEntity>().getPage(params),
                 new QueryWrapper<OrderEntity>()
         );
 
-        return new PageUtils(page);
+        return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
     /* ═══════════════════ 当前会员与归属校验 ═══════════════════ */
@@ -180,8 +179,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
         CompletableFuture<List<OrderItemVo>> cartFuture = CompletableFuture.supplyAsync(() -> {
             RequestContextHolder.setRequestAttributes(requestAttributes);
-            R cartResult = cartFeignService.getCheckedItems();
-            return cartResult.getData("data", new TypeReference<List<OrderItemVo>>() {});
+            R<List<OrderItemVo>> cartResult = cartFeignService.getCheckedItems();
+            return cartResult.getData();
         }, threadPoolExecutor);
 
         List<MemberAddressVo> addresses;
@@ -221,8 +220,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         // "字段没返回"写两个分支（和 cart 那边 items 给 [] 不给 null 是同一个理由）
         confirmVo.setStocks(new HashMap<>());
         if (!skuIds.isEmpty()) {
-            R stockResp = wmsFeignService.getSkuHasStock(skuIds);
-            List<SkuStockVo> stocks = stockResp.getData("data", new TypeReference<List<SkuStockVo>>() {});
+            R<List<SkuStockVo>> stockResp = wmsFeignService.getSkuHasStock(skuIds);
+            List<SkuStockVo> stocks = stockResp.getData();
             if (stocks != null) {
                 confirmVo.setStocks(stocks.stream().collect(Collectors.toMap(
                         SkuStockVo::getSkuId, SkuStockVo::getHasStock, (first, second) -> first)));
@@ -270,8 +269,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
     /** 真正去 ware 取运费。归属校验由调用方负责 */
     private FareVo fetchFare(Long addrId) {
-        R fareResp = wmsFeignService.getFare(addrId);
-        FareVo fare = fareResp.getData("data", new TypeReference<FareVo>() {});
+        R<FareVo> fareResp = wmsFeignService.getFare(addrId);
+        FareVo fare = fareResp.getData();
         if (fare == null || fare.getFare() == null) {
             // ware 在地址查不到时返回 data=null，原来这里直接 getFare() 会 NPE 成 500
             throw new BaseException("运费计算失败，请检查收货地址");
@@ -335,12 +334,12 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         }).collect(Collectors.toList());
         lockVo.setLocks(orderItemVos);
 
-        R r = wmsFeignService.orderLockStock(lockVo);
+        R<Void> r = wmsFeignService.orderLockStock(lockVo);
         if (r.getCode() != 0) {
             // 用 BaseException 而不是 NoStockException：后者没有任何 @ExceptionHandler 接，
             // 抛出去会落到 Spring 默认错误页（没有 code/msg），前端只能显示"请求失败"。
             // ware 那边是本地 try/catch 处理 NoStockException 的，跨服务传过来就只剩 msg 了
-            throw new BaseException(BaseCodeEnum.NO_STOCK_EXCEPTION, (String) r.get("msg"));
+            throw new BaseException(BaseCodeEnum.NO_STOCK_EXCEPTION, r.getMsg());
         }
 
         // TODO 阶段 4：下面两件事都发生在事务提交**之前**，是错的 ——
@@ -359,7 +358,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     /* ═══════════════════ 我的订单 ═══════════════════ */
 
     @Override
-    public PageUtils queryMemberOrders(MemberResponseVo user, Map<String, Object> params) {
+    public PageVO<OrderEntity> queryMemberOrders(MemberResponseVo user, Map<String, Object> params) {
         Long memberId = user.getId();
 
         QueryWrapper<OrderEntity> wrapper = new QueryWrapper<OrderEntity>()
@@ -389,7 +388,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         fillStatusText(records);
 
         page.setRecords(records);
-        return new PageUtils(page);
+        return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
     @Override
@@ -754,9 +753,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         List<OrderItemEntity> orderItemEntityList = new ArrayList<>();
 
         //最后确定每个购物项的价格
-        R cartResult = cartFeignService.getCheckedItems();
+        R<List<OrderItemVo>> cartResult = cartFeignService.getCheckedItems();
         List<OrderItemVo> currentCartItems =
-                cartResult.getData("data", new TypeReference<List<OrderItemVo>>() {});
+                cartResult.getData();
         if (currentCartItems != null && !currentCartItems.isEmpty()) {
             orderItemEntityList = currentCartItems.stream().map((items) -> {
                 //构建订单项数据
@@ -787,9 +786,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         //1、商品的spu信息
         Long skuId = items.getSkuId();
         //获取spu的信息
-        R spuInfo = productFeignService.getSpuInfoBySkuId(skuId);
-        SpuInfoVo spuInfoData = spuInfo.getData("data", new TypeReference<SpuInfoVo>() {
-        });
+        R<SpuInfoVo> spuInfo = productFeignService.getSpuInfoBySkuId(skuId);
+        SpuInfoVo spuInfoData = spuInfo.getData();
         if (spuInfoData == null) {
             // 商品服务查不到就用的话，下面几行 setXxx(null) 会把订单项写成一条
             // spuId/spuName 全空的脏数据，而且不报任何错
@@ -966,17 +964,15 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         orderItem.setSkuQuantity(orderTo.getNum());
 
         //保存商品的spu信息
-        R spuInfo = productFeignService.getSpuInfoBySkuId(orderTo.getSkuId());
-        SpuInfoVo spuInfoData = spuInfo.getData("data", new TypeReference<SpuInfoVo>() {
-        });
+        R<SpuInfoVo> spuInfo = productFeignService.getSpuInfoBySkuId(orderTo.getSkuId());
+        SpuInfoVo spuInfoData = spuInfo.getData();
         orderItem.setSpuId(spuInfoData.getId());
         orderItem.setSpuName(spuInfoData.getSpuName());
         orderItem.setSpuBrand(spuInfoData.getBrandName());
         orderItem.setCategoryId(spuInfoData.getCatalogId());
 
-        R skuInfo = productFeignService.getSkuInfoBySkuId(orderTo.getSkuId());
-        SkuInfoVo skuInfoVo = skuInfo.getData("skuInfo", new TypeReference<SkuInfoVo>() {
-        });
+        R<SkuInfoVo> skuInfo = productFeignService.getSkuInfoBySkuId(orderTo.getSkuId());
+        SkuInfoVo skuInfoVo = skuInfo.getData();
         orderItem.setSkuName(skuInfoVo.getSkuName());
         orderItem.setSkuPic(skuInfoVo.getSkuDefaultImg());
         orderItem.setSkuPic(skuInfoVo.getSkuDefaultImg());

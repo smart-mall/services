@@ -20,10 +20,10 @@ public class ElasticSaveController {
 
     // 上架商品
     @PostMapping("/save")
-    public R productStatusUp(@RequestBody List<SkuEsModel> models) {
+    public R<Void> productStatusUp(@RequestBody List<SkuEsModel> models) {
         boolean b = productSaveService.productStatusUp(models);
         if (!b) {
-            return R.error(BaseCodeEnum.PRODUCT_UP_EXCEPTION.getCode(), BaseCodeEnum.PRODUCT_UP_EXCEPTION.getMsg());
+            return R.error(BaseCodeEnum.PRODUCT_UP_EXCEPTION);
         } else {
             return R.ok();
         }

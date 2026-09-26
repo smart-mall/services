@@ -4,7 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import common.exception.BaseCodeEnum;
 import common.utils.LoginUserUtils;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.R;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -44,12 +44,12 @@ public class MemberController {
      * 账号密码注册。只有账号和密码，手机号/邮箱不在这条链路里。
      */
     @PostMapping(value = "/register")
-    public R register(@RequestBody MemberUserRegisterVo vo) {
+    public R<Void> register(@RequestBody MemberUserRegisterVo vo) {
 
         try {
             memberService.accountRegister(vo);
         } catch (UsernameException e) {
-            return R.error(BaseCodeEnum.USER_EXIST_EXCEPTION.getCode(),BaseCodeEnum.USER_EXIST_EXCEPTION.getMsg());
+            return R.error(BaseCodeEnum.USER_EXIST_EXCEPTION);
         }
 
         return R.ok();
@@ -60,14 +60,14 @@ public class MemberController {
      * 账号密码登录。只按 username 查，不再把手机号当账号（{@code username = ? OR mobile = ?} 已去掉）。
      */
     @PostMapping(value = "/login")
-    public R login(@RequestBody MemberUserLoginVo vo) {
+    public R<MemberEntity> login(@RequestBody MemberUserLoginVo vo) {
 
         MemberEntity memberEntity = memberService.loginByUsername(vo.getUsername(), vo.getPassword());
 
         if (memberEntity != null) {
-            return R.ok().setData(memberEntity);
+            return R.ok(memberEntity);
         } else {
-            return R.error(BaseCodeEnum.USERNAME_PASSWORD_EXCEPTION.getCode(),BaseCodeEnum.USERNAME_PASSWORD_EXCEPTION.getMsg());
+            return R.error(BaseCodeEnum.USERNAME_PASSWORD_EXCEPTION);
         }
     }
 
@@ -80,7 +80,7 @@ public class MemberController {
      * 账号被占用时返回 15001。</p>
      */
     @PostMapping(value = "/email/login")
-    public R emailLogin(@RequestParam("username") String username,
+    public R<MemberEntity> emailLogin(@RequestParam("username") String username,
                         @RequestParam("email") String email) {
         return loginOrRegister(() -> memberService.loginOrRegisterByEmail(username, email));
     }
@@ -90,43 +90,43 @@ public class MemberController {
      * 手机验证码登录，语义同 {@link #emailLogin}，把邮箱换成手机号。
      */
     @PostMapping(value = "/mobile/login")
-    public R mobileLogin(@RequestParam("username") String username,
+    public R<MemberEntity> mobileLogin(@RequestParam("username") String username,
                          @RequestParam("mobile") String mobile) {
         return loginOrRegister(() -> memberService.loginOrRegisterByMobile(username, mobile));
     }
 
 
     /** 两条验证码链路共用的收尾：新建时账号撞了就转 15001，其余直接返回会员 */
-    private R loginOrRegister(Supplier<MemberEntity> action) {
+    private R<MemberEntity> loginOrRegister(Supplier<MemberEntity> action) {
         try {
-            return R.ok().setData(action.get());
+            return R.ok(action.get());
         } catch (UsernameException e) {
-            return R.error(BaseCodeEnum.USER_EXIST_EXCEPTION.getCode(),BaseCodeEnum.USER_EXIST_EXCEPTION.getMsg());
+            return R.error(BaseCodeEnum.USER_EXIST_EXCEPTION);
         }
     }
 
 
     @PostMapping(value = "/oauth2/login")
-    public R oauthLogin(@RequestBody SocialUser socialUser) throws Exception {
+    public R<MemberEntity> oauthLogin(@RequestBody SocialUser socialUser) throws Exception {
 
         MemberEntity memberEntity = memberService.login(socialUser);
 
         if (memberEntity != null) {
-            return R.ok().setData(memberEntity);
+            return R.ok(memberEntity);
         } else {
-            return R.error(BaseCodeEnum.USERNAME_PASSWORD_EXCEPTION.getCode(),BaseCodeEnum.USERNAME_PASSWORD_EXCEPTION.getMsg());
+            return R.error(BaseCodeEnum.USERNAME_PASSWORD_EXCEPTION);
         }
     }
 
     @PostMapping(value = "/qq/login")
-    public R qqLogin(@RequestBody QQUserInfo qqUserInfo) {
+    public R<MemberEntity> qqLogin(@RequestBody QQUserInfo qqUserInfo) {
         log.info("进入qq登录: {}", JSON.toJSONString(qqUserInfo, SerializerFeature.PrettyFormat));
 
         MemberEntity memberEntity = memberService.login(qqUserInfo);
         if (memberEntity != null) {
-            return R.ok().setData(memberEntity);
+            return R.ok(memberEntity);
         } else {
-            return R.error(BaseCodeEnum.USERNAME_PASSWORD_EXCEPTION.getCode(),BaseCodeEnum.USERNAME_PASSWORD_EXCEPTION.getMsg());
+            return R.error(BaseCodeEnum.USERNAME_PASSWORD_EXCEPTION);
         }
     }
 
@@ -134,10 +134,10 @@ public class MemberController {
      * 列表
      */
     @RequestMapping("/list")
-    public R list(@RequestParam Map<String, Object> params){
-        PageUtils page = memberService.queryPage(params);
+    public R<PageVO<MemberEntity>> list(@RequestParam Map<String, Object> params){
+        PageVO<MemberEntity> page = memberService.queryPage(params);
 
-        return R.ok().put("page", page);
+        return R.ok(page);
     }
 
 
@@ -148,17 +148,17 @@ public class MemberController {
      * auth 的 UserController 取完整用户信息走的就是这个接口，别取错了键。</p>
      */
     @RequestMapping("/info/{id}")
-    public R info(@PathVariable("id") Long id){
+    public R<MemberEntity> info(@PathVariable("id") Long id){
 		MemberEntity member = memberService.getById(id);
 
-        return R.ok().put("member", member);
+        return R.ok(member);
     }
 
     /**
      * 保存
      */
     @RequestMapping("/save")
-    public R save(@RequestBody MemberEntity member){
+    public R<Void> save(@RequestBody MemberEntity member){
 		memberService.save(member);
 
         return R.ok();
@@ -168,7 +168,7 @@ public class MemberController {
      * 修改
      */
     @RequestMapping("/update")
-    public R update(@RequestBody MemberEntity member){
+    public R<Void> update(@RequestBody MemberEntity member){
 		memberService.updateById(member);
 
         return R.ok();
@@ -178,7 +178,7 @@ public class MemberController {
      * 删除
      */
     @RequestMapping("/delete")
-    public R delete(@RequestBody Long[] ids){
+    public R<Void> delete(@RequestBody Long[] ids){
 		memberService.removeByIds(Arrays.asList(ids));
 
         return R.ok();
@@ -187,7 +187,7 @@ public class MemberController {
 
     /** 换绑手机号，由 auth 在验证码校验通过后调用；号码已被别人绑定返回 15006 */
     @PutMapping("/mobile/update")
-    public R changeMobile(@RequestParam("mobile") String mobile, HttpServletRequest request) {
+    public R<Void> changeMobile(@RequestParam("mobile") String mobile, HttpServletRequest request) {
         memberService.changeMobile(LoginUserUtils.requireCurrentUser(request).getId(), mobile);
         return R.ok();
     }
@@ -195,7 +195,7 @@ public class MemberController {
 
     /** 换绑邮箱，语义同 {@link #changeMobile}；被占用返回 15007 */
     @PutMapping("/email/update")
-    public R changeEmail(@RequestParam("email") String email, HttpServletRequest request) {
+    public R<Void> changeEmail(@RequestParam("email") String email, HttpServletRequest request) {
         memberService.changeEmail(LoginUserUtils.requireCurrentUser(request).getId(), email);
         return R.ok();
     }

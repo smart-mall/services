@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import coupon.entity.CouponSpuRelationEntity;
 import coupon.service.CouponSpuRelationService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.R;
 
 
@@ -34,10 +34,10 @@ public class CouponSpuRelationController {
      * 列表
      */
     @RequestMapping("/list")
-    public R list(@RequestParam Map<String, Object> params){
-        PageUtils page = couponSpuRelationService.queryPage(params);
+    public R<PageVO<CouponSpuRelationEntity>> list(@RequestParam Map<String, Object> params){
+        PageVO<CouponSpuRelationEntity> page = couponSpuRelationService.queryPage(params);
 
-        return R.ok().put("page", page);
+        return R.ok(page);
     }
 
 
@@ -45,17 +45,17 @@ public class CouponSpuRelationController {
      * 信息
      */
     @RequestMapping("/info/{id}")
-    public R info(@PathVariable("id") Long id){
+    public R<CouponSpuRelationEntity> info(@PathVariable("id") Long id){
 		CouponSpuRelationEntity couponSpuRelation = couponSpuRelationService.getById(id);
 
-        return R.ok().put("couponSpuRelation", couponSpuRelation);
+        return R.ok(couponSpuRelation);
     }
 
     /**
      * 保存
      */
     @RequestMapping("/save")
-    public R save(@RequestBody CouponSpuRelationEntity couponSpuRelation){
+    public R<Void> save(@RequestBody CouponSpuRelationEntity couponSpuRelation){
 		couponSpuRelationService.save(couponSpuRelation);
 
         return R.ok();
@@ -65,7 +65,7 @@ public class CouponSpuRelationController {
      * 修改
      */
     @RequestMapping("/update")
-    public R update(@RequestBody CouponSpuRelationEntity couponSpuRelation){
+    public R<Void> update(@RequestBody CouponSpuRelationEntity couponSpuRelation){
 		couponSpuRelationService.updateById(couponSpuRelation);
 
         return R.ok();
@@ -75,7 +75,7 @@ public class CouponSpuRelationController {
      * 删除
      */
     @RequestMapping("/delete")
-    public R delete(@RequestBody Long[] ids){
+    public R<Void> delete(@RequestBody Long[] ids){
 		couponSpuRelationService.removeByIds(Arrays.asList(ids));
 
         return R.ok();

@@ -5,7 +5,7 @@ import java.util.Map;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.Query;
 
 import coupon.dao.CouponHistoryDao;
@@ -17,13 +17,13 @@ import coupon.service.CouponHistoryService;
 public class CouponHistoryServiceImpl extends ServiceImpl<CouponHistoryDao, CouponHistoryEntity> implements CouponHistoryService {
 
     @Override
-    public PageUtils queryPage(Map<String, Object> params) {
+    public PageVO<CouponHistoryEntity> queryPage(Map<String, Object> params) {
         IPage<CouponHistoryEntity> page = this.page(
                 new Query<CouponHistoryEntity>().getPage(params),
                 new QueryWrapper<CouponHistoryEntity>()
         );
 
-        return new PageUtils(page);
+        return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
 }

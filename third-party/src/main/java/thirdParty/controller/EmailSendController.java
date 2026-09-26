@@ -2,6 +2,7 @@ package thirdParty.controller;
 
 import com.alibaba.fastjson.JSON;
 import common.utils.HttpUtils;
+import common.exception.BaseCodeEnum;
 import common.utils.R;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpResponse;
@@ -58,7 +59,7 @@ public class EmailSendController {
      * 永远返回成功，导致发信失败时前端还以为验证码已经发出去了。</p>
      */
     @GetMapping(value = "/sendCode")
-    public R sendCode(@RequestParam("email") String email, @RequestParam("code") String code) {
+    public R<Void> sendCode(@RequestParam("email") String email, @RequestParam("code") String code) {
         log.info("发送邮箱验证码: {}--{}", email, code);
 
         Map<String, Object> payload = new HashMap<>();
@@ -81,11 +82,12 @@ public class EmailSendController {
 
             if (status != 200) {
                 // 401 一般是 key 不对；403 通常是上面那段测试限制；422 是参数不合法；429 是限流
-                return R.error("邮件发送失败(" + status + "): " + responseBody);
+                log.error("邮件发送失败: status={}, body={}", status, responseBody);
+                return R.error(BaseCodeEnum.EMAIL_SEND_EXCEPTION);
             }
         } catch (Exception e) {
             log.error("发送邮箱验证码异常", e);
-            return R.error("邮件发送异常: " + e.getMessage());
+            return R.error(BaseCodeEnum.EMAIL_SEND_EXCEPTION);
         }
 
         return R.ok();

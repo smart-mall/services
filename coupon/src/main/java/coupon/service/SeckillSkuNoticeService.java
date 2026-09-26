@@ -1,7 +1,7 @@
 package coupon.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import coupon.entity.SeckillSkuNoticeEntity;
 
 import java.util.Map;
@@ -15,6 +15,6 @@ import java.util.Map;
  */
 public interface SeckillSkuNoticeService extends IService<SeckillSkuNoticeEntity> {
 
-    PageUtils queryPage(Map<String, Object> params);
+    PageVO<SeckillSkuNoticeEntity> queryPage(Map<String, Object> params);
 }
 

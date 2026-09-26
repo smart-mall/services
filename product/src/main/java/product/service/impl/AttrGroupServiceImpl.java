@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.exception.BaseException;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.Query;
 import common.utils.R;
 import org.springframework.beans.BeanUtils;
@@ -47,17 +47,17 @@ public class AttrGroupServiceImpl extends ServiceImpl<AttrGroupDao, AttrGroupEnt
     }
 
     @Override
-    public PageUtils queryPage(Map<String, Object> params) {
+    public PageVO<AttrGroupEntity> queryPage(Map<String, Object> params) {
         IPage<AttrGroupEntity> page = this.page(
                 new Query<AttrGroupEntity>().getPage(params),
                 new QueryWrapper<>()
         );
 
-        return new PageUtils(page);
+        return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
     @Override
-    public PageUtils queryPage(Map<String, Object> params, Long categoryId) {
+    public PageVO<AttrGroupRespVO> queryPage(Map<String, Object> params, Long categoryId) {
         List<CategoryEntity> list = categoryService.list();
 
         LambdaQueryWrapper<AttrGroupEntity> lambdaQueryWrapper = new LambdaQueryWrapper<>();
@@ -84,9 +84,7 @@ public class AttrGroupServiceImpl extends ServiceImpl<AttrGroupDao, AttrGroupEnt
             attrGroupRespVO.setCatalogName(list.stream().filter(categoryEntity -> categoryEntity.getCatId().equals(attrGroupEntity.getCatalogId())).findFirst().get().getName());
             return attrGroupRespVO;
         }).toList();
-        PageUtils pageUtils = new PageUtils(page);
-        pageUtils.setList(attrGroupRespVOS);
-        return pageUtils;
+        return new PageVO<>(page.getTotal(), attrGroupRespVOS);
     }
 
     /**
@@ -153,7 +151,7 @@ public class AttrGroupServiceImpl extends ServiceImpl<AttrGroupDao, AttrGroupEnt
                 .in(AttrAttrgroupRelationEntity::getAttrGroupId, existingIds));
 
         List<String> objectNames = attrGroupEntities.stream().map(AttrGroupEntity::getIcon).toList();
-        R r = thirdPartyFeignService.deleteFile(objectNames);
+        R<List<String>> r = thirdPartyFeignService.deleteFile(objectNames);
         if (r.getCode() != 0) {
             throw new BaseException("删除失败" + r.getMsg());
         }
@@ -165,7 +163,7 @@ public class AttrGroupServiceImpl extends ServiceImpl<AttrGroupDao, AttrGroupEnt
         log.debug("修改文件");
         String oldPath = this.getById(attrGroup.getAttrGroupId()).getIcon();
         if (StringUtils.hasText(oldPath) && !oldPath.equals(attrGroup.getIcon())) {
-            R r = thirdPartyFeignService.deleteFile(List.of(oldPath));
+            R<List<String>> r = thirdPartyFeignService.deleteFile(List.of(oldPath));
             if (r.getCode() != 0) {
                 throw new BaseException("删除失败" + r.getMsg());
             }

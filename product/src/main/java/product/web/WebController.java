@@ -1,5 +1,6 @@
 package product.web;
 
+import common.exception.BaseCodeEnum;
 import common.utils.R;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -8,10 +9,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import product.service.CategoryService;
 import product.service.SkuInfoService;
+import product.vo.CategoryVo;
 import product.vo.SkuItemVo;
 
+import java.util.List;
 import java.util.concurrent.ExecutionException;
-
 /**
  * 前台（商城页面）接口，全部返回 JSON，给 Vue 单页应用调用。
  *
@@ -46,23 +48,23 @@ public class WebController {
      * 首页/全局导航使用的完整三级分类树
      */
     @GetMapping("catalog")
-    public R catalogJson() {
+    public R<List<CategoryVo>> catalogJson() {
         log.debug("查询首页三级分类树");
-        return R.ok().setData(categoryService.getCatalogTree());
+        return R.ok(categoryService.getCatalogTree());
     }
 
     /**
      * 商品详情页所需的全部数据：基本信息、图片、销售属性、商品介绍、规格参数、秒杀优惠
      */
     @GetMapping("/item/{skuId}")
-    public R skuItem(@PathVariable("skuId") Long skuId) throws ExecutionException, InterruptedException {
+    public R<SkuItemVo> skuItem(@PathVariable("skuId") Long skuId) throws ExecutionException, InterruptedException {
         log.debug("查询商品详情，skuId={}", skuId);
 
         SkuItemVo item = skuInfoService.item(skuId);
         if (item.getInfo() == null) {
             log.warn("商品不存在，skuId={}", skuId);
-            return R.error("商品不存在");
+            return R.error(BaseCodeEnum.PRODUCT_NOT_FOUND);
         }
-        return R.ok().setData(item);
+        return R.ok(item);
     }
 }

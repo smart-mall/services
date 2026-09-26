@@ -1,6 +1,6 @@
 package member.controller;
 
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.R;
 import lombok.extern.slf4j.Slf4j;
 import member.entity.MemberReceiveAddressEntity;
@@ -16,6 +16,7 @@ import java.util.Map;
 
 
 
+import common.exception.BaseCodeEnum;
 /**
  * 会员收货地址
  *
@@ -31,15 +32,15 @@ public class MemberReceiveAddressController {
     private MemberReceiveAddressService memberReceiveAddressService;
 
     @PostMapping("/addLocation")
-    public R addLocation(@RequestBody MemberAddressVo memberAddressVo){
+    public R<MemberAddressVo> addLocation(@RequestBody MemberAddressVo memberAddressVo){
         MemberReceiveAddressEntity addressEntity = new MemberReceiveAddressEntity();
         BeanUtils.copyProperties(memberAddressVo, addressEntity);
         addressEntity.setDefaultStatus(1);
         boolean result = memberReceiveAddressService.save(addressEntity);
         if (result){
-            return R.ok().put("data", memberAddressVo);
+            return R.ok(memberAddressVo);
         } else {
-            return null;
+            return R.error(BaseCodeEnum.UNKNOWN_EXCEPTION);
         }
     }
 
@@ -60,10 +61,10 @@ public class MemberReceiveAddressController {
      * 列表
      */
     @RequestMapping("/list")
-    public R list(@RequestParam Map<String, Object> params){
-        PageUtils page = memberReceiveAddressService.queryPage(params);
+    public R<PageVO<MemberReceiveAddressEntity>> list(@RequestParam Map<String, Object> params){
+        PageVO<MemberReceiveAddressEntity> page = memberReceiveAddressService.queryPage(params);
 
-        return R.ok().put("page", page);
+        return R.ok(page);
     }
 
 
@@ -71,17 +72,17 @@ public class MemberReceiveAddressController {
      * 信息
      */
     @RequestMapping("/info/{id}")
-    public R info(@PathVariable("id") Long id){
+    public R<MemberReceiveAddressEntity> info(@PathVariable("id") Long id){
 		MemberReceiveAddressEntity memberReceiveAddress = memberReceiveAddressService.getById(id);
 
-        return R.ok().put("memberReceiveAddress", memberReceiveAddress);
+        return R.ok(memberReceiveAddress);
     }
 
     /**
      * 保存
      */
     @RequestMapping("/save")
-    public R save(@RequestBody MemberReceiveAddressEntity memberReceiveAddress){
+    public R<Void> save(@RequestBody MemberReceiveAddressEntity memberReceiveAddress){
 		memberReceiveAddressService.save(memberReceiveAddress);
 
         return R.ok();
@@ -91,7 +92,7 @@ public class MemberReceiveAddressController {
      * 修改
      */
     @RequestMapping("/update")
-    public R update(@RequestBody MemberReceiveAddressEntity memberReceiveAddress){
+    public R<Void> update(@RequestBody MemberReceiveAddressEntity memberReceiveAddress){
 		memberReceiveAddressService.updateById(memberReceiveAddress);
 
         return R.ok();
@@ -101,7 +102,7 @@ public class MemberReceiveAddressController {
      * 删除
      */
     @RequestMapping("/delete")
-    public R delete(@RequestBody Long[] ids){
+    public R<Void> delete(@RequestBody Long[] ids){
 		memberReceiveAddressService.removeByIds(Arrays.asList(ids));
 
         return R.ok();

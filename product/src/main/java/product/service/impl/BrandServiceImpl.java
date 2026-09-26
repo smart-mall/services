@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.Query;
 import common.utils.R;
 import lombok.extern.slf4j.Slf4j;
@@ -44,7 +44,7 @@ public class BrandServiceImpl extends ServiceImpl<BrandDao, BrandEntity> impleme
     }
 
     @Override
-    public PageUtils queryPage(Map<String, Object> params) {
+    public PageVO<BrandEntity> queryPage(Map<String, Object> params) {
         String key = (String)params.get("key");
         LambdaQueryWrapper<BrandEntity> wrapper = new LambdaQueryWrapper<>();
 
@@ -59,7 +59,7 @@ public class BrandServiceImpl extends ServiceImpl<BrandDao, BrandEntity> impleme
                  wrapper
         );
 
-        return new PageUtils(page);
+        return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
     @Override
@@ -68,7 +68,7 @@ public class BrandServiceImpl extends ServiceImpl<BrandDao, BrandEntity> impleme
         log.debug("修改文件");
         String oldPath = this.getById(brand.getBrandId()).getLogo();
         if (StringUtils.hasText(oldPath) && !oldPath.equals(brand.getLogo())) {
-            R r = thirdPartyFeignService.deleteFile(List.of(oldPath));
+            R<List<String>> r = thirdPartyFeignService.deleteFile(List.of(oldPath));
             if (r.getCode() != 0) {
                 throw new BaseException("删除失败" + r.getMsg());
             }
@@ -105,7 +105,7 @@ public class BrandServiceImpl extends ServiceImpl<BrandDao, BrandEntity> impleme
         categoryBrandRelationService.deleteByBrandIds(existingIds);
 
         List<String> objectNames = brandEntities.stream().map(BrandEntity::getLogo).toList();
-        R r = thirdPartyFeignService.deleteFile(objectNames);
+        R<List<String>> r = thirdPartyFeignService.deleteFile(objectNames);
         if (r.getCode() != 0) {
             throw new BaseException("删除失败" + r.getMsg());
         }

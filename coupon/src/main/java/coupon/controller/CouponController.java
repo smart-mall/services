@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import coupon.entity.CouponEntity;
 import coupon.service.CouponService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.R;
 
 
@@ -34,10 +34,10 @@ public class CouponController {
      * 列表
      */
     @RequestMapping("/list")
-    public R list(@RequestParam Map<String, Object> params){
-        PageUtils page = couponService.queryPage(params);
+    public R<PageVO<CouponEntity>> list(@RequestParam Map<String, Object> params){
+        PageVO<CouponEntity> page = couponService.queryPage(params);
 
-        return R.ok().put("page", page);
+        return R.ok(page);
     }
 
 
@@ -45,17 +45,17 @@ public class CouponController {
      * 信息
      */
     @RequestMapping("/info/{id}")
-    public R info(@PathVariable("id") Long id){
+    public R<CouponEntity> info(@PathVariable("id") Long id){
 		CouponEntity coupon = couponService.getById(id);
 
-        return R.ok().put("coupon", coupon);
+        return R.ok(coupon);
     }
 
     /**
      * 保存
      */
     @RequestMapping("/save")
-    public R save(@RequestBody CouponEntity coupon){
+    public R<Void> save(@RequestBody CouponEntity coupon){
 		couponService.save(coupon);
 
         return R.ok();
@@ -65,7 +65,7 @@ public class CouponController {
      * 修改
      */
     @RequestMapping("/update")
-    public R update(@RequestBody CouponEntity coupon){
+    public R<Void> update(@RequestBody CouponEntity coupon){
 		couponService.updateById(coupon);
 
         return R.ok();
@@ -75,7 +75,7 @@ public class CouponController {
      * 删除
      */
     @RequestMapping("/delete")
-    public R delete(@RequestBody Long[] ids){
+    public R<Void> delete(@RequestBody Long[] ids){
 		couponService.removeByIds(Arrays.asList(ids));
 
         return R.ok();

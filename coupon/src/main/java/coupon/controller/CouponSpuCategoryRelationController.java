@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import coupon.entity.CouponSpuCategoryRelationEntity;
 import coupon.service.CouponSpuCategoryRelationService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.R;
 
 
@@ -34,10 +34,10 @@ public class CouponSpuCategoryRelationController {
      * 列表
      */
     @RequestMapping("/list")
-    public R list(@RequestParam Map<String, Object> params){
-        PageUtils page = couponSpuCategoryRelationService.queryPage(params);
+    public R<PageVO<CouponSpuCategoryRelationEntity>> list(@RequestParam Map<String, Object> params){
+        PageVO<CouponSpuCategoryRelationEntity> page = couponSpuCategoryRelationService.queryPage(params);
 
-        return R.ok().put("page", page);
+        return R.ok(page);
     }
 
 
@@ -45,17 +45,17 @@ public class CouponSpuCategoryRelationController {
      * 信息
      */
     @RequestMapping("/info/{id}")
-    public R info(@PathVariable("id") Long id){
+    public R<CouponSpuCategoryRelationEntity> info(@PathVariable("id") Long id){
 		CouponSpuCategoryRelationEntity couponSpuCategoryRelation = couponSpuCategoryRelationService.getById(id);
 
-        return R.ok().put("couponSpuCategoryRelation", couponSpuCategoryRelation);
+        return R.ok(couponSpuCategoryRelation);
     }
 
     /**
      * 保存
      */
     @RequestMapping("/save")
-    public R save(@RequestBody CouponSpuCategoryRelationEntity couponSpuCategoryRelation){
+    public R<Void> save(@RequestBody CouponSpuCategoryRelationEntity couponSpuCategoryRelation){
 		couponSpuCategoryRelationService.save(couponSpuCategoryRelation);
 
         return R.ok();
@@ -65,7 +65,7 @@ public class CouponSpuCategoryRelationController {
      * 修改
      */
     @RequestMapping("/update")
-    public R update(@RequestBody CouponSpuCategoryRelationEntity couponSpuCategoryRelation){
+    public R<Void> update(@RequestBody CouponSpuCategoryRelationEntity couponSpuCategoryRelation){
 		couponSpuCategoryRelationService.updateById(couponSpuCategoryRelation);
 
         return R.ok();
@@ -75,7 +75,7 @@ public class CouponSpuCategoryRelationController {
      * 删除
      */
     @RequestMapping("/delete")
-    public R delete(@RequestBody Long[] ids){
+    public R<Void> delete(@RequestBody Long[] ids){
 		couponSpuCategoryRelationService.removeByIds(Arrays.asList(ids));
 
         return R.ok();

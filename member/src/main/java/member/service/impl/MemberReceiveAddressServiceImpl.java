@@ -7,7 +7,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.Query;
 import member.dao.MemberReceiveAddressDao;
 import member.entity.MemberReceiveAddressEntity;
@@ -30,13 +30,13 @@ public class MemberReceiveAddressServiceImpl extends ServiceImpl<MemberReceiveAd
     private static final int DEFAULT_NO = 0;
 
     @Override
-    public PageUtils queryPage(Map<String, Object> params) {
+    public PageVO<MemberReceiveAddressEntity> queryPage(Map<String, Object> params) {
         IPage<MemberReceiveAddressEntity> page = this.page(
                 new Query<MemberReceiveAddressEntity>().getPage(params),
                 new QueryWrapper<MemberReceiveAddressEntity>()
         );
 
-        return new PageUtils(page);
+        return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
     @Override

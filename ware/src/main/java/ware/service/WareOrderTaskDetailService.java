@@ -1,7 +1,7 @@
 package ware.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import ware.entity.WareOrderTaskDetailEntity;
 
 import java.util.Map;
@@ -15,6 +15,6 @@ import java.util.Map;
  */
 public interface WareOrderTaskDetailService extends IService<WareOrderTaskDetailEntity> {
 
-    PageUtils queryPage(Map<String, Object> params);
+    PageVO<WareOrderTaskDetailEntity> queryPage(Map<String, Object> params);
 }
 

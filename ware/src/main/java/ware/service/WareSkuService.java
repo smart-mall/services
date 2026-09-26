@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import common.to.OrderTo;
 import common.to.SkuDeleteBlockerTo;
 import common.to.mq.StockLockedTo;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import ware.entity.WareSkuEntity;
 import ware.vo.SkuHasStockVo;
 import ware.vo.WareSkuLockVo;
@@ -21,7 +21,7 @@ import java.util.Map;
  */
 public interface WareSkuService extends IService<WareSkuEntity> {
 
-    PageUtils queryPage(Map<String, Object> params);
+    PageVO<WareSkuEntity> queryPage(Map<String, Object> params);
 
     void addStock(Long skuId, Long wareId, Integer skuNum);
 

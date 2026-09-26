@@ -6,6 +6,7 @@ import auth.vo.SocialUser;
 import auth.vo.UserAccountVo;
 import common.to.LoginLogTo;
 import common.utils.R;
+import common.vo.MemberResponseVo;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -34,18 +35,18 @@ public interface MemberFeignService {
      * <p>账号重复时 member 返回 15001。</p>
      */
     @PostMapping(value = "/member/member/register")
-    R accountRegister(@RequestBody UserAccountVo vo);
+    R<Void> accountRegister(@RequestBody UserAccountVo vo);
 
 
     /** 账号密码登录。账号不存在或密码不对都是 15003 */
     @PostMapping(value = "/member/member/login")
-    R accountLogin(@RequestBody UserAccountVo vo);
+    R<MemberResponseVo> accountLogin(@RequestBody UserAccountVo vo);
 
     @PostMapping(value = "/member/member/oauth2/login")
-    R oauthLogin(@RequestBody SocialUser socialUser) throws Exception;
+    R<MemberResponseVo> oauthLogin(@RequestBody SocialUser socialUser) throws Exception;
 
     @PostMapping(value = "/member/member/qq/login")
-    R qqLogin(QQUserInfo qqUserInfo);
+    R<MemberResponseVo> qqLogin(QQUserInfo qqUserInfo);
 
     /**
      * 邮箱验证码登录：按邮箱取会员，取不到就用 {@code username} 新建一个。
@@ -56,29 +57,29 @@ public interface MemberFeignService {
      * <p>需要新建账号但账号已被占用时返回 15001。</p>
      */
     @PostMapping(value = "/member/member/email/login")
-    R emailLogin(@RequestParam("username") String username, @RequestParam("email") String email);
+    R<MemberResponseVo> emailLogin(@RequestParam("username") String username, @RequestParam("email") String email);
 
     /**
      * 手机验证码登录，语义同 {@link #emailLogin}，把邮箱换成手机号。
      */
     @PostMapping(value = "/member/member/mobile/login")
-    R mobileLogin(@RequestParam("username") String username, @RequestParam("mobile") String mobile);
+    R<MemberResponseVo> mobileLogin(@RequestParam("username") String username, @RequestParam("mobile") String mobile);
 
     /**
      * 按 id 取完整会员信息，给 {@code UserController} 用。
      *
      * <p><b>注意返回的键是 {@code member} 而不是 {@code data}</b> ——
-     * member 的 {@code /info/{id}} 是代码生成器产出的 {@code R.ok().put("member", ...)}。
+     * member 的 {@code /info/{id}} 是代码生成器产出的 {@code R.ok(...)}。
      * 取的时候别用错键，错了拿到的是 null 而不是报错。</p>
      */
     @GetMapping(value = "/member/member/info/{id}")
-    R getUserInfo(@PathVariable("id") Long id);
+    R<MemberResponseVo> getUserInfo(@PathVariable("id") Long id);
 
     /**
      * 落一条登录记录。登录成功后由 {@code LoginLogService} 调用，失败不影响登录。
      */
     @PostMapping(value = "/member/memberloginlog/record")
-    R recordLoginLog(@RequestBody LoginLogTo to);
+    R<Void> recordLoginLog(@RequestBody LoginLogTo to);
 
     /**
      * 换绑手机号。号码已被别人绑定时 member 返回 15006。
@@ -87,9 +88,9 @@ public interface MemberFeignService {
      * —— 传了就等于让浏览器也能指定改谁。验证码由 auth 校验（存 Redis），member 不参与。</p>
      */
     @PutMapping(value = "/member/member/mobile/update")
-    R changeMobile(@RequestParam("mobile") String mobile);
+    R<Void> changeMobile(@RequestParam("mobile") String mobile);
 
     /** 换绑邮箱，占用时返回 15007 */
     @PutMapping(value = "/member/member/email/update")
-    R changeEmail(@RequestParam("email") String email);
+    R<Void> changeEmail(@RequestParam("email") String email);
 }

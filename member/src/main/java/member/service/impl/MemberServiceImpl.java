@@ -10,7 +10,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
 import common.utils.HttpUtils;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.Query;
 import lombok.extern.slf4j.Slf4j;
 import member.dao.MemberDao;
@@ -46,13 +46,13 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
     }
 
     @Override
-    public PageUtils queryPage(Map<String, Object> params) {
+    public PageVO<MemberEntity> queryPage(Map<String, Object> params) {
         IPage<MemberEntity> page = this.page(
                 new Query<MemberEntity>().getPage(params),
                 new QueryWrapper<MemberEntity>()
         );
 
-        return new PageUtils(page);
+        return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
     @Override

@@ -19,5 +19,5 @@ public interface ThirdPartyFeignService {
      * 对不上的会进返回体的 {@code data} 清单，不会让整个调用失败。</p>
      */
     @DeleteMapping("/thirdParty/file/deleteBatch")
-    R deleteFile(@RequestBody List<String> urls);
+    R<List<String>> deleteFile(@RequestBody List<String> urls);
 }

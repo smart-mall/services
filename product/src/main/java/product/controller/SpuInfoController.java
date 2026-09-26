@@ -2,7 +2,7 @@ package product.controller;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.R;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -35,37 +35,37 @@ public class SpuInfoController {
 
     // 获取spu下拉框选择信息
     @GetMapping(value = "/getSpuSelect")
-    public R getSpuSelect() {
+    public R<List<SpuSelectVO>> getSpuSelect() {
         log.info("获取spu下拉框选择信息");
         List<SpuSelectVO> spuSelect = spuInfoService.getSpuSelect();
 
-        return R.ok().setData(spuSelect);
+        return R.ok(spuSelect);
     }
 
     // 批量获取spuName
     @PostMapping(value = "/getSpuNames")
-    public R getSpuNames(@RequestBody List<Long> spuIds) {
+    public R<Map<Long, String>> getSpuNames(@RequestBody List<Long> spuIds) {
         log.info("批量获取spuName：{}", JSON.toJSONString(spuIds, SerializerFeature.PrettyFormat));
 
         Map<Long, String> map = spuInfoService.getUserNames(spuIds);
 
-        return R.ok().setData(map);
+        return R.ok(map);
     }
 
     @GetMapping(value = "/skuId/{skuId}")
-    public R getSpuInfoBySkuId(@PathVariable("skuId") Long skuId) {
+    public R<SpuInfoEntity> getSpuInfoBySkuId(@PathVariable("skuId") Long skuId) {
         log.info("根据skuId查询spu信息");
 
         SpuInfoEntity spuInfoEntity = spuInfoService.getSpuInfoBySkuId(skuId);
 
-        return R.ok().setData(spuInfoEntity);
+        return R.ok(spuInfoEntity);
     }
 
     /**
      * 商品上架
      */
     @PostMapping("/{spuId}/up")
-    public R up(@PathVariable("spuId") Long spuId) {
+    public R<Void> up(@PathVariable("spuId") Long spuId) {
         log.info("商品上架：{}", spuId);
         spuInfoService.up(spuId);
 
@@ -76,7 +76,7 @@ public class SpuInfoController {
      * 商品下架
      */
     @PostMapping("/{spuId}/down")
-    public R down(@PathVariable("spuId") Long spuId) {
+    public R<Void> down(@PathVariable("spuId") Long spuId) {
         log.info("商品下架：{}", spuId);
         spuInfoService.down(spuId);
 
@@ -87,11 +87,11 @@ public class SpuInfoController {
      * 列表
      */
     @RequestMapping("/list")
-    public R list(@RequestParam Map<String, Object> params){
+    public R<PageVO<SpuInfoEntity>> list(@RequestParam Map<String, Object> params){
         log.info("列表查询spu：{}", JSON.toJSONString( params, SerializerFeature.PrettyFormat));
-        PageUtils page = spuInfoService.queryPageByCondition(params);
+        PageVO<SpuInfoEntity> page = spuInfoService.queryPageByCondition(params);
 
-        return R.ok().put("page", page);
+        return R.ok(page);
     }
 
 
@@ -99,18 +99,18 @@ public class SpuInfoController {
      * 信息
      */
     @RequestMapping("/info/{id}")
-    public R info(@PathVariable("id") Long id){
+    public R<SpuInfoEntity> info(@PathVariable("id") Long id){
         log.info("根据id查询spu：{}", id);
 		SpuInfoEntity spuInfo = spuInfoService.getById(id);
 
-        return R.ok().put("spuInfo", spuInfo);
+        return R.ok(spuInfo);
     }
 
     /**
      * 保存
      */
     @RequestMapping("/save")
-    public R save(@RequestBody SpuVO spuInfo){
+    public R<Void> save(@RequestBody SpuVO spuInfo){
         log.info("保存spu：{}", JSON.toJSONString(spuInfo, SerializerFeature.PrettyFormat));
 		spuInfoService.saveSpuInfo(spuInfo);
 
@@ -121,7 +121,7 @@ public class SpuInfoController {
      * 修改
      */
     @RequestMapping("/update")
-    public R update(@RequestBody SpuInfoEntity spuInfo){
+    public R<Void> update(@RequestBody SpuInfoEntity spuInfo){
         log.info("修改spu：{}", JSON.toJSONString(spuInfo, SerializerFeature.PrettyFormat));
 		spuInfoService.updateById(spuInfo);
 
@@ -136,7 +136,7 @@ public class SpuInfoController {
      * （本地消息表 + 定时重投保证最终一定会清）。已上架的商品不允许删除，需要先下架。</p>
      */
     @PostMapping("/delete")
-    public R delete(@RequestBody Long[] ids){
+    public R<Void> delete(@RequestBody Long[] ids){
         log.info("删除spu：{}", JSON.toJSONString(ids, SerializerFeature.PrettyFormat));
 		spuInfoService.removeSpuInfo(ids == null ? List.of() : Arrays.asList(ids));
 

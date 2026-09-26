@@ -2,7 +2,7 @@ package product.controller;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.R;
 import common.valid.AddGroup;
 import common.valid.UpdateGroup;
@@ -35,11 +35,11 @@ public class BrandController {
      * 列表
      */
     @RequestMapping("/list")
-    public R list(@RequestParam Map<String, Object> params){
+    public R<PageVO<BrandEntity>> list(@RequestParam Map<String, Object> params){
         log.info("显示品牌：{}", JSON.toJSONString( params, SerializerFeature.PrettyFormat));
-        PageUtils page = brandService.queryPage(params);
+        PageVO<BrandEntity> page = brandService.queryPage(params);
 
-        return R.ok().put("page", page);
+        return R.ok(page);
     }
 
 
@@ -47,18 +47,18 @@ public class BrandController {
      * 信息
      */
     @RequestMapping("/info/{brandId}")
-    public R info(@PathVariable("brandId") Long brandId){
+    public R<BrandEntity> info(@PathVariable("brandId") Long brandId){
         log.info("获取品牌：{}", brandId);
 		BrandEntity brand = brandService.getById(brandId);
 
-        return R.ok().put("brand", brand);
+        return R.ok(brand);
     }
 
     /**
      * 保存
      */
     @RequestMapping("/save")
-    public R save(@Validated(AddGroup.class) @RequestBody BrandEntity brand){
+    public R<Void> save(@Validated(AddGroup.class) @RequestBody BrandEntity brand){
         log.info("保存品牌：{}", JSON.toJSONString(brand, SerializerFeature.PrettyFormat));
 
 		brandService.save(brand);
@@ -70,7 +70,7 @@ public class BrandController {
      * 修改
      */
     @RequestMapping("/update")
-    public R update(@Validated(UpdateGroup.class) @RequestBody BrandEntity brand){
+    public R<Void> update(@Validated(UpdateGroup.class) @RequestBody BrandEntity brand){
         log.info("修改品牌：{}", JSON.toJSONString(brand, SerializerFeature.PrettyFormat));
 		brandService.updateDetail(brand);
 
@@ -81,7 +81,7 @@ public class BrandController {
      * 删除
      */
     @RequestMapping("/delete")
-    public R delete(@RequestBody Long[] brandIds){
+    public R<Void> delete(@RequestBody Long[] brandIds){
         log.info("删除品牌：{}", JSON.toJSONString(brandIds, SerializerFeature.PrettyFormat));
 		brandService.deleteByIds(Arrays.asList(brandIds));
 

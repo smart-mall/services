@@ -5,7 +5,7 @@ import java.util.Map;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.Query;
 
 import member.dao.MemberCollectSubjectDao;
@@ -17,13 +17,13 @@ import member.service.MemberCollectSubjectService;
 public class MemberCollectSubjectServiceImpl extends ServiceImpl<MemberCollectSubjectDao, MemberCollectSubjectEntity> implements MemberCollectSubjectService {
 
     @Override
-    public PageUtils queryPage(Map<String, Object> params) {
+    public PageVO<MemberCollectSubjectEntity> queryPage(Map<String, Object> params) {
         IPage<MemberCollectSubjectEntity> page = this.page(
                 new Query<MemberCollectSubjectEntity>().getPage(params),
                 new QueryWrapper<MemberCollectSubjectEntity>()
         );
 
-        return new PageUtils(page);
+        return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
 }

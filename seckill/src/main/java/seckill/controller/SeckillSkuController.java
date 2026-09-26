@@ -23,11 +23,11 @@ public class SeckillSkuController {
 
     /** 不在秒杀时间区间内时 {@code randomCode} 为 null —— 那是"能不能抢"的凭证，没到点不下发 */
     @GetMapping("/info/{skuId}")
-    public R getSkuSeckillInfo(@PathVariable("skuId") Long skuId) {
+    public R<SeckillSkuRedisTo> getSkuSeckillInfo(@PathVariable("skuId") Long skuId) {
         log.debug("根据skuId查询商品是否参加秒杀活动:{}", skuId);
 
         SeckillSkuRedisTo to = seckillService.getSkuSeckillInfo(skuId);
 
-        return R.ok().setData(to);
+        return R.ok(to);
     }
 }

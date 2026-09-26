@@ -1,11 +1,10 @@
 package coupon.service.impl;
 
-import com.alibaba.fastjson.TypeReference;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.exception.BaseException;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.Query;
 import common.utils.R;
 import coupon.dao.SeckillPromotionDao;
@@ -28,7 +27,7 @@ public class SeckillPromotionServiceImpl extends ServiceImpl<SeckillPromotionDao
     }
 
     @Override
-    public PageUtils queryPage(Map<String, Object> params) {
+    public PageVO<SeckillPromotionEntity> queryPage(Map<String, Object> params) {
         String key = (String)params.get("key");
         LambdaQueryWrapper<SeckillPromotionEntity> wrapper = new LambdaQueryWrapper<>();
 
@@ -49,19 +48,18 @@ public class SeckillPromotionServiceImpl extends ServiceImpl<SeckillPromotionDao
                 .distinct()                     // 去重
                 .toList();
 
-        R r = renrenFeignService.getUserNames(userIds);
+        R<Map<Long, String>> r = renrenFeignService.getUserNames(userIds);
         if (r.getCode() != 0) {
             throw new BaseException("查询用户名失败" + r.getMsg());
         }
 
-        Map<Long, String> data = r.getData(new TypeReference<>() {
-        });
+        Map<Long, String> data = r.getData();
 
         page.getRecords().forEach(item -> {
             item.setUserName(data.get(item.getUserId()));
         });
 
-        return new PageUtils(page);
+        return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
 }

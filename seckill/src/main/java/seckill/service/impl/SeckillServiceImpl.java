@@ -6,7 +6,6 @@ import com.alibaba.csp.sentinel.SphU;
 import com.alibaba.csp.sentinel.annotation.SentinelResource;
 import com.alibaba.csp.sentinel.slots.block.BlockException;
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.TypeReference;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
@@ -78,13 +77,10 @@ public class SeckillServiceImpl implements SeckillService {
     public void uploadSeckillSkuLatest3Days() {
 
         //1、扫描最近三天的商品需要参加秒杀的活动
-        R lates3DaySession = couponFeignService.getLates3DaySession();
+        R<List<SeckillSessionWithSkusVo>> lates3DaySession = couponFeignService.getLates3DaySession();
         if (lates3DaySession.getCode() == 0) {
             //上架商品
-            List<SeckillSessionWithSkusVo> sessionData = lates3DaySession.getData(
-                    "data",
-                    new TypeReference<>() {
-                    });
+            List<SeckillSessionWithSkusVo> sessionData = lates3DaySession.getData();
 
             //缓存到Redis
             //1、缓存活动信息
@@ -141,10 +137,10 @@ public class SeckillServiceImpl implements SeckillService {
                     Long skuId = seckillSkuVo.getSkuId();
 
                     //1、先查询sku的基本信息，调用远程服务
-                    R info = productFeignService.getSkuInfo(skuId);
+                    R<SkuInfoVo> info = productFeignService.getSkuInfo(skuId);
 
                     if (info.getCode() == 0) {
-                        SkuInfoVo skuInfo = info.getData("skuInfo",new TypeReference<SkuInfoVo>(){});
+                        SkuInfoVo skuInfo = info.getData();
                         redisTo.setSkuInfo(skuInfo);
                     }
 

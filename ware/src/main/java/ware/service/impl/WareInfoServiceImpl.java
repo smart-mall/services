@@ -1,7 +1,6 @@
 package ware.service.impl;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.TypeReference;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -9,7 +8,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
 import common.exception.ValidationException;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.Query;
 import common.utils.R;
 import lombok.extern.slf4j.Slf4j;
@@ -60,7 +59,7 @@ public class WareInfoServiceImpl extends ServiceImpl<WareInfoDao, WareInfoEntity
     }
 
     @Override
-    public PageUtils queryPage(Map<String, Object> params) {
+    public PageVO<WareInfoEntity> queryPage(Map<String, Object> params) {
         LambdaQueryWrapper<WareInfoEntity> queryWrapper = new LambdaQueryWrapper<>();
 
         String key = (String) params.get("key");
@@ -78,7 +77,7 @@ public class WareInfoServiceImpl extends ServiceImpl<WareInfoDao, WareInfoEntity
                 queryWrapper
         );
 
-        return new PageUtils(page);
+        return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
     /**
@@ -185,10 +184,10 @@ public class WareInfoServiceImpl extends ServiceImpl<WareInfoDao, WareInfoEntity
         FareVo fareVo = new FareVo();
 
         //收获地址的详细信息
-        R addrInfo = memberFeignService.info(addrId);
+        R<MemberAddressVo> addrInfo = memberFeignService.info(addrId);
         log.info("收获地址信息：{}", JSON.toJSONString(addrInfo, SerializerFeature.PrettyFormat));
 
-        MemberAddressVo memberAddressVo = addrInfo.getData("memberReceiveAddress",new TypeReference<MemberAddressVo>() {});
+        MemberAddressVo memberAddressVo = addrInfo.getData();
 
         if (memberAddressVo != null) {
             String phone = memberAddressVo.getPhone();

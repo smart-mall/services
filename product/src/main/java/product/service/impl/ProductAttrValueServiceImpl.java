@@ -8,7 +8,7 @@ import common.constant.ProductConstant;
 import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
 import common.exception.ValidationException;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,13 +33,13 @@ public class ProductAttrValueServiceImpl extends ServiceImpl<ProductAttrValueDao
     }
 
     @Override
-    public PageUtils queryPage(Map<String, Object> params) {
+    public PageVO<ProductAttrValueEntity> queryPage(Map<String, Object> params) {
         IPage<ProductAttrValueEntity> page = this.page(
                 new Query<ProductAttrValueEntity>().getPage(params),
                 new QueryWrapper<>()
         );
 
-        return new PageUtils(page);
+        return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
     @Override

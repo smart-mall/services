@@ -5,7 +5,6 @@ import auth.feign.ThirdPartFeignService;
 import auth.service.LoginLogService;
 import auth.utils.VerifyCodeUtils;
 import auth.vo.UserEmailVo;
-import com.alibaba.fastjson.TypeReference;
 import common.constant.AuthServerConstant;
 import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
@@ -26,6 +25,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+import common.exception.ValidationException;
 /**
  * 邮箱这条链路：发码 + 登录。
  *
@@ -71,7 +72,7 @@ public class EmailAuthController extends AbstractLoginController {
      * {@code code:10001 + errors{email:...}}。</p>
      */
     @GetMapping("/sendCode")
-    public R sendCode(@RequestParam("email")
+    public R<Void> sendCode(@RequestParam("email")
                       @NotEmpty(message = "邮箱不能为空")
                       @Email(message = "邮箱格式不正确") String email) {
         log.info("发送邮箱验证码: {}", email);
@@ -79,12 +80,12 @@ public class EmailAuthController extends AbstractLoginController {
 
         //1、接口防刷：同一个邮箱 60 秒内只能发一次
         if (VerifyCodeUtils.remainingSeconds(stringRedisTemplate, AuthServerConstant.EMAIL_CODE_CACHE_PREFIX, email) > 0) {
-            return R.error(BaseCodeEnum.SMS_CODE_EXCEPTION.getCode(), BaseCodeEnum.SMS_CODE_EXCEPTION.getMsg());
+            return R.error(BaseCodeEnum.SMS_CODE_EXCEPTION);
         }
 
         //2、生成验证码、存 Redis（time 分钟），再交给 third-party 用 Resend 把邮件发出去
         VerifyCodeUtils.send(stringRedisTemplate, AuthServerConstant.EMAIL_CODE_CACHE_PREFIX, email, time, codeNum -> {
-            R r = thirdPartFeignService.emailSendCode(email, codeNum);
+            R<Void> r = thirdPartFeignService.emailSendCode(email, codeNum);
             if (r.getCode() != 0) {
                 // 这里必须抛出来：不然验证码已经写进 Redis、邮件却没发出去，前端还以为发出去了
                 throw new BaseException("邮件发送失败: " + r.getMsg());
@@ -102,24 +103,24 @@ public class EmailAuthController extends AbstractLoginController {
      * 填错也不影响登录。</p>
      */
     @PostMapping("/login")
-    public R login(@RequestBody @Valid UserEmailVo vo, HttpServletRequest request) {
+    public R<Map<String, Object>> login(@RequestBody @Valid UserEmailVo vo, HttpServletRequest request) {
         log.info("邮箱验证码登录: email={}", vo.getEmail());
 
         //1、校验验证码（只读不写，等登录成功之后才决定删不删）
         if (!VerifyCodeUtils.verify(stringRedisTemplate, AuthServerConstant.EMAIL_CODE_CACHE_PREFIX,
                 vo.getEmail(), vo.getCode())) {
-            return fieldError("code", "验证码错误");
+            throw new ValidationException("code", "验证码错误");
         }
 
         //2、按邮箱取人，取不到就用 username 建一个
-        R memberR = memberFeignService.emailLogin(vo.getUsername(), vo.getEmail());
+        R<MemberResponseVo> memberR = memberFeignService.emailLogin(vo.getUsername(), vo.getEmail());
         if (memberR.getCode() != 0) {
             // 15001 账号已被占用。故意不删验证码：用户换个账号名就能用同一个码重试
             log.warn("邮箱登录失败: code={}, msg={}", memberR.getCode(), memberR.getMsg());
             return R.error(memberR.getCode(), memberR.getMsg());
         }
 
-        MemberResponseVo user = memberR.getData("data", new TypeReference<MemberResponseVo>() {});
+        MemberResponseVo user = memberR.getData();
         if (user == null || user.getId() == null) {
             log.error("member 返回成功但用户信息不完整: {}", memberR);
             throw new BaseException("登录失败，用户信息异常");

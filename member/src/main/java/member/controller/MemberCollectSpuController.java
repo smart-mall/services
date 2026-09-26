@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import member.entity.MemberCollectSpuEntity;
 import member.service.MemberCollectSpuService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.R;
 
 
@@ -34,10 +34,10 @@ public class MemberCollectSpuController {
      * 列表
      */
     @RequestMapping("/list")
-    public R list(@RequestParam Map<String, Object> params){
-        PageUtils page = memberCollectSpuService.queryPage(params);
+    public R<PageVO<MemberCollectSpuEntity>> list(@RequestParam Map<String, Object> params){
+        PageVO<MemberCollectSpuEntity> page = memberCollectSpuService.queryPage(params);
 
-        return R.ok().put("page", page);
+        return R.ok(page);
     }
 
 
@@ -45,17 +45,17 @@ public class MemberCollectSpuController {
      * 信息
      */
     @RequestMapping("/info/{id}")
-    public R info(@PathVariable("id") Long id){
+    public R<MemberCollectSpuEntity> info(@PathVariable("id") Long id){
 		MemberCollectSpuEntity memberCollectSpu = memberCollectSpuService.getById(id);
 
-        return R.ok().put("memberCollectSpu", memberCollectSpu);
+        return R.ok(memberCollectSpu);
     }
 
     /**
      * 保存
      */
     @RequestMapping("/save")
-    public R save(@RequestBody MemberCollectSpuEntity memberCollectSpu){
+    public R<Void> save(@RequestBody MemberCollectSpuEntity memberCollectSpu){
 		memberCollectSpuService.save(memberCollectSpu);
 
         return R.ok();
@@ -65,7 +65,7 @@ public class MemberCollectSpuController {
      * 修改
      */
     @RequestMapping("/update")
-    public R update(@RequestBody MemberCollectSpuEntity memberCollectSpu){
+    public R<Void> update(@RequestBody MemberCollectSpuEntity memberCollectSpu){
 		memberCollectSpuService.updateById(memberCollectSpu);
 
         return R.ok();
@@ -75,7 +75,7 @@ public class MemberCollectSpuController {
      * 删除
      */
     @RequestMapping("/delete")
-    public R delete(@RequestBody Long[] ids){
+    public R<Void> delete(@RequestBody Long[] ids){
 		memberCollectSpuService.removeByIds(Arrays.asList(ids));
 
         return R.ok();

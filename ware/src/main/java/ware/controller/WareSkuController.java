@@ -1,7 +1,8 @@
 package ware.controller;
 
 import common.exception.NoStockException;
-import common.utils.PageUtils;
+import common.vo.PageVO;
+import common.to.SkuDeleteBlockerTo;
 import common.utils.R;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,12 +44,12 @@ public class WareSkuController {
      * @return
      */
     @PostMapping(value = "/lock/order")
-    public R orderLockStock(@RequestBody WareSkuLockVo vo) {
+    public R<Boolean> orderLockStock(@RequestBody WareSkuLockVo vo) {
         log.info("锁定库存");
 
         try {
             boolean lockStock = wareSkuService.orderLockStock(vo);
-            return R.ok().setData(lockStock);
+            return R.ok(lockStock);
         } catch (NoStockException e) {
             return R.error(NO_STOCK_EXCEPTION.getCode(),NO_STOCK_EXCEPTION.getMsg());
         }
@@ -59,13 +60,13 @@ public class WareSkuController {
      * @return
      */
     @PostMapping(value = "/hasStock")
-    public R getSkuHasStock(@RequestBody List<Long> skuIds) {
+    public R<List<SkuHasStockVo>> getSkuHasStock(@RequestBody List<Long> skuIds) {
         log.info("判断是否有库存：{}", skuIds);
 
         //skuId stock
         List<SkuHasStockVo> vos = wareSkuService.getSkusHasStock(skuIds);
 
-        return R.ok().setData(vos);
+        return R.ok(vos);
 
     }
 
@@ -73,9 +74,9 @@ public class WareSkuController {
      * 批量查询是否有库存
      */
     @PostMapping("/hasstock")
-    public R getSkusHasStock(@RequestBody List<Long> skuIds) {
+    public R<List<SkuHasStockVo>> getSkusHasStock(@RequestBody List<Long> skuIds) {
         List<SkuHasStockVo> vos = wareSkuService.getSkusHasStock(skuIds);
-        return R.ok().put("data", vos);
+        return R.ok(vos);
     }
 
     /**
@@ -85,19 +86,19 @@ public class WareSkuController {
      * 在哪个仓还有多少件、还有几条没走完的采购需求。文案由调用方拼。</p>
      */
     @PostMapping("/canDelete")
-    public R canDelete(@RequestBody List<Long> skuIds) {
+    public R<List<SkuDeleteBlockerTo>> canDelete(@RequestBody List<Long> skuIds) {
         log.info("判断商品能否从仓库删除：{}", skuIds);
-        return R.ok().setData(wareSkuService.canDelete(skuIds));
+        return R.ok(wareSkuService.canDelete(skuIds));
     }
 
     /**
      * 列表
      */
     @RequestMapping("/list")
-    public R list(@RequestParam Map<String, Object> params){
-        PageUtils page = wareSkuService.queryPage(params);
+    public R<PageVO<WareSkuEntity>> list(@RequestParam Map<String, Object> params){
+        PageVO<WareSkuEntity> page = wareSkuService.queryPage(params);
 
-        return R.ok().put("page", page);
+        return R.ok(page);
     }
 
 
@@ -105,10 +106,10 @@ public class WareSkuController {
      * 信息
      */
     @RequestMapping("/info/{id}")
-    public R info(@PathVariable("id") Long id){
+    public R<WareSkuEntity> info(@PathVariable("id") Long id){
 		WareSkuEntity wareSku = wareSkuService.getById(id);
 
-        return R.ok().put("wareSku", wareSku);
+        return R.ok(wareSku);
     }
 
     // 没有 save / update / delete：库存行只由"采购完成"创建、stock 只由采购增加、

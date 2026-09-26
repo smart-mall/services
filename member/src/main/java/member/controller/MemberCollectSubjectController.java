@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import member.entity.MemberCollectSubjectEntity;
 import member.service.MemberCollectSubjectService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.R;
 
 
@@ -34,10 +34,10 @@ public class MemberCollectSubjectController {
      * 列表
      */
     @RequestMapping("/list")
-    public R list(@RequestParam Map<String, Object> params){
-        PageUtils page = memberCollectSubjectService.queryPage(params);
+    public R<PageVO<MemberCollectSubjectEntity>> list(@RequestParam Map<String, Object> params){
+        PageVO<MemberCollectSubjectEntity> page = memberCollectSubjectService.queryPage(params);
 
-        return R.ok().put("page", page);
+        return R.ok(page);
     }
 
 
@@ -45,17 +45,17 @@ public class MemberCollectSubjectController {
      * 信息
      */
     @RequestMapping("/info/{id}")
-    public R info(@PathVariable("id") Long id){
+    public R<MemberCollectSubjectEntity> info(@PathVariable("id") Long id){
 		MemberCollectSubjectEntity memberCollectSubject = memberCollectSubjectService.getById(id);
 
-        return R.ok().put("memberCollectSubject", memberCollectSubject);
+        return R.ok(memberCollectSubject);
     }
 
     /**
      * 保存
      */
     @RequestMapping("/save")
-    public R save(@RequestBody MemberCollectSubjectEntity memberCollectSubject){
+    public R<Void> save(@RequestBody MemberCollectSubjectEntity memberCollectSubject){
 		memberCollectSubjectService.save(memberCollectSubject);
 
         return R.ok();
@@ -65,7 +65,7 @@ public class MemberCollectSubjectController {
      * 修改
      */
     @RequestMapping("/update")
-    public R update(@RequestBody MemberCollectSubjectEntity memberCollectSubject){
+    public R<Void> update(@RequestBody MemberCollectSubjectEntity memberCollectSubject){
 		memberCollectSubjectService.updateById(memberCollectSubject);
 
         return R.ok();
@@ -75,7 +75,7 @@ public class MemberCollectSubjectController {
      * 删除
      */
     @RequestMapping("/delete")
-    public R delete(@RequestBody Long[] ids){
+    public R<Void> delete(@RequestBody Long[] ids){
 		memberCollectSubjectService.removeByIds(Arrays.asList(ids));
 
         return R.ok();

@@ -20,7 +20,7 @@ import java.util.Map;
 public class SmsSendController {
 
     @GetMapping(value = "/sendCode")
-    public R sendCode(@RequestParam("mobile") String mobile, @RequestParam("code") String code, @RequestParam("time") Integer time) {
+    public R<Void> sendCode(@RequestParam("mobile") String mobile, @RequestParam("code") String code, @RequestParam("time") Integer time) {
         log.info("发送验证码: {}--{}--{}",  mobile, code, time);
 
         String host = "https://gyytz.market.alicloudapi.com";

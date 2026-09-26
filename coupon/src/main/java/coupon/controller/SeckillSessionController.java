@@ -2,7 +2,7 @@ package coupon.controller;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.R;
 import coupon.entity.SeckillSessionEntity;
 import coupon.service.SeckillSessionService;
@@ -36,11 +36,11 @@ public class SeckillSessionController {
      * @return
      */
     @GetMapping(value = "/Lates3DaySession")
-    public R getLates3DaySession() {
+    public R<List<SeckillSessionEntity>> getLates3DaySession() {
         log.info("查询最近三天需要参加秒杀商品信息");
         List<SeckillSessionEntity> seckillSessionEntities = seckillSessionService.getLates3DaySession();
 
-        return R.ok().setData(seckillSessionEntities);
+        return R.ok(seckillSessionEntities);
     }
 
 
@@ -48,11 +48,11 @@ public class SeckillSessionController {
      * 列表
      */
     @RequestMapping("/list")
-    public R list(@RequestParam Map<String, Object> params) {
+    public R<PageVO<SeckillSessionEntity>> list(@RequestParam Map<String, Object> params) {
         log.info("列表查询：{}", JSON.toJSONString(params, SerializerFeature.PrettyFormat));
-        PageUtils page = seckillSessionService.queryPage(params);
+        PageVO<SeckillSessionEntity> page = seckillSessionService.queryPage(params);
 
-        return R.ok().put("page", page);
+        return R.ok(page);
     }
 
 
@@ -60,18 +60,18 @@ public class SeckillSessionController {
      * 信息
      */
     @RequestMapping("/info/{id}")
-    public R info(@PathVariable("id") Long id) {
+    public R<SeckillSessionEntity> info(@PathVariable("id") Long id) {
         log.info("信息查询：{}", id);
         SeckillSessionEntity seckillSession = seckillSessionService.getById(id);
 
-        return R.ok().put("seckillSession", seckillSession);
+        return R.ok(seckillSession);
     }
 
     /**
      * 保存
      */
     @RequestMapping("/save")
-    public R save(@RequestBody SeckillSessionEntity seckillSession) {
+    public R<Void> save(@RequestBody SeckillSessionEntity seckillSession) {
         seckillSession.setCreateTime(new Date());
         log.info("保存：{}", JSON.toJSONString(seckillSession, SerializerFeature.PrettyFormat));
         seckillSessionService.save(seckillSession);
@@ -83,7 +83,7 @@ public class SeckillSessionController {
      * 修改
      */
     @RequestMapping("/update")
-    public R update(@RequestBody SeckillSessionEntity seckillSession) {
+    public R<Void> update(@RequestBody SeckillSessionEntity seckillSession) {
         log.info("修改：{}", JSON.toJSONString(seckillSession, SerializerFeature.PrettyFormat));
         seckillSessionService.updateById(seckillSession);
 
@@ -94,7 +94,7 @@ public class SeckillSessionController {
      * 删除
      */
     @RequestMapping("/delete")
-    public R delete(@RequestBody Long[] ids) {
+    public R<Void> delete(@RequestBody Long[] ids) {
         log.info("删除：{}", JSON.toJSONString(ids, SerializerFeature.PrettyFormat));
         seckillSessionService.removeByIds(Arrays.asList(ids));
 

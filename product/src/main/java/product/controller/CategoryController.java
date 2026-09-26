@@ -32,11 +32,11 @@ public class CategoryController {
      * 查出所有分类以及子分类，以树形结构组装起来表
      */
     @RequestMapping("/list/tree")
-    public R list(){
+    public R<List<CategoryEntity>> list(){
         log.info("查询所有分类");
         List<CategoryEntity> categoryEntities =  categoryService.listWithTree();
 
-        return R.ok().put("tree", categoryEntities);
+        return R.ok(categoryEntities);
     }
 
 
@@ -44,11 +44,11 @@ public class CategoryController {
      * 信息
      */
     @RequestMapping("/info/{catId}")
-    public R info(@PathVariable("catId") Long catId){
+    public R<CategoryEntity> info(@PathVariable("catId") Long catId){
         log.info("查询分类数据{}", catId);
 		CategoryEntity category = categoryService.getById(catId);
 
-        return R.ok().put("category", category);
+        return R.ok(category);
     }
 
     /**
@@ -56,7 +56,7 @@ public class CategoryController {
      */
     @RequestMapping("/save")
     @CacheEvict(value = "category", allEntries = true)
-    public R save(@RequestBody CategoryEntity category){
+    public R<Void> save(@RequestBody CategoryEntity category){
         if (category.getShowStatus() == null) {
             category.setShowStatus(1);
         }
@@ -71,7 +71,7 @@ public class CategoryController {
      */
     @RequestMapping("/update")
     @CacheEvict(value = "category", allEntries = true)
-    public R update(@RequestBody CategoryEntity category){
+    public R<Void> update(@RequestBody CategoryEntity category){
         log.info("修改分类数据{}", category);
 		categoryService.updateDetail(category);
 
@@ -83,7 +83,7 @@ public class CategoryController {
      */
     @RequestMapping("/update/sort")
     @CacheEvict(value = "category", allEntries = true)
-    public R updateSort(@RequestBody CategoryEntity[] category){
+    public R<Void> updateSort(@RequestBody CategoryEntity[] category){
         log.info("批量修改菜单{}", JSON.toJSONString(category, SerializerFeature.PrettyFormat));
         categoryService.updateBatchById(Arrays.asList(category));
         return R.ok();
@@ -95,7 +95,7 @@ public class CategoryController {
      */
     @RequestMapping("/delete")
     @CacheEvict(value = "category", allEntries = true)
-    public R delete(@RequestBody Long[] catIds){
+    public R<Void> delete(@RequestBody Long[] catIds){
         log.info("删除分类数据{}",JSON.toJSONString(catIds, SerializerFeature.PrettyFormat));
 		categoryService.removeMenuByIds(Arrays.asList(catIds));
 

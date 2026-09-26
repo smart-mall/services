@@ -1,6 +1,8 @@
 package order.feign;
 
 import common.utils.R;
+import order.vo.FareVo;
+import order.vo.SkuStockVo;
 import order.vo.WareSkuLockVo;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,7 +27,7 @@ public interface WmsFeignService {
      * @return
      */
     @PostMapping(value = "/ware/waresku/hasStock")
-    R getSkuHasStock(@RequestBody List<Long> skuIds);
+    R<List<SkuStockVo>> getSkuHasStock(@RequestBody List<Long> skuIds);
 
 
     /**
@@ -34,7 +36,7 @@ public interface WmsFeignService {
      * @return
      */
     @GetMapping(value = "/ware/wareinfo/fare")
-    R getFare(@RequestParam("addrId") Long addrId);
+    R<FareVo> getFare(@RequestParam("addrId") Long addrId);
 
 
     /**
@@ -43,5 +45,5 @@ public interface WmsFeignService {
      * @return
      */
     @PostMapping(value = "/ware/waresku/lock/order")
-    R orderLockStock(@RequestBody WareSkuLockVo vo);
+    R<Void> orderLockStock(@RequestBody WareSkuLockVo vo);
 }

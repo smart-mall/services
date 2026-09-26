@@ -1,7 +1,7 @@
 package product.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import product.entity.AttrEntity;
 import product.vo.AttrRespVO;
 import product.vo.AttrVO;
@@ -18,11 +18,11 @@ import java.util.Map;
  */
 public interface AttrService extends IService<AttrEntity> {
 
-    PageUtils queryPage(Map<String, Object> params);
+    PageVO<AttrEntity> queryPage(Map<String, Object> params);
 
     void saveAttr(AttrVO attr);
 
-    PageUtils queryBaseAttrPage(Map<String, Object> params, Long categoryId, String attrType);
+    PageVO<AttrRespVO> queryBaseAttrPage(Map<String, Object> params, Long categoryId, String attrType);
 
     AttrRespVO getAttrInfo(Long attrId);
 
@@ -30,7 +30,7 @@ public interface AttrService extends IService<AttrEntity> {
 
     List<AttrEntity> getRelationAttr(Long attrGroupId);
 
-    PageUtils getNoRelationAttr(Long attrGroupId, Map<String, Object> params);
+    PageVO<AttrEntity> getNoRelationAttr(Long attrGroupId, Map<String, Object> params);
 
     List<Long> selectSearchAttrs(List<Long> attrIds);
 

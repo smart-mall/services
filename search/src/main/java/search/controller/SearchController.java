@@ -36,9 +36,9 @@ public class SearchController {
      * 商品检索：按关键字模糊匹配，并可按三级分类、品牌、属性、价格区间、是否有货过滤，支持排序和分页
      */
     @GetMapping("/list")
-    public R list(SearchParam param) {
+    public R<SearchResult> list(SearchParam param) {
         log.debug("商品检索，param={}", param);
         SearchResult result = mallSearchService.search(param);
-        return R.ok().setData(result);
+        return R.ok(result);
     }
 }

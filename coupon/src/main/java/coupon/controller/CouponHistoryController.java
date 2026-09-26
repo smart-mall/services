@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import coupon.entity.CouponHistoryEntity;
 import coupon.service.CouponHistoryService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.R;
 
 
@@ -34,10 +34,10 @@ public class CouponHistoryController {
      * 列表
      */
     @RequestMapping("/list")
-    public R list(@RequestParam Map<String, Object> params){
-        PageUtils page = couponHistoryService.queryPage(params);
+    public R<PageVO<CouponHistoryEntity>> list(@RequestParam Map<String, Object> params){
+        PageVO<CouponHistoryEntity> page = couponHistoryService.queryPage(params);
 
-        return R.ok().put("page", page);
+        return R.ok(page);
     }
 
 
@@ -45,17 +45,17 @@ public class CouponHistoryController {
      * 信息
      */
     @RequestMapping("/info/{id}")
-    public R info(@PathVariable("id") Long id){
+    public R<CouponHistoryEntity> info(@PathVariable("id") Long id){
 		CouponHistoryEntity couponHistory = couponHistoryService.getById(id);
 
-        return R.ok().put("couponHistory", couponHistory);
+        return R.ok(couponHistory);
     }
 
     /**
      * 保存
      */
     @RequestMapping("/save")
-    public R save(@RequestBody CouponHistoryEntity couponHistory){
+    public R<Void> save(@RequestBody CouponHistoryEntity couponHistory){
 		couponHistoryService.save(couponHistory);
 
         return R.ok();
@@ -65,7 +65,7 @@ public class CouponHistoryController {
      * 修改
      */
     @RequestMapping("/update")
-    public R update(@RequestBody CouponHistoryEntity couponHistory){
+    public R<Void> update(@RequestBody CouponHistoryEntity couponHistory){
 		couponHistoryService.updateById(couponHistory);
 
         return R.ok();
@@ -75,7 +75,7 @@ public class CouponHistoryController {
      * 删除
      */
     @RequestMapping("/delete")
-    public R delete(@RequestBody Long[] ids){
+    public R<Void> delete(@RequestBody Long[] ids){
 		couponHistoryService.removeByIds(Arrays.asList(ids));
 
         return R.ok();

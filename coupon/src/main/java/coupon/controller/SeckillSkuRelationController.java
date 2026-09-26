@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import coupon.entity.SeckillSkuRelationEntity;
 import coupon.service.SeckillSkuRelationService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.R;
 
 
@@ -34,10 +34,10 @@ public class SeckillSkuRelationController {
      * 列表
      */
     @RequestMapping("/list")
-    public R list(@RequestParam Map<String, Object> params){
-        PageUtils page = seckillSkuRelationService.queryPage(params);
+    public R<PageVO<SeckillSkuRelationEntity>> list(@RequestParam Map<String, Object> params){
+        PageVO<SeckillSkuRelationEntity> page = seckillSkuRelationService.queryPage(params);
 
-        return R.ok().put("page", page);
+        return R.ok(page);
     }
 
 
@@ -45,17 +45,17 @@ public class SeckillSkuRelationController {
      * 信息
      */
     @RequestMapping("/info/{id}")
-    public R info(@PathVariable("id") Long id){
+    public R<SeckillSkuRelationEntity> info(@PathVariable("id") Long id){
 		SeckillSkuRelationEntity seckillSkuRelation = seckillSkuRelationService.getById(id);
 
-        return R.ok().put("seckillSkuRelation", seckillSkuRelation);
+        return R.ok(seckillSkuRelation);
     }
 
     /**
      * 保存
      */
     @RequestMapping("/save")
-    public R save(@RequestBody SeckillSkuRelationEntity seckillSkuRelation){
+    public R<Void> save(@RequestBody SeckillSkuRelationEntity seckillSkuRelation){
 		seckillSkuRelationService.save(seckillSkuRelation);
 
         return R.ok();
@@ -65,7 +65,7 @@ public class SeckillSkuRelationController {
      * 修改
      */
     @RequestMapping("/update")
-    public R update(@RequestBody SeckillSkuRelationEntity seckillSkuRelation){
+    public R<Void> update(@RequestBody SeckillSkuRelationEntity seckillSkuRelation){
 		seckillSkuRelationService.updateById(seckillSkuRelation);
 
         return R.ok();
@@ -75,7 +75,7 @@ public class SeckillSkuRelationController {
      * 删除
      */
     @RequestMapping("/delete")
-    public R delete(@RequestBody Long[] ids){
+    public R<Void> delete(@RequestBody Long[] ids){
 		seckillSkuRelationService.removeByIds(Arrays.asList(ids));
 
         return R.ok();

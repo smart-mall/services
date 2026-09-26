@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import order.entity.OrderSettingEntity;
 import order.service.OrderSettingService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.R;
 
 
@@ -34,10 +34,10 @@ public class OrderSettingController {
      * 列表
      */
     @RequestMapping("/list")
-    public R list(@RequestParam Map<String, Object> params){
-        PageUtils page = orderSettingService.queryPage(params);
+    public R<PageVO<OrderSettingEntity>> list(@RequestParam Map<String, Object> params){
+        PageVO<OrderSettingEntity> page = orderSettingService.queryPage(params);
 
-        return R.ok().put("page", page);
+        return R.ok(page);
     }
 
 
@@ -45,17 +45,17 @@ public class OrderSettingController {
      * 信息
      */
     @RequestMapping("/info/{id}")
-    public R info(@PathVariable("id") Long id){
+    public R<OrderSettingEntity> info(@PathVariable("id") Long id){
 		OrderSettingEntity orderSetting = orderSettingService.getById(id);
 
-        return R.ok().put("orderSetting", orderSetting);
+        return R.ok(orderSetting);
     }
 
     /**
      * 保存
      */
     @RequestMapping("/save")
-    public R save(@RequestBody OrderSettingEntity orderSetting){
+    public R<Void> save(@RequestBody OrderSettingEntity orderSetting){
 		orderSettingService.save(orderSetting);
 
         return R.ok();
@@ -65,7 +65,7 @@ public class OrderSettingController {
      * 修改
      */
     @RequestMapping("/update")
-    public R update(@RequestBody OrderSettingEntity orderSetting){
+    public R<Void> update(@RequestBody OrderSettingEntity orderSetting){
 		orderSettingService.updateById(orderSetting);
 
         return R.ok();
@@ -75,7 +75,7 @@ public class OrderSettingController {
      * 删除
      */
     @RequestMapping("/delete")
-    public R delete(@RequestBody Long[] ids){
+    public R<Void> delete(@RequestBody Long[] ids){
 		orderSettingService.removeByIds(Arrays.asList(ids));
 
         return R.ok();

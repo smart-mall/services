@@ -4,7 +4,6 @@ import auth.feign.MemberFeignService;
 import auth.service.LoginLogService;
 import auth.vo.QQUserInfo;
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.TypeReference;
 import common.utils.HttpUtils;
 import common.utils.JwtUtils;
 import common.utils.R;
@@ -63,7 +62,7 @@ public class QqAuthController extends AbstractSocialAuthController {
         qqUserInfo.setToken(code);
 
         //让 member 服务按社交账号登录或自动注册
-        R oauthLogin = memberFeignService.qqLogin(qqUserInfo);
+        R<MemberResponseVo> oauthLogin = memberFeignService.qqLogin(qqUserInfo);
         if (oauthLogin.getCode() != 0) {
             log.warn("QQ 登录失败: {}", oauthLogin.getMsg());
             return toLoginPage("qq_login_failed");
@@ -71,7 +70,7 @@ public class QqAuthController extends AbstractSocialAuthController {
 
         // 原来这里写的是 getData(new TypeReference<>() {})，靠赋值目标反推类型，
         // 显式写出来更清楚
-        MemberResponseVo user = oauthLogin.getData("data", new TypeReference<MemberResponseVo>() {});
+        MemberResponseVo user = oauthLogin.getData();
         return toFrontWithToken(user, "qq", request);
     }
 }

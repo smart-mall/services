@@ -6,7 +6,6 @@ import cart.vo.CartItemVo;
 import cart.vo.CartVo;
 import cart.vo.SkuInfoVo;
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.TypeReference;
 import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
 import common.utils.R;
@@ -68,8 +67,8 @@ public class CartServiceImpl implements CartService {
 
         // 两次远程调用互不依赖，并行发
         CompletableFuture<Void> skuInfoFuture = CompletableFuture.runAsync(() -> {
-            R productSkuInfo = productFeignService.getInfo(skuId);
-            SkuInfoVo skuInfo = productSkuInfo.getData("skuInfo", new TypeReference<SkuInfoVo>() {});
+            R<SkuInfoVo> productSkuInfo = productFeignService.getInfo(skuId);
+            SkuInfoVo skuInfo = productSkuInfo.getData();
             if (skuInfo == null) {
                 // 商品服务对不存在的 skuId 返回的是 {code:0, skuInfo:null}。
                 // 不判空的话下面 setTitle 拿到 null，会往车里塞一条标题为空的幽灵商品，

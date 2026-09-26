@@ -2,7 +2,7 @@ package order.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import common.to.mq.SeckillOrderTo;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.vo.MemberResponseVo;
 import order.entity.OrderEntity;
 import order.vo.*;
@@ -20,7 +20,7 @@ import java.util.Map;
 public interface OrderService extends IService<OrderEntity> {
 
     /** 后台订单列表（renren 的 /order/order/list 用），不做会员过滤 */
-    PageUtils queryPage(Map<String, Object> params);
+    PageVO<OrderEntity> queryPage(Map<String, Object> params);
 
     /** 结算页数据：收货地址、已勾选商品、库存、积分、防重令牌、金额 */
     OrderConfirmVo confirmOrder(MemberResponseVo user);
@@ -41,7 +41,7 @@ public interface OrderService extends IService<OrderEntity> {
     SubmitOrderResponseVo submitOrder(MemberResponseVo user, OrderSubmitVo vo);
 
     /** 我的订单分页。params 支持 pageNum / pageSize / status */
-    PageUtils queryMemberOrders(MemberResponseVo user, Map<String, Object> params);
+    PageVO<OrderEntity> queryMemberOrders(MemberResponseVo user, Map<String, Object> params);
 
     /**
      * 订单详情（含订单项）。

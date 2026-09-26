@@ -7,7 +7,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
 import common.exception.ValidationException;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import common.utils.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,7 +53,7 @@ public class PurchaseServiceImpl extends ServiceImpl<PurchaseDao, PurchaseEntity
     }
 
     @Override
-    public PageUtils queryPage(Map<String, Object> params) {
+    public PageVO<PurchaseEntity> queryPage(Map<String, Object> params) {
         LambdaQueryWrapper<PurchaseEntity> queryWrapper = new LambdaQueryWrapper<>();
 
         String key = (String) params.get("key");
@@ -82,11 +82,11 @@ public class PurchaseServiceImpl extends ServiceImpl<PurchaseDao, PurchaseEntity
             item.setAllowedActions(PurchaseStatusEnum.allowedActions(item.getStatus()));
         });
 
-        return new PageUtils(page);
+        return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
     @Override
-    public PageUtils queryPageUnreceive(Map<String, Object> params) {
+    public PageVO<PurchaseEntity> queryPageUnreceive(Map<String, Object> params) {
         LambdaQueryWrapper<PurchaseEntity> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.in(PurchaseEntity::getStatus, PurchaseStatusEnum.openCodes());
 
@@ -97,7 +97,7 @@ public class PurchaseServiceImpl extends ServiceImpl<PurchaseDao, PurchaseEntity
 
         page.getRecords().forEach(item -> item.setAllowedActions(PurchaseStatusEnum.allowedActions(item.getStatus())));
 
-        return new PageUtils(page);
+        return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
     /**

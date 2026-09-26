@@ -29,6 +29,6 @@ public interface MemberFeignService {
     List<MemberAddressVo> getAddress(@PathVariable("memberId") Long memberId);
 
     @PostMapping("/member/memberreceiveaddress/addLocation")
-    public R addLocation(@RequestBody MemberAddressVo memberAddressVo);
+    public R<Void> addLocation(@RequestBody MemberAddressVo memberAddressVo);
 
 }

@@ -1,7 +1,7 @@
 package member.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import common.utils.PageUtils;
+import common.vo.PageVO;
 import member.entity.GrowthChangeHistoryEntity;
 
 import java.util.Map;
@@ -15,6 +15,6 @@ import java.util.Map;
  */
 public interface GrowthChangeHistoryService extends IService<GrowthChangeHistoryEntity> {
 
-    PageUtils queryPage(Map<String, Object> params);
+    PageVO<GrowthChangeHistoryEntity> queryPage(Map<String, Object> params);
 }
 
