@@ -7,7 +7,7 @@ import lombok.Data;
 import java.io.Serial;import java.io.Serializable;
 
 /**
- * spu图片
+ * SPU 图片，对应 {@code pms_spu_images} 表：保存 SPU 维度的图集，与 SKU 图集分开存放。
  */
 @Data
 @TableName("pms_spu_images")
@@ -15,28 +15,28 @@ public class SpuImagesEntity implements Serializable {
 	@Serial private static final long serialVersionUID = 1L;
 
 	/**
-	 * id
+	 * 主键。
 	 */
 	@TableId
 	private Long id;
 	/**
-	 * spu_id
+	 * 所属 SPU ID，指向 {@code pms_spu_info.id}。
 	 */
 	private Long spuId;
 	/**
-	 * 图片名
+	 * 图片名。
 	 */
 	private String imgName;
 	/**
-	 * 图片地址
+	 * 图片地址。
 	 */
 	private String imgUrl;
 	/**
-	 * 顺序
+	 * 展示顺序。
 	 */
 	private Integer imgSort;
 	/**
-	 * 是否默认图
+	 * 是否为默认图。
 	 */
 	private Integer defaultImg;
 
