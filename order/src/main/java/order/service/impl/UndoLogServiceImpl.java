@@ -12,9 +12,15 @@ import order.service.UndoLogService;
 
 
 import common.query.PageQuery;
+/**
+ * 撤销日志服务实现，提供 Seata undo_log 的分页查询。
+ *
+ * <p>继承 MyBatis-Plus 的 {@code ServiceImpl}，无状态、线程安全。
+ */
 @Service("undoLogService")
 public class UndoLogServiceImpl extends ServiceImpl<UndoLogDao, UndoLogEntity> implements UndoLogService {
 
+    /** {@inheritDoc} */
     @Override
     public PageVO<UndoLogEntity> queryPage(PageQuery query) {
         IPage<UndoLogEntity> page = this.page(query.toPage());

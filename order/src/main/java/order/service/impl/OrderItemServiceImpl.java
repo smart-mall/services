@@ -12,9 +12,15 @@ import order.service.OrderItemService;
 
 
 import common.query.PageQuery;
+/**
+ * 订单项服务实现，提供订单项的分页查询。
+ *
+ * <p>继承 MyBatis-Plus 的 {@code ServiceImpl}，无状态、线程安全。
+ */
 @Service("orderItemService")
 public class OrderItemServiceImpl extends ServiceImpl<OrderItemDao, OrderItemEntity> implements OrderItemService {
 
+    /** {@inheritDoc} */
     @Override
     public PageVO<OrderItemEntity> queryPage(PageQuery query) {
         IPage<OrderItemEntity> page = this.page(query.toPage());

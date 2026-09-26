@@ -13,81 +13,182 @@ import java.util.Map;
 import common.query.PageQuery;
 import order.vo.OrderPageQuery;
 /**
- * 订单
+ * 订单服务：结算页组装、提交下单、订单查询与支付结果处理。
+ *
+ * <p>订单与收货地址的归属校验（是不是当前会员的）由实现负责，调用方传入登录会员即可。
  */
 public interface OrderService extends IService<OrderEntity> {
 
-    /** 后台订单列表（renren 的 /order/order/list 用），不做会员过滤 */
+    /**
+     * 分页查询全部订单，供后台列表使用。
+     *
+     * <p>不做会员过滤：任何会员的订单都会返回。
+     *
+     * @param query 分页参数，不能为 {@code null}
+     * @return 分页结果，{@code rows} 为当前页订单；当前页没有数据时为空列表
+     */
     PageVO<OrderEntity> queryPage(PageQuery query);
 
-    /** 结算页数据：收货地址、已勾选商品、库存、积分、防重令牌、金额 */
+    /**
+     * 组装结算页数据：收货地址、已勾选购物项、库存、积分、防重令牌与三个金额。
+     *
+     * <p>副作用是写一条防重令牌到 Redis（{@code order:token:<memberId>}，有效期 30 分钟），
+     * 每次调用都覆盖上一条，提交订单时必须原样回传。
+     *
+     * @param user 当前登录会员，不能为 {@code null}，{@code id} 不能为 {@code null}
+     * @return 结算页数据；没有收货地址时 {@code addresses} 为空列表、{@code defaultAddrId} 为 {@code null}
+     * @throws common.exception.BaseException 远程加载地址或购物车失败、购物项缺少价格或数量、
+     *         运费算不出来时抛出，走兜底码 {@code UNKNOWN_EXCEPTION}
+     */
     OrderConfirmVo confirmOrder(MemberResponseVo user);
 
     /**
      * 计算指定收货地址的运费。
      *
-     * @throws common.exception.BaseException 地址不属于该会员时抛 {@code ADDRESS_NOT_FOUND}
+     * <p>先确认地址属于该会员再向 ware 取运费，避免用别人的地址算运费。
+     *
+     * @param user   当前登录会员，不能为 {@code null}
+     * @param addrId 收货地址 id，不能为 {@code null}，且必须是该会员的地址
+     * @return 运费与地址信息，{@code fare} 不为 {@code null}
+     * @throws common.exception.BaseException 地址不属于该会员时抛 {@code ADDRESS_NOT_FOUND}；
+     *         ware 查不到该地址、算不出运费时抛兜底码 {@code UNKNOWN_EXCEPTION}
      */
     FareVo getFare(MemberResponseVo user, Long addrId);
 
     /**
-     * 提交订单。
+     * 提交订单：校验地址与防重令牌、重算价格、落库、锁定库存，并清空购物车。
      *
-     * @throws common.exception.BaseException 令牌失效 {@code ORDER_TOKEN_INVALID}、
-     *         价格变动 {@code ORDER_PRICE_CHANGED}、库存不足 {@code NO_STOCK_EXCEPTION}
+     * <p>防重令牌是一次性的：校验通过即从 Redis 删除，同一令牌重复提交只有第一次会成功。
+     * 副作用为写入订单与订单项、锁定 ware 库存、发送订单创建消息、删除该会员的购物车。
+     *
+     * @param user 当前登录会员，不能为 {@code null}
+     * @param vo   提交参数，不能为 {@code null}；{@code addrId}、{@code orderToken}、
+     *             {@code payPrice} 均不能为空
+     * @return 提交结果，含落库后的订单；应付金额以服务端重算结果为准，不取前端回传值
+     * @throws common.exception.BaseException 地址不属于该会员 {@code ADDRESS_NOT_FOUND}、令牌失效
+     *         {@code ORDER_TOKEN_INVALID}、价格与确认页不一致 {@code ORDER_PRICE_CHANGED}、
+     *         库存不足 {@code NO_STOCK_EXCEPTION}；购物车已清空或商品信息缺失时走兜底码
      */
     SubmitOrderResponseVo submitOrder(MemberResponseVo user, OrderSubmitVo vo);
 
-    /** 我的订单分页。query 支持 page / limit / status */
+    /**
+     * 分页查询当前会员自己的订单，附带订单项与状态文案。
+     *
+     * <p>已删除的订单不返回，结果按创建时间倒序。
+     *
+     * @param user  当前登录会员，不能为 {@code null}
+     * @param query 分页与筛选参数，不能为 {@code null}；{@code status} 为 {@code null} 时不按状态过滤
+     * @return 分页结果，每行的 {@code orderItemEntityList} 与 {@code statusText} 已填好；
+     *         当前页没有数据时 {@code rows} 为空列表
+     */
     PageVO<OrderEntity> queryMemberOrders(MemberResponseVo user, OrderPageQuery query);
 
     /**
-     * 订单详情（含订单项）。
+     * 查询订单详情，附带订单项与状态文案。
      *
+     * @param user    当前登录会员，不能为 {@code null}
+     * @param orderSn 订单号，不能为 {@code null}
+     * @return 订单详情，{@code orderItemEntityList} 与 {@code statusText} 已填好
      * @throws common.exception.BaseException 订单不存在或不属于该会员时抛 {@code ORDER_NOT_FOUND}
      */
     OrderEntity getOrderDetail(MemberResponseVo user, String orderSn);
 
+    /**
+     * 按订单号查询订单，不做归属校验。
+     *
+     * <p>面向会员的接口不能用它：它会把别人的订单也返回，请改用 {@code getOrderDetail}。
+     *
+     * @param orderSn 订单号，不能为 {@code null}
+     * @return 订单；订单号不存在时返回 {@code null}
+     */
     OrderEntity getOrderByOrderSn(String orderSn);
 
     /**
-     * 发起支付。
+     * 发起支付，返回拉起收银台所需的数据。
      *
-     * @throws common.exception.BaseException 订单不存在 {@code ORDER_NOT_FOUND}、
-     *         状态不是待付款 {@code ORDER_STATUS_INVALID}
+     * <p>只有待付款的订单能发起支付。
+     *
+     * @param user    当前登录会员，不能为 {@code null}
+     * @param orderSn 订单号，不能为 {@code null}
+     * @param payType 支付方式，取值见 {@code order.constant.PayConstant}：1 支付宝、2 微信；
+     *                其它值按参数格式校验失败处理
+     * @return 支付宝时 {@code form} 有值，微信时 {@code codeUrl} 有值，两者不会同时为空
+     * @throws common.exception.BaseException 订单不存在或不属于该会员 {@code ORDER_NOT_FOUND}、
+     *         状态不是待付款 {@code ORDER_STATUS_INVALID}；支付渠道调用失败时走兜底码
      */
     PayResultVo payOrder(MemberResponseVo user, String orderSn, Integer payType);
 
     /**
-     * 查订单状态。<b>内部接口</b>：ware 在释放库存前用它判断订单是否已取消。
+     * 按订单号查询订单状态，供 ware 在释放库存前判断订单是否已取消。
      *
-     * <p>⚠️ 订单不存在时返回 {@code null}（HTTP 200 + code 0 + data null），
-     * <b>不能改成抛异常</b> —— 这是 ware 的契约，见实现里的注释。</p>
+     * <p>内部接口，订单不存在时返回 {@code null} 而不是抛异常 —— 这是 ware 的契约：
+     * 它靠 {@code data} 为 {@code null} 判定必须解锁库存，报错会让它重投消息、库存永远解不掉。
+     *
+     * @param orderSn 订单号，不能为 {@code null}
+     * @return 订单状态；订单不存在时返回 {@code null}
      */
     OrderStatusVo getOrderStatus(String orderSn);
 
     /**
-     * 查自己的订单状态（SPA 的扫码页轮询用）。
+     * 查询当前会员自己的订单状态，供扫码支付页轮询。
      *
+     * @param user    当前登录会员，不能为 {@code null}
+     * @param orderSn 订单号，不能为 {@code null}
+     * @return 订单状态，含状态码与状态文案
      * @throws common.exception.BaseException 订单不存在或不属于该会员时抛 {@code ORDER_NOT_FOUND}
      */
     OrderStatusVo getMyOrderStatus(MemberResponseVo user, String orderSn);
 
     /**
-     * 取消未支付的订单，并通知仓库释放库存。
+     * 取消当前会员未支付的订单，并通知仓库释放已锁定的库存。
      *
-     * @throws common.exception.BaseException 订单不存在 {@code ORDER_NOT_FOUND}、
+     * <p>副作用：订单状态置为已取消，并发送库存释放消息；消息发送失败只记日志，不回滚状态。
+     *
+     * @param user    当前登录会员，不能为 {@code null}
+     * @param orderSn 订单号，不能为 {@code null}
+     * @throws common.exception.BaseException 订单不存在或不属于该会员 {@code ORDER_NOT_FOUND}、
      *         状态不是待付款 {@code ORDER_STATUS_INVALID}
      */
     void cancelOrder(MemberResponseVo user, String orderSn);
 
-    /** 关闭超时未支付的订单（由 MQ 延迟消息触发） */
+    /**
+     * 关闭超时未支付的订单，由 MQ 延迟消息触发。
+     *
+     * <p>幂等：订单不存在或已不是待付款状态时直接返回，不报错；消费失败的消息会重投，
+     * 因此必须容忍重复调用。
+     *
+     * @param orderEntity 延迟消息携带的订单，只读取 {@code orderSn}；不能为 {@code null}
+     */
     void closeOrder(OrderEntity orderEntity);
 
+    /**
+     * 处理支付宝的异步支付通知：落一条交易流水，并在支付成功时把订单置为已付款。
+     *
+     * <p>非支付成功状态只落流水，不改订单状态。
+     *
+     * @param asyncVo 支付宝通知参数，不能为 {@code null}；{@code out_trade_no} 为商户订单号
+     * @return 固定返回字面量 {@code success}，支付宝收到该应答后停止重发通知
+     */
     @Transactional(rollbackFor = Exception.class)
     String handlePayResult(PayAsyncVo asyncVo);
 
+    /**
+     * 处理微信的异步支付通知：验签、校验订单状态，并把订单置为已付款。
+     *
+     * <p>订单查不到、或订单已付款或已取消时直接抛异常，微信会按失败重发通知。
+     *
+     * @param notifyData 微信通知的原始报文，不能为 {@code null}
+     * @return 微信要求的 {@code SUCCESS} 应答 XML，原样回给微信即可
+     */
     String asyncNotify(String notifyData);
 
+    /**
+     * 创建秒杀订单：落订单主表与订单项，收货人取该会员的默认地址。
+     *
+     * <p>非幂等：同一条消息重复消费会建出重复订单。
+     *
+     * @param orderTo 秒杀订单消息，不能为 {@code null}；{@code orderSn}、{@code memberId}、
+     *                {@code skuId}、{@code seckillPrice}、{@code num} 均不能为空
+     */
     void createSeckillOrder(SeckillOrderTo orderTo);
 }

@@ -8,10 +8,18 @@ import java.util.Map;
 
 import common.query.PageQuery;
 /**
- * 退款信息
+ * 退款信息服务：在通用 CRUD 之上提供后台列表的分页查询。
  */
 public interface RefundInfoService extends IService<RefundInfoEntity> {
 
+    /**
+     * 分页查询退款流水，供后台列表使用。
+     *
+     * <p>没有业务筛选条件，返回全部退款记录。
+     *
+     * @param query 分页参数，不能为 {@code null}
+     * @return 分页结果，{@code rows} 为当前页退款流水；当前页没有数据时为空列表
+     */
     PageVO<RefundInfoEntity> queryPage(PageQuery query);
 }
 

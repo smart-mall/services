@@ -83,6 +83,13 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import static com.lly835.bestpay.enums.BestPayTypeEnum.WXPAY_NATIVE;
 import static common.constant.CartConstant.CART_PREFIX;
 
+/**
+ * 订单服务实现：负责结算页组装、下单、发起支付、关单与秒杀单落库。
+ *
+ * <p>本类无状态、线程安全；订单号由 {@code IdWorker} 生成，会员、购物车、商品与库存数据经 Feign 获取。
+ *
+ * <p>远程调用失败与业务校验不通过统一抛 {@link BaseException}，由全局异常处理器转成带 code 的响应。
+ */
 @Slf4j
 @Service("orderService")
 public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> implements OrderService {
@@ -121,6 +128,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     private ThreadPoolExecutor threadPoolExecutor;
 
 
+    /** {@inheritDoc} */
     @Override
     public PageVO<OrderEntity> queryPage(PageQuery query) {
         IPage<OrderEntity> page = this.page(query.toPage());
@@ -131,8 +139,15 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     /* ═══════════════════ 当前会员与归属校验 ═══════════════════ */
 
     /**
-     * 按订单号取订单，并确认它属于该会员。不属于自己的订单一律按"不存在"报，不报"无权访问" ——
-     * 后者等于告诉调用方"这个订单号存在，只是不属于你"，那是个用户枚举点。
+     * 按订单号取订单，并确认它属于该会员。
+     *
+     * <p>不属于自己的订单一律按"不存在"报，不报"无权访问"：后者等于告诉调用方
+     * 这个订单号存在、只是不属于你，会成为用户枚举点。
+     *
+     * @param user 当前登录会员
+     * @param orderSn 订单号
+     * @return 属于该会员的订单
+     * @throws BaseException 订单不存在或不属于该会员时抛 {@code ORDER_NOT_FOUND}
      */
     private OrderEntity requireOwnOrder(MemberResponseVo user, String orderSn) {
         OrderEntity order = getOrderByOrderSn(orderSn);
@@ -142,7 +157,16 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         return order;
     }
 
-    /** 确认 addrId 在该会员的地址列表里：addrId 是前端传的，而 ware 只按 id 查地址、不校验归属 */
+    /**
+     * 确认 addrId 在该会员的地址列表里。
+     *
+     * <p>addrId 是前端传的，而 ware 只按 id 查地址、不校验归属，必须在本地兜住。
+     *
+     * @param addrId 收货地址 id
+     * @param addresses 该会员的全部收货地址
+     * @return 命中的收货地址
+     * @throws BaseException 地址不存在或不属于该会员时抛 {@code ADDRESS_NOT_FOUND}
+     */
     private MemberAddressVo requireOwnAddress(Long addrId, List<MemberAddressVo> addresses) {
         if (addrId == null || addresses == null) {
             throw new BaseException(BaseCodeEnum.ADDRESS_NOT_FOUND);
@@ -153,7 +177,14 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
                 .orElseThrow(() -> new BaseException(BaseCodeEnum.ADDRESS_NOT_FOUND));
     }
 
-    /** 该会员的全部收货地址。按 memberId 查，天然带归属过滤 */
+    /**
+     * 查询该会员的全部收货地址。
+     *
+     * <p>按 memberId 查，天然带归属过滤。
+     *
+     * @param user 当前登录会员
+     * @return 收货地址列表；会员服务返回 {@code null} 时给空列表
+     */
     private List<MemberAddressVo> memberAddresses(MemberResponseVo user) {
         List<MemberAddressVo> addresses = memberFeignService.getAddress(user.getId());
         return addresses == null ? List.of() : addresses;
@@ -161,14 +192,18 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
     /* ═══════════════════ 结算 ═══════════════════ */
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>三个远程调用并行发起；防重令牌写入 Redis 并带过期时间，每次进入结算页都会刷新。
+     */
     @Override
     public OrderConfirmVo confirmOrder(MemberResponseVo user) {
         Long memberId = user.getId();
         OrderConfirmVo confirmVo = new OrderConfirmVo();
 
         // 三个远程调用互不依赖，并行发。
-        // ⚠️ 每个异步任务里都要把 RequestAttributes 传进去：cart 的接口要求登录，
-        //    而 X-Member-Claims 是 FeignConfig 从"当前请求"里取的，异步线程默认没有请求上下文
+        // ⚠️ 异步线程没有请求上下文，必须手动搬 RequestAttributes，否则 Feign 取不到 X-Member-Claims
         RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
 
         CompletableFuture<List<MemberAddressVo>> addressFuture = CompletableFuture.supplyAsync(() -> {
@@ -202,7 +237,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         confirmVo.setAddresses(addresses == null ? List.of() : addresses);
         confirmVo.setItems(items == null ? List.of() : items);
 
-        // 默认地址：优先 defaultStatus == 1，没有默认就取第一个；一个地址都没有时为 null
+        // 没有默认地址时退化为第一个；地址列表为空时保持 null
         MemberAddressVo defaultAddress = confirmVo.getAddresses().stream()
                 .filter(address -> Integer.valueOf(1).equals(address.getDefaultStatus()))
                 .findFirst()
@@ -215,8 +250,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         List<Long> skuIds = confirmVo.getItems().stream()
                 .map(OrderItemVo::getSkuId)
                 .collect(Collectors.toList());
-        // 默认给空 Map 而不是留 null：前端拿到的永远是对象，不用为"车是空的"和
-        // "字段没返回"写两个分支（和 cart 那边 items 给 [] 不给 null 是同一个理由）
+        // 默认给空 Map 而不是 null：前端拿到的永远是对象，不用为"车是空的"和
+        // "字段没返回"写两个分支，与 cart 的 items 给 [] 同一约定
         confirmVo.setStocks(new HashMap<>());
         if (!skuIds.isEmpty()) {
             R<List<SkuStockVo>> stockResp = wmsFeignService.getSkuHasStock(skuIds);
@@ -227,8 +262,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
             }
         }
 
-        // 金额：三个数都由后端算好给前端。前端只负责显示和原样回传 payAmount，
-        // 自己算一遍就会和提交时的校验算成两个数（老页面正是这么坏的）
+        // 金额三个数都由后端算好：前端自己算一遍会和提交时的校验算成两个数
         BigDecimal totalAmount = BigDecimal.ZERO;
         for (OrderItemVo item : confirmVo.getItems()) {
             if (item.getPrice() == null || item.getCount() == null) {
@@ -240,7 +274,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
         BigDecimal freightAmount = BigDecimal.ZERO;
         if (defaultAddress != null) {
-            // 地址是从会员自己的列表里取出来的，归属已经成立，不用再查一遍
+            // 地址取自会员自己的列表，归属已经成立，不必再校验一次
             freightAmount = fetchFare(defaultAddress.getId()).getFare();
         }
         confirmVo.setFreightAmount(freightAmount);
@@ -260,18 +294,27 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         return confirmVo;
     }
 
+    /** {@inheritDoc} */
     @Override
     public FareVo getFare(MemberResponseVo user, Long addrId) {
         requireOwnAddress(addrId, memberAddresses(user));
         return fetchFare(addrId);
     }
 
-    /** 真正去 ware 取运费。归属校验由调用方负责 */
+    /**
+     * 查询指定地址的运费。
+     *
+     * <p>归属校验由调用方负责。
+     *
+     * @param addrId 收货地址 id
+     * @return 运费与收货地址信息
+     * @throws BaseException 运费查不到时抛出
+     */
     private FareVo fetchFare(Long addrId) {
         R<FareVo> fareResp = wmsFeignService.getFare(addrId);
         FareVo fare = fareResp.getData();
         if (fare == null || fare.getFare() == null) {
-            // ware 在地址查不到时返回 data=null，原来这里直接 getFare() 会 NPE 成 500
+            // ware 在地址查不到时返回 data=null，直接取 fare 会空指针
             throw new BaseException("运费计算失败，请检查收货地址");
         }
         return fare;
@@ -280,23 +323,21 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     /* ═══════════════════ 提交订单 ═══════════════════ */
 
     /**
-     * 提交订单。
+     * {@inheritDoc}
      *
-     * <p>失败不再靠 {@code SubmitOrderResponseVo.code} 的 1/2/3 —— 那个命名空间和 {@code R.code}
-     * （0=成功）是两套，控制器套上 R 之后前端要先判 body.code 再判 data.code，极容易漏判成功。
-     * 现在统一抛 {@code BaseException}，走 {@code R.error(code, msg)}。</p>
+     * <p>整个方法在一个事务内：价格校验、订单落库、锁定库存任一步失败都整体回滚，
+     * 不会留下已写入的订单与订单项。
      */
     @Transactional(rollbackFor = Exception.class)
     @Override
     public SubmitOrderResponseVo submitOrder(MemberResponseVo user, OrderSubmitVo vo) {
         Long memberId = user.getId();
 
-        // 0、地址归属。放在最前面：其它步骤都有副作用（删令牌、落库、锁库存），
-        //    校验失败时要保证什么都没动过
+        // 0. 地址归属。放在最前面：后面几步都有副作用（删令牌、落库、锁库存），
+        //    校验失败时必须保证什么都没动过
         requireOwnAddress(vo.getAddrId(), memberAddresses(user));
 
-        // 1、验证令牌是否合法【令牌的对比和删除必须保证原子性】
-        //    0 令牌失败 - 1 删除成功
+        // 1. 验证并消费防重令牌，用 Lua 保证比较与删除的原子性：返回 1 表示消费成功
         String script = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
         Long result = redisTemplate.execute(
                 new DefaultRedisScript<>(script, Long.class),
@@ -308,11 +349,11 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
             throw new BaseException(BaseCodeEnum.ORDER_TOKEN_INVALID);
         }
 
-        // 2、创建订单、订单项等信息
+        // 2. 创建订单与订单项
         OrderCreateTo order = createOrder(user, vo);
 
-        // 3、验证价格。用 compareTo 而不是相减比 double：两边 scale 不同（前端传的是
-        //    41941，库里算出来是 41941.0000），BigDecimal.equals 会判不等，compareTo 只比数值
+        // 3. 验证价格。必须用 compareTo：两边 scale 不同（前端传 41941，库里是 41941.0000），
+        //    BigDecimal.equals 会判不等，compareTo 只比数值
         BigDecimal payAmount = order.getOrder().getPayAmount();
         if (payAmount.compareTo(vo.getPayPrice()) != 0) {
             log.info("价格验证失败：应付 {}，前端传 {}", payAmount, vo.getPayPrice());
@@ -321,7 +362,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
         saveOrder(order);
 
-        // 4、锁定库存。只要有异常，回滚订单数据
+        // 4. 锁定库存；失败抛异常，由事务回滚已落库的订单
         WareSkuLockVo lockVo = new WareSkuLockVo();
         lockVo.setOrderSn(order.getOrder().getOrderSn());
         List<OrderItemVo> orderItemVos = order.getOrderItems().stream().map((item) -> {
@@ -335,18 +376,14 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
         R<Void> r = wmsFeignService.orderLockStock(lockVo);
         if (r.getCode() != 0) {
-            // 用 BaseException 而不是 NoStockException：后者没有任何 @ExceptionHandler 接，
-            // 抛出去会落到 Spring 默认错误页（没有 code/msg），前端只能显示"请求失败"。
-            // ware 那边是本地 try/catch 处理 NoStockException 的，跨服务传过来就只剩 msg 了
+            // 必须转成 BaseException：NoStockException 没有 @ExceptionHandler 接，抛出去会落到
+            // Spring 默认错误页（无 code/msg），前端只能显示"请求失败"
             throw new BaseException(BaseCodeEnum.NO_STOCK_EXCEPTION, r.getMsg());
         }
 
-        // TODO 阶段 4：下面两件事都发生在事务提交**之前**，是错的 ——
-        //   消息已经发出去了但事务可能回滚（消费者会收到一个数据库里不存在的订单），
-        //   购物车也已经删了但订单可能没落库。要改成注册 TransactionSynchronization.afterCommit。
-        // TODO 订单创建成功，发送消息给MQ
+        // TODO 阶段 4：MQ 发送与清购物车都发生在事务提交之前，事务回滚时消费者会收到
+        //   数据库里不存在的订单、购物车也已清空；正确做法是注册 TransactionSynchronization.afterCommit
         mqPublisher.publish(MqConstant.Exchanges.ORDER_EVENT, MqConstant.RoutingKeys.ORDER_CREATE, order.getOrder());
-        // 删除购物车里的数据
         redisTemplate.delete(CART_PREFIX + memberId);
 
         SubmitOrderResponseVo responseVo = new SubmitOrderResponseVo();
@@ -356,13 +393,18 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
     /* ═══════════════════ 我的订单 ═══════════════════ */
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>只查当前会员未删除的订单，订单项按 orderSn 批量补齐。
+     */
     @Override
     public PageVO<OrderEntity> queryMemberOrders(MemberResponseVo user, OrderPageQuery query) {
         Long memberId = user.getId();
 
         LambdaQueryWrapper<OrderEntity> wrapper = new LambdaQueryWrapper<OrderEntity>()
                 .eq(OrderEntity::getMemberId, memberId)
-                // 已删除的不展示。老的 queryPageWithItem 没有这个过滤，用户删过的订单还会再列出来
+                // 只列未删除的：deleteStatus=0 表示未删除
                 .eq(OrderEntity::getDeleteStatus, 0)
                 .orderByDesc(OrderEntity::getCreateTime);
 
@@ -374,7 +416,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         IPage<OrderEntity> page = this.page(query.toPage(), wrapper);
         List<OrderEntity> records = page.getRecords();
 
-        // 订单项一次查完再按 orderSn 分组。原来的写法是遍历订单、每个订单查一次订单项（N+1）
+        // 订单项一次查完再按 orderSn 分组：逐个订单查订单项是 N+1
         if (!records.isEmpty()) {
             List<String> orderSns = records.stream().map(OrderEntity::getOrderSn).collect(Collectors.toList());
             Map<String, List<OrderItemEntity>> itemsByOrderSn = orderItemService
@@ -390,6 +432,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
+    /** {@inheritDoc} */
     @Override
     public OrderEntity getOrderDetail(MemberResponseVo user, String orderSn) {
         OrderEntity order = requireOwnOrder(user, orderSn);
@@ -399,6 +442,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         return order;
     }
 
+    /** {@inheritDoc} */
     @Override
     public OrderEntity getOrderByOrderSn(String orderSn) {
         return this.baseMapper.selectOne(new LambdaQueryWrapper<OrderEntity>().eq(OrderEntity::getOrderSn, orderSn));
@@ -407,10 +451,12 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
 
     /**
-     * 填状态文案。
+     * 为订单列表填充状态文案。
      *
-     * <p>由后端给而不是前端自己映射：{@link OrderStatusEnum} 有 7 个值，
-     * 前端再维护一份就多了一个会漂移的副本。</p>
+     * <p>文案由后端给而不是前端自己映射：{@link OrderStatusEnum} 有 7 个值，
+     * 前端再维护一份就多了一个会漂移的副本。
+     *
+     * @param orders 待填充的订单列表
      */
     private void fillStatusText(List<OrderEntity> orders) {
         for (OrderEntity order : orders) {
@@ -435,6 +481,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
     /* ═══════════════════ 支付 ═══════════════════ */
 
+    /** {@inheritDoc} */
     @Override
     public PayResultVo payOrder(MemberResponseVo user, String orderSn, Integer payType) {
         OrderEntity order = requireOwnOrder(user, orderSn);
@@ -462,8 +509,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
             PayRequest request = new PayRequest();
             request.setOrderName("谷粒商城订单 " + orderSn);
             request.setOrderId(orderSn);
-            // ⚠️ 用订单真实的应付金额。原来这里写死 0.01 —— 微信侧永远只收一分钱，
-            //    和订单金额完全脱钩
+            // ⚠️ 必须用订单真实的应付金额：微信侧按这个值收款，写死就与订单金额脱钩
             request.setOrderAmount(order.getPayAmount().doubleValue());
             request.setPayTypeEnum(WXPAY_NATIVE);
 
@@ -471,9 +517,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
             try {
                 payResponse = bestPayService.pay(request);
             } catch (Exception e) {
-                // BestPay 在微信侧返回非 SUCCESS 时抛的是 RuntimeException，不是受检异常 ——
-                // 实测（商户密钥还是配置里的 demo 值）微信回的是"签名错误"，然后这个异常
-                // 一路冒到 DispatcherServlet，前端拿到的是一个**没有 code 的裸 500**。
+                // BestPay 在微信侧返回非 SUCCESS 时抛的是 RuntimeException（不是受检异常），
+                // 不转换就会一路冒到 DispatcherServlet，前端拿到没有 code 的裸 500
                 log.error("发起微信支付失败，orderSn={}", orderSn, e);
                 throw new BaseException("发起微信支付失败，请稍后重试或改用支付宝");
             }
@@ -485,7 +530,15 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         throw new ValidationException("payType", "不支持的支付方式：" + payType);
     }
 
-    /** 组装支付宝下单参数。金额取库里的应付总额，不接受前端传 */
+    /**
+     * 组装支付宝下单参数。
+     *
+     * <p>金额取库里的应付总额，不接受前端传参。
+     *
+     * @param orderSn 订单号
+     * @return 支付宝下单参数
+     * @throws BaseException 订单不存在时抛 {@code ORDER_NOT_FOUND}
+     */
     private PayVo buildPayVo(String orderSn) {
         OrderEntity orderInfo = getOrderByOrderSn(orderSn);
         if (orderInfo == null) {
@@ -493,12 +546,12 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         }
 
         PayVo payVo = new PayVo();
-        // 保留两位、向上取整 —— 沿用原来的写法（注意：这会让实付比 payAmount 略高几分）
+        // 保留两位、向上取整：实付会比 payAmount 略高几分
         payVo.setTotal_amount(orderInfo.getPayAmount().setScale(2, RoundingMode.UP).toString());
         payVo.setOut_trade_no(orderInfo.getOrderSn());
         payVo.setSubject("谷粒商城订单 " + orderSn);
 
-        // 订单项可能为空（异常数据），原来的 get(0) 会直接 IndexOutOfBounds
+        // 订单项可能为空（异常数据），取下标 0 前必须判空
         List<OrderItemEntity> orderItemInfo = orderItemService.list(
                 new LambdaQueryWrapper<OrderItemEntity>().eq(OrderItemEntity::getOrderSn, orderSn));
         if (!orderItemInfo.isEmpty()) {
@@ -510,16 +563,19 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         return payVo;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>订单不存在时返回 {@code null}：ware 侧先看 {@code R.code}，非 0 会抛异常让消息重投，
+     * 库存反而永远解锁不掉。
+     */
     @Override
     public OrderStatusVo getOrderStatus(String orderSn) {
-        // ⚠️ 订单不存在时返回 null，**不能抛异常**：
-        //    ware 的契约是"没有这个订单 → 必须解锁库存"（WareSkuServiceImpl#unLockStock
-        //    判断 orderInfo == null 就解锁）。它先看 R.code，非 0 会抛异常让消息重投，
-        //    那样库存反而永远解锁不掉。
         OrderEntity order = getOrderByOrderSn(orderSn);
         return order == null ? null : toStatusVo(order);
     }
 
+    /** {@inheritDoc} */
     @Override
     public OrderStatusVo getMyOrderStatus(MemberResponseVo user, String orderSn) {
         return toStatusVo(requireOwnOrder(user, orderSn));
@@ -535,6 +591,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
     /* ═══════════════════ 取消 / 关单 ═══════════════════ */
 
+    /** {@inheritDoc} */
     @Override
     public void cancelOrder(MemberResponseVo user, String orderSn) {
         OrderEntity order = requireOwnOrder(user, orderSn);
@@ -544,27 +601,30 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         doClose(order);
     }
 
+    /** {@inheritDoc} */
     @Override
     public void closeOrder(OrderEntity orderEntity) {
-        // 关闭订单之前先查询一下数据库，判断此订单状态是否已支付
+        // 以库里的最新状态为准：消息重投时订单可能已被支付或取消
         OrderEntity orderInfo = this.getOne(new LambdaQueryWrapper<OrderEntity>()
                 .eq(OrderEntity::getOrderSn, orderEntity.getOrderSn()));
 
         if (orderInfo == null) {
-            // 订单不存在就跳过。原来这里直接 orderInfo.getStatus() 会 NPE，
-            // 而监听器的 catch 是 basicReject(requeue=true)，NPE 会让消息无限重投
+            // 订单不存在就跳过：监听器的 catch 是 basicReject(requeue=true)，抛异常会让消息无限重投
             log.warn("要关闭的订单不存在，跳过：{}", orderEntity.getOrderSn());
             return;
         }
 
         if (OrderStatusEnum.CREATE_NEW.getCode().equals(orderInfo.getStatus())) {
-            // 待付款状态进行关单
             doClose(orderInfo);
         }
     }
 
     /**
-     * 关单：置为已取消并通知仓库释放库存。超时关单（MQ）和用户主动取消共用这一段。
+     * 关单：置为已取消并通知仓库释放库存。
+     *
+     * <p>超时关单（MQ）与用户主动取消共用这一段。
+     *
+     * @param orderInfo 待关闭的订单
      */
     private void doClose(OrderEntity orderInfo) {
         OrderEntity orderUpdate = new OrderEntity();
@@ -574,10 +634,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
         OrderTo orderTo = new OrderTo();
         BeanUtils.copyProperties(orderInfo, orderTo);
-        // copyProperties 拷的是"关单前"的对象，status 还是待付款。
-        // 说明一下为什么还是要覆盖：ware 收到这条消息后走的 unlockStock(OrderTo) 并不读 status
-        // （它按库存工作单直接解锁），所以这一行不是功能必需。但 OrderTo 是订单的快照，
-        // 发一个和数据库事实相反的状态出去，迟早会坑到下一个读它的人。
+        // copyProperties 拷到的是关单前的对象，status 仍是待付款；ware 按库存工作单解锁、
+        // 不读这个字段，但 OrderTo 是订单快照，发出去的状态必须与库里一致
         orderTo.setStatus(OrderStatusEnum.CANCLED.getCode());
 
         try {
@@ -593,16 +651,12 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
     private void saveOrder(OrderCreateTo orderCreateTo) {
 
-        //获取订单信息
         OrderEntity order = orderCreateTo.getOrder();
         order.setModifyTime(new Date());
         order.setCreateTime(new Date());
-        //保存订单
         this.baseMapper.insert(order);
 
-        //获取订单项信息
         List<OrderItemEntity> orderItems = orderCreateTo.getOrderItems();
-        //批量保存订单项数据
         orderItemService.saveBatch(orderItems);
     }
 
@@ -611,19 +665,17 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
         OrderCreateTo createTo = new OrderCreateTo();
 
-        //1、生成订单号
+        // 1. 生成订单号并组装订单主表
         String orderSn = IdWorker.getTimeId();
         OrderEntity orderEntity = builderOrder(user, orderSn, submitVo);
 
-        //2、获取到所有的订单项
+        // 2. 组装订单项；购物车可能已被清空或全部取消勾选，空车会建出只有运费的空单
         List<OrderItemEntity> orderItemEntities = builderOrderItems(orderSn);
         if (orderItemEntities.isEmpty()) {
-            // 提交期间购物车可能被清空或全部取消勾选（另一个标签页、或者上一次提交已经把车删了）。
-            // 不挡的话会建出一张"只有运费、没有商品"的空单，而且金额校验还能通过
             throw new BaseException("购物车里没有已勾选的商品，无法提交订单");
         }
 
-        //3、验价(计算价格、积分等信息)
+        // 3. 计算价格与积分
         computePrice(orderEntity,orderItemEntities);
 
         createTo.setOrder(orderEntity);
@@ -635,51 +687,49 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
     private void computePrice(OrderEntity orderEntity, List<OrderItemEntity> orderItemEntities) {
 
-        //总价
         BigDecimal total = new BigDecimal("0.0");
-        //优惠价
         BigDecimal coupon = new BigDecimal("0.0");
         BigDecimal intergration = new BigDecimal("0.0");
         BigDecimal promotion = new BigDecimal("0.0");
 
-        //积分、成长值
         Integer integrationTotal = 0;
         Integer growthTotal = 0;
 
-        //订单总额，叠加每一个订单项的总额信息
         for (OrderItemEntity orderItem : orderItemEntities) {
-            //优惠价格信息
             coupon = coupon.add(orderItem.getCouponAmount());
             promotion = promotion.add(orderItem.getPromotionAmount());
             intergration = intergration.add(orderItem.getIntegrationAmount());
 
-            //总价
             total = total.add(orderItem.getRealAmount());
 
-            //积分信息和成长值信息
             integrationTotal += orderItem.getGiftIntegration();
             growthTotal += orderItem.getGiftGrowth();
 
         }
-        //1、订单价格相关的
         orderEntity.setTotalAmount(total);
-        //设置应付总额(总额+运费)
+        // 应付总额 = 商品总额 + 运费
         orderEntity.setPayAmount(total.add(orderEntity.getFreightAmount()));
         orderEntity.setCouponAmount(coupon);
         orderEntity.setPromotionAmount(promotion);
         orderEntity.setIntegrationAmount(intergration);
 
-        //设置积分成长值信息
         orderEntity.setIntegration(integrationTotal);
         orderEntity.setGrowth(growthTotal);
 
-        //设置删除状态(0-未删除，1-已删除)
+        // 0 表示未删除
         orderEntity.setDeleteStatus(0);
 
     }
 
 
-    /** 组装订单主表。提交用的 {@link OrderSubmitVo} 和会员身份都从参数传进来 */
+    /**
+     * 组装订单主表：收货信息、运费与初始状态。
+     *
+     * @param user 当前登录会员
+     * @param orderSn 已生成的订单号
+     * @param submitVo 提交入参，提供收货地址 id 与备注
+     * @return 未落库的订单实体
+     */
     private OrderEntity builderOrder(MemberResponseVo user, String orderSn, OrderSubmitVo submitVo) {
 
         OrderEntity orderEntity = new OrderEntity();
@@ -688,16 +738,12 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         orderEntity.setMemberUsername(user.getUsername());
         orderEntity.setNote(submitVo.getRemarks());
 
-        //远程获取收货地址和运费信息
-        // ⚠️ 地址归属已经在 submitOrder 入口校验过了，这里拿到的 fareResp 一定对应自己的地址
+        // ⚠️ 地址归属已在 submitOrder 入口校验，这里拿到的 fareResp 一定对应自己的地址
         FareVo fareResp = fetchFare(submitVo.getAddrId());
 
-        //获取到运费信息
         orderEntity.setFreightAmount(fareResp.getFare());
 
-        //获取到收货地址信息
         MemberAddressVo address = fareResp.getAddress();
-        //设置收货人信息
         orderEntity.setReceiverName(address.getName());
         orderEntity.setReceiverPhone(address.getPhone());
         orderEntity.setReceiverPostCode(address.getPostCode());
@@ -706,7 +752,6 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         orderEntity.setReceiverRegion(address.getRegion());
         orderEntity.setReceiverDetailAddress(address.getDetailAddress());
 
-        //设置订单相关的状态信息
         orderEntity.setStatus(OrderStatusEnum.CREATE_NEW.getCode());
         orderEntity.setAutoConfirmDay(7);
         orderEntity.setConfirmStatus(0);
@@ -714,20 +759,20 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     }
 
     /**
-     * 构建所有订单项数据
-     * @return
+     * 构建订单包含的全部订单项。
+     *
+     * @param orderSn 订单号，写入每个订单项
+     * @return 订单项列表；购物车没有已勾选商品时返回空列表
      */
     public List<OrderItemEntity> builderOrderItems(String orderSn) {
 
         List<OrderItemEntity> orderItemEntityList = new ArrayList<>();
 
-        //最后确定每个购物项的价格
         R<List<OrderItemVo>> cartResult = cartFeignService.getCheckedItems();
         List<OrderItemVo> currentCartItems =
                 cartResult.getData();
         if (currentCartItems != null && !currentCartItems.isEmpty()) {
             orderItemEntityList = currentCartItems.stream().map((items) -> {
-                //构建订单项数据
                 OrderItemEntity orderItemEntity = builderOrderItem(items);
                 orderItemEntity.setOrderSn(orderSn);
 
@@ -740,9 +785,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
 
     /**
-     * 构建某一个订单项的数据
-     * @param items
-     * @return
+     * 构建单个订单项，补齐 SPU/SKU 信息与优惠、积分字段。
+     *
+     * @param items 购物车中已勾选的购物项，skuId、价格、数量都不能为空
+     * @return 订单项实体，{@code orderSn} 由调用方写入
      */
     private OrderItemEntity builderOrderItem(OrderItemVo items) {
 
@@ -752,14 +798,12 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
         OrderItemEntity orderItemEntity = new OrderItemEntity();
 
-        //1、商品的spu信息
+        // 1. 商品的 SPU 信息
         Long skuId = items.getSkuId();
-        //获取spu的信息
         R<SpuInfoVo> spuInfo = productFeignService.getSpuInfoBySkuId(skuId);
         SpuInfoVo spuInfoData = spuInfo.getData();
         if (spuInfoData == null) {
-            // 商品服务查不到就用的话，下面几行 setXxx(null) 会把订单项写成一条
-            // spuId/spuName 全空的脏数据，而且不报任何错
+            // 商品服务查不到时，下面几行会把订单项写成 spuId/spuName 全空的脏数据，且不报错
             throw new BaseException("商品 " + skuId + " 的 SPU 信息缺失，无法下单");
         }
         orderItemEntity.setSpuId(spuInfoData.getId());
@@ -767,35 +811,32 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         orderItemEntity.setSpuBrand(spuInfoData.getBrandName());
         orderItemEntity.setCategoryId(spuInfoData.getCatalogId());
 
-        //2、商品的sku信息
+        // 2. 商品的 SKU 信息
         orderItemEntity.setSkuId(skuId);
         orderItemEntity.setSkuName(items.getTitle());
         orderItemEntity.setSkuPic(items.getImage());
         orderItemEntity.setSkuPrice(items.getPrice());
         orderItemEntity.setSkuQuantity(items.getCount());
 
-        //使用StringUtils.collectionToDelimitedString将list集合转换为String
         // 销售属性可能为 null（该 sku 没有销售属性），collectionToDelimitedString 不接 null
         List<String> skuAttrValues = items.getSkuAttrValues();
         orderItemEntity.setSkuAttrsVals(skuAttrValues == null
                 ? ""
                 : StringUtils.collectionToDelimitedString(skuAttrValues, ";"));
 
-        //3、商品的优惠信息
+        // 3. 商品的优惠信息
 
-        //4、商品的积分信息
+        // 4. 商品的积分信息
         orderItemEntity.setGiftGrowth(items.getPrice().multiply(new BigDecimal(items.getCount())).intValue());
         orderItemEntity.setGiftIntegration(items.getPrice().multiply(new BigDecimal(items.getCount())).intValue());
 
-        //5、订单项的价格信息
+        // 5. 订单项的价格信息
         orderItemEntity.setPromotionAmount(BigDecimal.ZERO);
         orderItemEntity.setCouponAmount(BigDecimal.ZERO);
         orderItemEntity.setIntegrationAmount(BigDecimal.ZERO);
 
-        //当前订单项的实际金额.总额 - 各种优惠价格
-        //原来的价格
+        // 实付金额 = 原价（单价 × 数量）减去各类优惠
         BigDecimal origin = orderItemEntity.getSkuPrice().multiply(new BigDecimal(orderItemEntity.getSkuQuantity().toString()));
-        //原价减去优惠价得到最终的价格
         BigDecimal subtract = origin.subtract(orderItemEntity.getCouponAmount())
                 .subtract(orderItemEntity.getPromotionAmount())
                 .subtract(orderItemEntity.getIntegrationAmount());
@@ -806,15 +847,14 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
 
     /**
-     * 处理支付宝的支付结果
-     * @param asyncVo
-     * @return
+     * {@inheritDoc}
+     *
+     * <p>先落交易流水再推进订单状态，两者在同一事务内。
      */
     @Transactional(rollbackFor = Exception.class)
     @Override
     public String handlePayResult(PayAsyncVo asyncVo) {
 
-        //保存交易流水信息
         PaymentInfoEntity paymentInfo = new PaymentInfoEntity();
         paymentInfo.setOrderSn(asyncVo.getOut_trade_no());
         paymentInfo.setAlipayTradeNo(asyncVo.getTrade_no());
@@ -823,15 +863,12 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         paymentInfo.setPaymentStatus(asyncVo.getTrade_status());
         paymentInfo.setCreateTime(new Date());
         paymentInfo.setCallbackTime(asyncVo.getNotify_time());
-        //添加到数据库中
         this.paymentInfoService.save(paymentInfo);
 
-        //修改订单状态
-        //获取当前状态
+        // 只有这两个交易状态代表付款成功，其余状态不动订单
         String tradeStatus = asyncVo.getTrade_status();
 
         if (tradeStatus.equals("TRADE_SUCCESS") || tradeStatus.equals("TRADE_FINISHED")) {
-            //支付成功状态
             String orderSn = asyncVo.getOut_trade_no();
             this.updateOrderStatus(orderSn,OrderStatusEnum.PAYED.getCode(), PayConstant.ALIPAY);
         }
@@ -841,9 +878,11 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
 
     /**
-     * 修改订单状态
-     * @param orderSn
-     * @param code
+     * 更新订单的支付状态与支付方式。
+     *
+     * @param orderSn 订单号
+     * @param code 目标状态码，取自 {@link OrderStatusEnum}
+     * @param payType 支付方式，取自 {@code PayConstant}
      */
     private void updateOrderStatus(String orderSn, Integer code,Integer payType) {
 
@@ -851,28 +890,26 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     }
 
     /**
-     * 微信异步通知结果
-     * @param notifyData
-     * @return
+     * {@inheritDoc}
+     *
+     * <p>验签、状态幂等判断与改单都在本方法内完成，应答固定为 SUCCESS。
      */
     @Override
     public String asyncNotify(String notifyData) {
 
-        //签名效验
+        // 1. 签名校验
         PayResponse payResponse = bestPayService.asyncNotify(notifyData);
         log.info("payResponse={}",payResponse);
 
-        //2.金额效验（从数据库查订单）
+        // 2. 查订单
         OrderEntity orderEntity = this.getOrderByOrderSn(payResponse.getOrderId());
 
-        //如果查询出来的数据是null的话
-        //比较严重(正常情况下是不会发生的)发出告警：钉钉、短信
         if (orderEntity == null) {
-            //TODO 发出告警，钉钉，短信
+            // TODO: 订单查不到时发出告警（钉钉、短信），当前只中断本次通知
             throw new RuntimeException("通过订单编号查询出来的结果是null");
         }
 
-        //判断订单状态状态是否为已支付或者是已取消,如果不是订单状态不是已支付状态
+        // 幂等：已支付或已取消的订单不再重复推进
         Integer status = orderEntity.getStatus();
         if (status.equals(OrderStatusEnum.PAYED.getCode()) || status.equals(OrderStatusEnum.CANCLED.getCode())) {
             throw new RuntimeException("该订单已失效,orderNo=" + payResponse.getOrderId());
@@ -880,12 +917,11 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
         // TODO: 微信异步通知的金额未与订单应付金额比对，需补校验并在不一致时告警
 
-        //3.修改订单支付状态
-        //支付成功状态
+        // 3. 修改订单支付状态
         String orderSn = orderEntity.getOrderSn();
         this.updateOrderStatus(orderSn,OrderStatusEnum.PAYED.getCode(),PayConstant.WXPAY);
 
-        //4.告诉微信不要再重复通知了
+        // 4. 应答 SUCCESS，微信收到后不再重复通知
         return "<xml>\n" +
                 "  <return_code><![CDATA[SUCCESS]]></return_code>\n" +
                 "  <return_msg><![CDATA[OK]]></return_msg>\n" +
@@ -894,13 +930,13 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
 
     /**
-     * 创建秒杀单
-     * @param orderTo
+     * {@inheritDoc}
+     *
+     * <p>订单与订单项分别落库，收货信息取自会员的地址列表。
      */
     @Override
     public void createSeckillOrder(SeckillOrderTo orderTo) {
 
-        //TODO 保存订单信息
         OrderEntity orderEntity = new OrderEntity();
         orderEntity.setOrderSn(orderTo.getOrderSn());
         orderEntity.setMemberId(orderTo.getMemberId());
@@ -918,17 +954,14 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         orderEntity.setReceiverRegion(addressVo.getRegion());
         orderEntity.setReceiverDetailAddress(addressVo.getDetailAddress());
 
-        //保存订单
         this.save(orderEntity);
 
-        //保存订单项信息
         OrderItemEntity orderItem = new OrderItemEntity();
         orderItem.setOrderSn(orderTo.getOrderSn());
         orderItem.setRealAmount(totalPrice);
 
         orderItem.setSkuQuantity(orderTo.getNum());
 
-        //保存商品的spu信息
         R<SpuInfoVo> spuInfo = productFeignService.getSpuInfoBySkuId(orderTo.getSkuId());
         SpuInfoVo spuInfoData = spuInfo.getData();
         orderItem.setSpuId(spuInfoData.getId());
@@ -949,7 +982,6 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         orderItem.setIntegrationAmount(new BigDecimal(0));
         orderItem.setGiftGrowth(orderTo.getSeckillPrice().intValueExact());
         orderItem.setGiftIntegration(orderTo.getSeckillPrice().intValueExact());
-        //保存订单项数据
         orderItemService.save(orderItem);
     }
 
