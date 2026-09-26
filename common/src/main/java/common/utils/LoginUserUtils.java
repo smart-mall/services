@@ -16,7 +16,13 @@ import java.util.Map;
 import static common.constant.AuthServerConstant.ADMIN_HEADER;
 import static common.constant.AuthServerConstant.MEMBER_CLAIMS_HEADER;
 
-/** 下游服务从网关注入的请求头里取当前登录者，不解析凭证。 */
+/**
+ * 登录身份工具：下游服务从网关注入的请求头里取当前登录者，不解析凭证。
+ *
+ * <p>身份头由 gateway 写入，值为 Base64URL 编码的 JSON，头名见
+ * {@link common.constant.AuthServerConstant#MEMBER_CLAIMS_HEADER} 与
+ * {@link common.constant.AuthServerConstant#ADMIN_HEADER}。头缺失或解不出来时一律按未登录处理。</p>
+ */
 @Slf4j
 public final class LoginUserUtils {
 
@@ -26,7 +32,14 @@ public final class LoginUserUtils {
     private LoginUserUtils() {
     }
 
-    /** 会员身份，编码进 {@code X-Member-Claims}。只编下面这几个字段，不要整个对象序列化 */
+    /**
+     * 把会员身份编码成 {@code X-Member-Claims} 头的值。
+     *
+     * <p>只编下面这几个字段，不要整个对象序列化：password 与 accessToken 不能出现在请求头里。
+     *
+     * @param user 登录会员信息
+     * @return Base64URL 编码的 JSON；{@code user} 为 {@code null} 时返回 {@code null}
+     */
     public static String encode(MemberResponseVo user) {
         if (user == null) {
             return null;
@@ -40,7 +53,12 @@ public final class LoginUserUtils {
         return encode(claims);
     }
 
-    /** 管理员身份，编码进 {@code X-Admin} */
+    /**
+     * 把管理员身份编码成 {@code X-Admin} 头的值。
+     *
+     * @param admin 登录管理员信息
+     * @return Base64URL 编码的 JSON；{@code admin} 为 {@code null} 时返回 {@code null}
+     */
     public static String encode(AdminResponseVo admin) {
         if (admin == null) {
             return null;
@@ -51,7 +69,13 @@ public final class LoginUserUtils {
         return encode(claims);
     }
 
-    /** 当前登录会员；拿不到就抛 {@code 15004}（走 GlobalExceptionHandler 出 200 + code） */
+    /**
+     * 返回当前登录会员，取不到直接抛异常。
+     *
+     * @param request 当前请求，身份取自 {@code X-Member-Claims} 头
+     * @return 登录会员，id 一定不为 {@code null}
+     * @throws BaseException 头缺失或解析不出身份时抛出，错误码 15004，由 GlobalExceptionHandler 转成 200 + code
+     */
     public static MemberResponseVo requireCurrentUser(HttpServletRequest request) {
         MemberResponseVo user = currentUser(request);
         if (user == null || user.getId() == null) {
@@ -60,7 +84,13 @@ public final class LoginUserUtils {
         return user;
     }
 
-    /** 当前登录管理员；拿不到就抛 {@code 401}（管理端前端按 body 的 code 401 跳登录页） */
+    /**
+     * 返回当前登录管理员，取不到直接抛异常。
+     *
+     * @param request 当前请求，身份取自 {@code X-Admin} 头
+     * @return 登录管理员，id 一定不为 {@code null}
+     * @throws BaseException 头缺失或解析不出身份时抛出，错误码 401，管理端前端按响应体里的 code 跳登录页
+     */
     public static AdminResponseVo requireCurrentAdmin(HttpServletRequest request) {
         AdminResponseVo admin = decode(header(request, ADMIN_HEADER), AdminResponseVo.class);
         if (admin == null || admin.getId() == null) {
@@ -69,7 +99,12 @@ public final class LoginUserUtils {
         return admin;
     }
 
-    /** 从 Authorization 头取 Bearer token，格式不是 {@code Bearer <token>} 就返回 null */
+    /**
+     * 从 Authorization 头里取出 Bearer token。
+     *
+     * @param header Authorization 头的值，可为 {@code null}
+     * @return token 字符串；格式不是 {@code Bearer <token>} 或 token 为空时返回 {@code null}
+     */
     public static String resolveBearer(String header) {
         if (header == null) {
             return null;

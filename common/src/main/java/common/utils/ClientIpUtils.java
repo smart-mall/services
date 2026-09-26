@@ -15,7 +15,12 @@ public final class ClientIpUtils {
     private ClientIpUtils() {
     }
 
-    /** 客户端 IP；网关没注入（或直连服务端口）时返回 null */
+    /**
+     * 返回当前请求的客户端 IP。
+     *
+     * @param request 当前请求，可为 {@code null}
+     * @return 客户端 IP；网关没注入（或直连服务端口）时返回 {@code null}
+     */
     public static String currentIp(HttpServletRequest request) {
         if (request == null) {
             return null;

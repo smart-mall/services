@@ -3,35 +3,28 @@ package common.to.mq;
 import lombok.Data;
 
 
+/**
+ * 库存工作单详情：ware 锁定库存后随 {@link StockLockedTo} 发到 {@code stock-event-exchange}
+ * （路由键 {@code stock.locked}），经延迟队列到期后由 ware 自己消费，据此判断该不该解锁。
+ */
 @Data
 public class StockDetailTo {
 
+    /** 库存工作单详情 ID，解锁时按它回查详情。 */
     private Long id;
-    /**
-     * sku_id
-     */
+    /** SKU ID。 */
     private Long skuId;
-    /**
-     * sku_name
-     */
+    /** SKU 名称；锁定流程写入的是空串。 */
     private String skuName;
-    /**
-     * 购买个数
-     */
+    /** 锁定数量。 */
     private Integer skuNum;
-    /**
-     * 工作单id
-     */
+    /** 所属库存工作单 ID。 */
     private Long taskId;
 
-    /**
-     * 仓库id
-     */
+    /** 锁定所在仓库 ID。 */
     private Long wareId;
 
-    /**
-     * 锁定状态
-     */
+    /** 锁定状态：1 已锁定，2 已解锁。 */
     private Integer lockStatus;
 
 }

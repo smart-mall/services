@@ -7,9 +7,9 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 /**
- * 分页负载，统一放在 {@code R.data} 里，替代原来的 {@code PageUtils}。
+ * 分页负载，统一放在 {@code R.data} 里。
  *
- * <p>只保留调用方真正会用到的两个字段；{@code total} 用 long，原来 PageUtils 的 int 会溢出。</p>
+ * <p>{@code total} 用 long：订单、日志这类表的行数会超过 int 上限。
  *
  * @param <T> 行数据类型
  */
@@ -18,7 +18,9 @@ import java.util.List;
 @AllArgsConstructor
 public class PageVO<T> {
 
+    /** 总行数 */
     private long total;
 
+    /** 当前页的行数据 */
     private List<T> rows;
 }

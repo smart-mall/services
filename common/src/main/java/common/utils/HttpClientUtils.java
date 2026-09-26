@@ -40,7 +40,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 /**
- *  依赖的jar包有：commons-lang-2.6.jar、httpclient-4.3.2.jar、httpcore-4.3.1.jar、commons-io-2.4.jar
+ * 通用 HTTP 工具：基于 Apache HttpClient 提供 GET 与 POST（表单 / 字符串体）请求，返回响应体字符串。
+ *
+ * <p>非 HTTPS 请求复用静态连接池，池内总连接数与单路由上限均为 128，可多线程共用；
+ * HTTPS 请求每次新建一个跳过证书与主机名校验的 client，用完即关，因此不校验服务端身份。</p>
  */
 public class HttpClientUtils {
 
@@ -56,28 +59,92 @@ public class HttpClientUtils {
 		client = HttpClients.custom().setConnectionManager(cm).build();
 	}
 
+	/**
+	 * 以表单形式提交 POST 请求，超时取默认的 10 秒。
+	 *
+	 * @param url 请求地址
+	 * @param parameterStr 表单请求体，形如 {@code a=1&b=2}
+	 * @return 响应体，按 UTF-8 解码
+	 * @throws ConnectTimeoutException 建立连接超时
+	 * @throws SocketTimeoutException 读取响应超时
+	 * @throws Exception 请求执行或响应读取失败
+	 */
 	public static String postParameters(String url, String parameterStr) throws ConnectTimeoutException, SocketTimeoutException, Exception{
 		return post(url,parameterStr,"application/x-www-form-urlencoded",charset,connTimeout,readTimeout);
 	}
 
+	/**
+	 * 以表单形式提交 POST 请求，可指定编码与超时。
+	 *
+	 * @param url 请求地址
+	 * @param parameterStr 表单请求体，形如 {@code a=1&b=2}
+	 * @param charset 请求体编码，同时用于解码响应体
+	 * @param connTimeout 建立连接超时，单位毫秒；为 {@code null} 时不设置
+	 * @param readTimeout 读取响应超时，单位毫秒；为 {@code null} 时不设置
+	 * @return 响应体，按 {@code charset} 解码
+	 * @throws ConnectTimeoutException 建立连接超时
+	 * @throws SocketTimeoutException 读取响应超时
+	 * @throws Exception 请求执行或响应读取失败
+	 */
 	public static String postParameters(String url, String parameterStr,String charset, Integer connTimeout, Integer readTimeout) throws ConnectTimeoutException, SocketTimeoutException, Exception{
 		return post(url,parameterStr,"application/x-www-form-urlencoded",charset,connTimeout,readTimeout);
 	}
 
+	/**
+	 * 以表单形式提交 POST 请求，参数以键值对传入，超时取默认的 10 秒。
+	 *
+	 * @param url 请求地址
+	 * @param params 表单参数，编码为 UTF-8
+	 * @return 响应体，按 UTF-8 解码
+	 * @throws ConnectTimeoutException 建立连接超时
+	 * @throws SocketTimeoutException 读取响应超时
+	 * @throws Exception 请求执行或响应读取失败
+	 */
 	public static String postParameters(String url, Map<String, String> params) throws ConnectTimeoutException,
 			SocketTimeoutException, Exception {
 		return postForm(url, params, null, connTimeout, readTimeout);
 	}
 
+	/**
+	 * 以表单形式提交 POST 请求，参数以键值对传入，可指定超时。
+	 *
+	 * @param url 请求地址
+	 * @param params 表单参数，编码为 UTF-8
+	 * @param connTimeout 建立连接超时，单位毫秒；为 {@code null} 时不设置
+	 * @param readTimeout 读取响应超时，单位毫秒；为 {@code null} 时不设置
+	 * @return 响应体，按 UTF-8 解码
+	 * @throws ConnectTimeoutException 建立连接超时
+	 * @throws SocketTimeoutException 读取响应超时
+	 * @throws Exception 请求执行或响应读取失败
+	 */
 	public static String postParameters(String url, Map<String, String> params, Integer connTimeout,Integer readTimeout) throws ConnectTimeoutException,
 			SocketTimeoutException, Exception {
 		return postForm(url, params, null, connTimeout, readTimeout);
 	}
 
+	/**
+	 * 发送 GET 请求，超时取默认的 10 秒。
+	 *
+	 * @param url 请求地址
+	 * @return 响应体，按 UTF-8 解码
+	 * @throws ConnectTimeoutException 建立连接超时
+	 * @throws SocketTimeoutException 读取响应超时
+	 * @throws Exception 请求执行或响应读取失败
+	 */
 	public static String get(String url) throws Exception {
 		return get(url, charset, null, null);
 	}
 
+	/**
+	 * 发送 GET 请求，指定响应体编码，超时取默认的 10 秒。
+	 *
+	 * @param url 请求地址
+	 * @param charset 响应体编码
+	 * @return 响应体，按 {@code charset} 解码
+	 * @throws ConnectTimeoutException 建立连接超时
+	 * @throws SocketTimeoutException 读取响应超时
+	 * @throws Exception 请求执行或响应读取失败
+	 */
 	public static String get(String url, String charset) throws Exception {
 		return get(url, charset, connTimeout, readTimeout);
 	}
@@ -85,16 +152,16 @@ public class HttpClientUtils {
 	/**
 	 * 发送一个 Post 请求, 使用指定的字符集编码.
 	 *
-	 * @param url
-	 * @param body RequestBody
-	 * @param mimeType 例如 application/xml "application/x-www-form-urlencoded" a=1&b=2&c=3
-	 * @param charset 编码
-	 * @param connTimeout 建立链接超时时间,毫秒.
-	 * @param readTimeout 响应超时时间,毫秒.
+	 * @param url 请求地址
+	 * @param body 请求体，形如 {@code a=1&b=2}；为空白时不设置实体
+	 * @param mimeType 请求体的 Content-Type，例如 {@code application/xml}、{@code application/x-www-form-urlencoded}
+	 * @param charset 请求体编码，同时用于解码响应体
+	 * @param connTimeout 建立链接超时时间,毫秒；为 {@code null} 时不设置
+	 * @param readTimeout 响应超时时间,毫秒；为 {@code null} 时不设置
 	 * @return ResponseBody, 使用指定的字符集编码.
 	 * @throws ConnectTimeoutException 建立链接超时异常
 	 * @throws SocketTimeoutException  响应超时
-	 * @throws Exception
+	 * @throws Exception 请求执行或响应读取失败
 	 */
 	public static String post(String url, String body, String mimeType,String charset, Integer connTimeout, Integer readTimeout)
 			throws ConnectTimeoutException, SocketTimeoutException, Exception {
@@ -106,7 +173,6 @@ public class HttpClientUtils {
 				HttpEntity entity = new StringEntity(body, ContentType.create(mimeType, charset));
 				post.setEntity(entity);
 			}
-			// 设置参数
 			Builder customReqConf = RequestConfig.custom();
 			if (connTimeout != null) {
 				customReqConf.setConnectTimeout(connTimeout);
@@ -118,11 +184,9 @@ public class HttpClientUtils {
 
 			HttpResponse res;
 			if (url.startsWith("https")) {
-				// 执行 Https 请求.
 				client = createSSLInsecureClient();
 				res = client.execute(post);
 			} else {
-				// 执行 Http 请求.
 				client = HttpClientUtils.client;
 				res = client.execute(post);
 			}
@@ -140,14 +204,15 @@ public class HttpClientUtils {
 	/**
 	 * 提交form表单
 	 *
-	 * @param url
-	 * @param params
-	 * @param connTimeout
-	 * @param readTimeout
-	 * @return
-	 * @throws ConnectTimeoutException
-	 * @throws SocketTimeoutException
-	 * @throws Exception
+	 * @param url 请求地址
+	 * @param params 表单参数，编码为 UTF-8；为空时不设置实体
+	 * @param headers 附加请求头；为空时不追加
+	 * @param connTimeout 建立连接超时，单位毫秒；为 {@code null} 时不设置
+	 * @param readTimeout 读取响应超时，单位毫秒；为 {@code null} 时不设置
+	 * @return 响应体，按 UTF-8 解码
+	 * @throws ConnectTimeoutException 建立连接超时
+	 * @throws SocketTimeoutException 读取响应超时
+	 * @throws Exception 请求执行或响应读取失败
 	 */
 	public static String postForm(String url, Map<String, String> params, Map<String, String> headers, Integer connTimeout,Integer readTimeout) throws ConnectTimeoutException,
 			SocketTimeoutException, Exception {
@@ -170,7 +235,6 @@ public class HttpClientUtils {
 					post.addHeader(entry.getKey(), entry.getValue());
 				}
 			}
-			// 设置参数
 			Builder customReqConf = RequestConfig.custom();
 			if (connTimeout != null) {
 				customReqConf.setConnectTimeout(connTimeout);
@@ -181,11 +245,9 @@ public class HttpClientUtils {
 			post.setConfig(customReqConf.build());
 			HttpResponse res = null;
 			if (url.startsWith("https")) {
-				// 执行 Https 请求.
 				client = createSSLInsecureClient();
 				res = client.execute(post);
 			} else {
-				// 执行 Http 请求.
 				client = HttpClientUtils.client;
 				res = client.execute(post);
 			}
@@ -205,14 +267,14 @@ public class HttpClientUtils {
 	/**
 	 * 发送一个 GET 请求
 	 *
-	 * @param url
-	 * @param charset
-	 * @param connTimeout  建立链接超时时间,毫秒.
-	 * @param readTimeout  响应超时时间,毫秒.
-	 * @return
+	 * @param url 请求地址
+	 * @param charset 响应体编码
+	 * @param connTimeout  建立链接超时时间,毫秒；为 {@code null} 时不设置
+	 * @param readTimeout  响应超时时间,毫秒；为 {@code null} 时不设置
+	 * @return 响应体，按 {@code charset} 解码
 	 * @throws ConnectTimeoutException   建立链接超时
 	 * @throws SocketTimeoutException   响应超时
-	 * @throws Exception
+	 * @throws Exception 请求执行或响应读取失败
 	 */
 	public static String get(String url, String charset, Integer connTimeout,Integer readTimeout)
 			throws ConnectTimeoutException,SocketTimeoutException, Exception {
@@ -221,7 +283,6 @@ public class HttpClientUtils {
 		HttpGet get = new HttpGet(url);
 		String result = "";
 		try {
-			// 设置参数
 			Builder customReqConf = RequestConfig.custom();
 			if (connTimeout != null) {
 				customReqConf.setConnectTimeout(connTimeout);
@@ -234,11 +295,9 @@ public class HttpClientUtils {
 			HttpResponse res = null;
 
 			if (url.startsWith("https")) {
-				// 执行 Https 请求.
 				client = createSSLInsecureClient();
 				res = client.execute(get);
 			} else {
-				// 执行 Http 请求.
 				client = HttpClientUtils.client;
 				res = client.execute(get);
 			}
@@ -255,10 +314,10 @@ public class HttpClientUtils {
 
 
 	/**
-	 * 从 response 里获取 charset
+	 * 从响应头 Content-Type 里取出 charset 值。
 	 *
-	 * @param ressponse
-	 * @return
+	 * @param ressponse HTTP 响应
+	 * @return Content-Type 中 charset 的值；响应无实体、无 Content-Type 或未声明 charset 时返回 {@code null}
 	 */
 	@SuppressWarnings("unused")
 	private static String getCharsetFromResponse(HttpResponse ressponse) {
@@ -275,9 +334,10 @@ public class HttpClientUtils {
 
 
 	/**
-	 * 创建 SSL连接
-	 * @return
-	 * @throws GeneralSecurityException
+	 * 创建跳过证书与主机名校验的 HTTPS 客户端。
+	 *
+	 * @return 信任任意证书、接受任意主机名的客户端
+	 * @throws GeneralSecurityException 构建 SSLContext 失败时抛出
 	 */
 	private static CloseableHttpClient createSSLInsecureClient() throws GeneralSecurityException {
 		try {

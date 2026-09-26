@@ -25,6 +25,7 @@ public final class MqRetryUtils {
      * 重试队列一条（reason=expired）。所以必须<b>按队列名过滤后累加</b>，
      * 不能简单取 {@code x-death[0].count}。</p>
      *
+     * @param message 当前消费的消息，从它的消息头里读 {@code x-death}
      * @param queue 业务队列名
      * @return 已重试次数；首次投递（还没被死信过）时为 0
      */
