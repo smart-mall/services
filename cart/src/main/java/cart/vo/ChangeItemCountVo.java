@@ -11,12 +11,12 @@ import static common.constant.CartConstant.MIN_ITEM_COUNT;
 /**
  * 修改购物项数量请求体。
  *
- * <p>和加购用同一个区间。原实现 {@code GET /countItem?skuId=&num=} 不校验，
- * num=0 或负数都会原样写进 Redis。</p>
+ * <p>数量区间与加购一致，由校验注解保证，0 或负数在进入 Service 前就被拦下。</p>
  */
 @Data
 public class ChangeItemCountVo {
 
+    /** 目标数量，绝对值而非增量，取值区间 {@code [1, 99]} */
     @NotNull(message = "不能为空")
     @Min(value = MIN_ITEM_COUNT, message = "不能小于1")
     @Max(value = MAX_ITEM_COUNT, message = "不能大于99")

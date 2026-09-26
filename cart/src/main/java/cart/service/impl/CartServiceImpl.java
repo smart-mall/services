@@ -41,6 +41,13 @@ public class CartServiceImpl implements CartService {
 
     private final ThreadPoolExecutor executor;
 
+    /**
+     * 注入 Redis 客户端、商品服务客户端与远程调用线程池。
+     *
+     * @param redisTemplate       Redis 客户端，购物车的存储，不能为 {@code null}
+     * @param productFeignService 商品服务客户端，不能为 {@code null}
+     * @param executor            执行并行远程调用的线程池，不能为 {@code null}
+     */
     public CartServiceImpl(StringRedisTemplate redisTemplate,
                            ProductFeignService productFeignService,
                            ThreadPoolExecutor executor) {
@@ -49,14 +56,15 @@ public class CartServiceImpl implements CartService {
         this.executor = executor;
     }
 
+    /** {@inheritDoc} */
     @Override
     public CartItemVo addToCart(MemberResponseVo user, Long skuId, Integer num) {
         BoundHashOperations<String, Object, Object> cartOps = cartOps(user);
 
         String cached = (String) cartOps.get(skuId.toString());
         if (cached != null) {
-            // 车里已经有这个 sku：只累加数量，标题/图片/属性沿用上次查到的。
-            // 商品改过名也无所谓，读购物车时会用最新数据刷新（见 refreshPrices）
+            // 车里已经有这个 sku：只累加数量，标题/图片/属性沿用加购时查到的值。
+            // 读购物车时只刷新价格（见 refreshPrices），商品改名改图不会同步过来
             CartItemVo item = JSON.parseObject(cached, CartItemVo.class);
             item.setCount(item.getCount() + num);
             cartOps.put(skuId.toString(), JSON.toJSONString(item));
@@ -70,9 +78,8 @@ public class CartServiceImpl implements CartService {
             R<SkuInfoVo> productSkuInfo = productFeignService.getInfo(skuId);
             SkuInfoVo skuInfo = productSkuInfo.getData();
             if (skuInfo == null) {
-                // 商品服务对不存在的 skuId 返回的是 {code:0, skuInfo:null}。
-                // 不判空的话下面 setTitle 拿到 null，会往车里塞一条标题为空的幽灵商品，
-                // 而且它在购物车页面上看起来"就是有点怪"，不会报任何错
+                // 商品服务对不存在的 skuId 返回 data 为 null 的成功响应；不判空会往车里
+                // 塞一条标题为空的商品，且全程不报错，前端页面上看不出来
                 throw new BaseException(BaseCodeEnum.CART_SKU_NOT_FOUND, "商品不存在或已下架：" + skuId);
             }
             item.setSkuId(skuInfo.getSkuId());
@@ -95,7 +102,7 @@ public class CartServiceImpl implements CartService {
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
             if (cause instanceof BaseException baseException) {
-                // 异步块里抛的 BaseException 被 CompletableFuture 包了一层，拆出来保住原始 code
+                // 异步块里抛的 BaseException 被 CompletableFuture 包了一层，拆出来保住它自带的 code
                 throw baseException;
             }
             log.error("加购时查询商品信息失败，skuId={}", skuId, cause);
@@ -106,6 +113,7 @@ public class CartServiceImpl implements CartService {
         return item;
     }
 
+    /** {@inheritDoc} */
     @Override
     public CartVo getCart(MemberResponseVo user) {
         List<CartItemVo> items = allItems(user);
@@ -116,6 +124,7 @@ public class CartServiceImpl implements CartService {
         return cartVo;
     }
 
+    /** {@inheritDoc} */
     @Override
     public List<CartItemVo> getCheckedCartItems(MemberResponseVo user) {
         List<CartItemVo> checked = allItems(user).stream()
@@ -125,6 +134,7 @@ public class CartServiceImpl implements CartService {
         return checked;
     }
 
+    /** {@inheritDoc} */
     @Override
     public void checkItems(MemberResponseVo user, List<Long> skuIds, Boolean checked) {
         if (skuIds == null || skuIds.isEmpty()) {
@@ -144,6 +154,7 @@ public class CartServiceImpl implements CartService {
         }
     }
 
+    /** {@inheritDoc} */
     @Override
     public void changeItemCount(MemberResponseVo user, Long skuId, Integer num) {
         BoundHashOperations<String, Object, Object> cartOps = cartOps(user);
@@ -156,6 +167,7 @@ public class CartServiceImpl implements CartService {
         cartOps.put(skuId.toString(), JSON.toJSONString(item));
     }
 
+    /** {@inheritDoc} */
     @Override
     public void deleteCartItems(MemberResponseVo user, List<Long> skuIds) {
         if (skuIds == null || skuIds.isEmpty()) {
@@ -181,6 +193,7 @@ public class CartServiceImpl implements CartService {
                 .collect(Collectors.toList());
     }
 
+    /** 从 Hash 中读出一项并反序列化；field 不存在时返回 {@code null} */
     private CartItemVo readItem(BoundHashOperations<String, Object, Object> cartOps, Long skuId) {
         String value = (String) cartOps.get(skuId.toString());
         return value == null ? null : JSON.parseObject(value, CartItemVo.class);

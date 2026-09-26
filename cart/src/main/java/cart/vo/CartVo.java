@@ -10,8 +10,8 @@ import java.util.List;
 /**
  * 购物车。
  *
- * <p>{@code countNum} / {@code countType} / {@code totalAmount} 都不是字段而是计算属性
- * （Lombok 生成的 getter 被下面手写的方法覆盖了），每次取都重新算。
+ * <p>{@code countNum} / {@code countType} / {@code totalAmount} 都不是字段而是计算属性，
+ * 由下面手写的方法提供（Lombok 检测到同名方法后不会生成 getter），每次取都重新算。
  * 好处是调用方不用记得"改完 items 要同步汇总"；代价是 Jackson 序列化时会各算一遍，
  * 购物车件数很少，这点开销可以忽略。</p>
  */
@@ -25,12 +25,16 @@ public class CartVo {
     private List<CartItemVo> items = new ArrayList<>();
 
     /**
-     * 减免价格。优惠券还没做，恒为 0，但 {@link #getTotalAmount()} 会减掉它，
-     * 留着是为了以后接优惠券时不用改总价的算法。
+     * 减免金额，当前没有写入方，实际恒为 {@code 0}；
+     * {@link #getTotalAmount()} 会把它从总价里减掉。
      */
     private BigDecimal reduce = BigDecimal.ZERO;
 
-    /** 商品总件数（各购物项数量之和，不区分是否勾选） */
+    /**
+     * 返回商品总件数，为各购物项数量之和，不区分是否勾选。
+     *
+     * @return 总件数；购物车为空或某项数量缺失时按 0 计
+     */
     public Integer getCountNum() {
         if (items == null || items.isEmpty()) {
             return 0;
@@ -44,17 +48,23 @@ public class CartVo {
         return count;
     }
 
-    /** 商品种类数（有几个不同的 sku） */
+    /**
+     * 返回商品种类数，即购物车中不同 SKU 的个数。
+     *
+     * @return 种类数；{@code items} 为 {@code null} 时返回 0
+     */
     public Integer getCountType() {
         return items == null ? 0 : items.size();
     }
 
     /**
-     * 应付总价 = 勾选项小计之和 - 减免。
+     * 返回应付总价，等于勾选项小计之和减去减免金额。
      *
-     * <p>只算勾选的：购物车里没勾的商品不该进结算金额。判断用
-     * {@code Boolean.TRUE.equals} 而不是直接 {@code getCheck()}，
-     * 因为 check 是包装类型，历史数据里可能是 null，拆箱会 NPE。</p>
+     * <p>只算勾选项：未勾选的商品不计入结算金额。判断用 {@code Boolean.TRUE.equals}
+     * 而不是直接拆箱 {@code getCheck()}，因为 {@code check} 是包装类型，
+     * Redis 中已有的 JSON 可能缺该字段，拆箱会 NPE。</p>
+     *
+     * @return 应付总价，不会为 {@code null}
      */
     public BigDecimal getTotalAmount() {
         BigDecimal amount = BigDecimal.ZERO;
