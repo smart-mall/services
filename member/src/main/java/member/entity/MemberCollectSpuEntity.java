@@ -8,37 +8,27 @@ import java.util.Date;
 import lombok.Data;
 
 /**
- * 会员收藏的商品
+ * 会员收藏的商品，对应 {@code ums_member_collect_spu} 表。
+ *
+ * <p>一条记录表示某会员收藏的一个 SPU，商品名称与主图随收藏记录一起保存。
  */
 @Data
 @TableName("ums_member_collect_spu")
 public class MemberCollectSpuEntity implements Serializable {
 	@Serial private static final long serialVersionUID = 1L;
 
-	/**
-	 * id
-	 */
+	/** 主键。 */
 	@TableId
 	private Long id;
-	/**
-	 * 会员id
-	 */
+	/** 所属会员 ID。 */
 	private Long memberId;
-	/**
-	 * spu_id
-	 */
+	/** 被收藏商品的 SPU ID。 */
 	private Long spuId;
-	/**
-	 * spu_name
-	 */
+	/** 商品名称。 */
 	private String spuName;
-	/**
-	 * spu_img
-	 */
+	/** 商品主图地址。 */
 	private String spuImg;
-	/**
-	 * create_time
-	 */
+	/** 收藏时间。 */
 	private Date createTime;
 
 }

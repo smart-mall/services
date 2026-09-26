@@ -8,33 +8,25 @@ import java.util.Date;
 import lombok.Data;
 
 /**
- * 会员收藏的专题活动
+ * 会员收藏的专题活动，对应 {@code ums_member_collect_subject} 表。
+ *
+ * <p>活动名称、图片与跳转地址随收藏记录一起保存。
  */
 @Data
 @TableName("ums_member_collect_subject")
 public class MemberCollectSubjectEntity implements Serializable {
 	@Serial private static final long serialVersionUID = 1L;
 
-	/**
-	 * id
-	 */
+	/** 主键。 */
 	@TableId
 	private Long id;
-	/**
-	 * subject_id
-	 */
+	/** 被收藏专题活动的 ID。 */
 	private Long subjectId;
-	/**
-	 * subject_name
-	 */
+	/** 活动名称。 */
 	private String subjectName;
-	/**
-	 * subject_img
-	 */
+	/** 活动图片地址。 */
 	private String subjectImg;
-	/**
-	 * 活动url
-	 */
+	/** 活动跳转地址。 */
 	private String subjectUrll;
 
 }

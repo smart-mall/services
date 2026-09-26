@@ -8,37 +8,27 @@ import java.util.Date;
 import lombok.Data;
 
 /**
- * 成长值变化历史记录
+ * 成长值变动流水，对应 {@code ums_growth_change_history} 表。
+ *
+ * <p>会员成长值每增减一次落一条记录，{@code changeCount} 的正负即增减方向。
  */
 @Data
 @TableName("ums_growth_change_history")
 public class GrowthChangeHistoryEntity implements Serializable {
 	@Serial private static final long serialVersionUID = 1L;
 
-	/**
-	 * id
-	 */
+	/** 主键。 */
 	@TableId
 	private Long id;
-	/**
-	 * member_id
-	 */
+	/** 所属会员 ID。 */
 	private Long memberId;
-	/**
-	 * create_time
-	 */
+	/** 流水生成时间。 */
 	private Date createTime;
-	/**
-	 * 改变的值（正负计数）
-	 */
+	/** 变动值，正数表示增加、负数表示扣减。 */
 	private Integer changeCount;
-	/**
-	 * 备注
-	 */
+	/** 备注。 */
 	private String note;
-	/**
-	 * 积分来源[0-购物，1-管理员修改]
-	 */
+	/** 成长值来源 [0-购物，1-管理员修改]。 */
 	private Integer sourceType;
 
 }
