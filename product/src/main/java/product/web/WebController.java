@@ -15,20 +15,13 @@ import product.vo.SkuItemVo;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 /**
- * 前台（商城页面）接口，全部返回 JSON，给 Vue 单页应用调用。
+ * 前台商品接口：商城首页/导航的三级分类树，与商品详情页所需的全部数据。
  *
- * web 包下面原来有两个 controller：
- * 1、IndexController：GET /、/index.html 返回 Thymeleaf 视图 index；GET /index/catalog.json 返回分类 Map；
- * 2、ItemController ：GET /{skuId}.html 返回 Thymeleaf 视图 item。
- * 两者都是"服务端渲染前台页面"的写法：返回视图名、靠 Model 塞数据、路径对应 .html 页面，
- * 而且只有它们两个不带 product 前缀（因为它们靠网关的 Host 路由 gulimall.com / item.gulimall.com 转发）。
- * 前台换成 Vue 之后没有 Thymeleaf 和 Model 了，所以把这两个合成一个 JSON controller，路径统一带 product 前缀，
- * 这样就能被网关的 product-route（Path=/api/product/** 且剥掉 /api）命中：
- * GET /api/product/front/catalog       → /product/front/catalog
- * GET /api/product/front/item/{skuId}  → /product/front/item/{skuId}
+ * <p>路径为 {@code product/front}，网关对 {@code /api/{模块}/front/**} 放行且不要求登录态，
+ * 再由 {@code product-route}（{@code Path=/api/product/**} 并剥掉 {@code /api}）转发到本服务。
  *
- * 注意路径不带 .json 后缀，前端不要再补：{skuId} 是贪婪匹配，item/1.json 会把 "1.json"
- * 整个吃掉再去转 Long，结果是 400 而不是 404。
+ * <p>{@code {skuId}} 会把 {@code 1.json} 整段吃掉再转 Long，请求路径不要带 {@code .json}
+ * 后缀，否则得到 400 而不是 404。
  */
 @Slf4j
 @RestController
@@ -39,13 +32,24 @@ public class WebController {
 
     private final SkuInfoService skuInfoService;
 
+    /**
+     * 由 Spring 注入分类与 sku 服务，创建后即可直接调用。
+     *
+     * @param categoryService 分类服务
+     * @param skuInfoService sku 服务
+     */
     public WebController(CategoryService categoryService, SkuInfoService skuInfoService) {
         this.categoryService = categoryService;
         this.skuInfoService = skuInfoService;
     }
 
     /**
-     * 首页/全局导航使用的完整三级分类树
+     * 返回首页与全局导航使用的完整三级分类树。
+     *
+     * <p>只含 {@code showStatus} 为 1 的分类，一级分类与各级子分类均按 {@code sort} 升序；
+     * 结果带 {@code category} 缓存，分类的增删改会整体清除它。
+     *
+     * @return 一级分类列表，子分类通过 {@code children} 嵌套
      */
     @GetMapping("catalog")
     public R<List<CategoryVo>> catalogJson() {
@@ -54,7 +58,15 @@ public class WebController {
     }
 
     /**
-     * 商品详情页所需的全部数据：基本信息、图片、销售属性、商品介绍、规格参数、秒杀优惠
+     * 返回商品详情页所需的全部数据：sku 基本信息、图集、销售属性、商品介绍、规格参数、秒杀优惠与是否有货。
+     *
+     * <p>基本信息之外的各数据块在线程池里并行加载：库存服务异常只记日志、保留默认「有货」，
+     * 秒杀信息非 0 码按无秒杀处理。
+     *
+     * @param skuId sku ID
+     * @return 商品详情；商品不存在时返回 {@code 11008}（商品不存在），{@code data} 为 {@code null}
+     * @throws ExecutionException 并行加载任务执行失败时抛出，由全局异常处理器兜住
+     * @throws InterruptedException 等待并行任务时当前线程被中断
      */
     @GetMapping("/item/{skuId}")
     public R<SkuItemVo> skuItem(@PathVariable("skuId") Long skuId) throws ExecutionException, InterruptedException {

@@ -18,7 +18,9 @@ import java.util.Map;
 
 import common.query.PageQuery;
 /**
- * 品牌分类关联
+ * 品牌与分类关联的后台管理接口：按品牌或分类查关联、分页列表、详情、新增、修改、删除。
+ *
+ * <p>路径不在 {@code /front} 下，经网关访问时按管理端接口鉴权。
  */
 @RestController
 @RequestMapping("product/categorybrandrelation")
@@ -26,12 +28,20 @@ import common.query.PageQuery;
 public class CategoryBrandRelationController {
     private final CategoryBrandRelationService categoryBrandRelationService;
 
+    /**
+     * 由 Spring 注入品牌分类关联服务，创建后即可直接调用。
+     *
+     * @param categoryBrandRelationService 品牌分类关联服务
+     */
     public CategoryBrandRelationController(CategoryBrandRelationService categoryBrandRelationService) {
         this.categoryBrandRelationService = categoryBrandRelationService;
     }
 
     /**
-     * 获取分类关联列表
+     * 查询某品牌关联的全部分类。
+     *
+     * @param brandId 品牌 ID
+     * @return 该品牌的分类关联行，含冗余的分类名；没有关联时返回空列表
      */
     @GetMapping("/catalog/list")
     public R<List<CategoryBrandRelationEntity>> catalogList(@RequestParam Long brandId){
@@ -42,7 +52,10 @@ public class CategoryBrandRelationController {
     }
 
     /**
-     * 获取分类品牌关联表
+     * 查询某分类下关联的全部品牌。
+     *
+     * @param catId 三级分类 ID
+     * @return 品牌列表，只带 {@code brandId} 与品牌名；没有关联时返回空列表
      */
     @GetMapping("/brands/list")
     public R<List<BrandVO>> relationBrandList(@RequestParam Long catId){
@@ -63,7 +76,10 @@ public class CategoryBrandRelationController {
 
 
     /**
-     * 列表
+     * 分页查询全部品牌分类关联。
+     *
+     * @param query 分页参数，{@code page} 为页码、{@code limit} 为每页条数
+     * @return 分页结果，{@code rows} 为关联行列表
      */
     @RequestMapping("/list")
     public R<PageVO<CategoryBrandRelationEntity>> list(PageQuery query){
@@ -75,7 +91,10 @@ public class CategoryBrandRelationController {
 
 
     /**
-     * 信息
+     * 按主键查询关联详情。
+     *
+     * @param id 关联行主键
+     * @return 关联详情；不存在时 {@code data} 为 {@code null}
      */
     @RequestMapping("/info/{id}")
     public R<CategoryBrandRelationEntity> info(@PathVariable("id") Long id){
@@ -86,7 +105,12 @@ public class CategoryBrandRelationController {
     }
 
     /**
-     * 保存
+     * 新增品牌与分类的关联。
+     *
+     * <p>入参只需给 {@code brandId} 与 {@code catalogId}，冗余的品牌名与分类名由服务端回查填入。
+     *
+     * @param categoryBrandRelation 关联内容，{@code brandId} 与 {@code catalogId} 必填
+     * @return 统一成功响应，不含业务数据
      */
     @RequestMapping("/save")
     public R<Void> save(@RequestBody CategoryBrandRelationEntity categoryBrandRelation){
@@ -97,7 +121,12 @@ public class CategoryBrandRelationController {
     }
 
     /**
-     * 修改
+     * 按主键修改关联行。
+     *
+     * <p>直接更新入参字段，不会像新增那样回查并刷新冗余的品牌名与分类名。
+     *
+     * @param categoryBrandRelation 关联内容，主键必填
+     * @return 统一成功响应，不含业务数据
      */
     @RequestMapping("/update")
     public R<Void> update(@RequestBody CategoryBrandRelationEntity categoryBrandRelation){
@@ -109,7 +138,10 @@ public class CategoryBrandRelationController {
     }
 
     /**
-     * 删除
+     * 按主键批量删除关联行。
+     *
+     * @param ids 待删除的关联行主键数组
+     * @return 统一成功响应，不含业务数据
      */
     @RequestMapping("/delete")
     public R<Void> delete(@RequestBody Long[] ids){
