@@ -6,41 +6,40 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 
+/**
+ * SPU 基本信息，由 product 服务经 Feign 提供。
+ */
 @Data
 public class SpuInfoVo {
 
-    /**
-     * 商品id
-     */
+    /** SPU 标识。 */
     private Long id;
-    /**
-     * 商品名称
-     */
+
+    /** 商品名称。 */
     private String spuName;
-    /**
-     * 商品描述
-     */
+
+    /** 商品描述。 */
     private String spuDescription;
-    /**
-     * 所属分类id
-     */
+
+    /** 所属分类 ID。 */
     private Long catalogId;
-    /**
-     * 品牌id
-     */
+
+    /** 品牌 ID。 */
     private Long brandId;
 
-    /**
-     * 品牌名
-     */
+    /** 品牌名。 */
     private String brandName;
 
+    /** 商品重量，单位千克。 */
     private BigDecimal weight;
-    /**
-     * 上架状态[0 - 下架，1 - 上架]
-     */
+
+    /** 上架状态：0 下架，1 上架。 */
     private Integer publishStatus;
+
+    /** 创建时间。 */
     private Date createTime;
+
+    /** 更新时间。 */
     private Date updateTime;
 
 }

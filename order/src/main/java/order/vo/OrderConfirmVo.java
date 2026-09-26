@@ -26,8 +26,7 @@ public class OrderConfirmVo {
     /**
      * 会员积分。
      *
-     * ⚠️ 可能为 null —— 实测会员表里 integration 就是 null 的（没跑过积分逻辑），
-     * 前端要么不显示这一项，要么按 0 处理。
+     * <p>可能为 null：会员表的 integration 允许为空，前端要么不显示这一项，要么按 0 处理。</p>
      */
     private Integer integration;
 
