@@ -460,12 +460,15 @@ public class MallSearchServiceImpl implements MallSearchService {
      * facet 聚合需要排除的过滤条件类别，每个取值对应一个聚合维度。
      */
     private enum FacetKind {
-        /*
-         * BRAND：品牌聚合，排除 brandId 过滤条件
-         * ATTR：属性聚合，排除 attrs 过滤条件
-         * CATALOG：分类聚合，排除 catalog3Id 过滤条件
-         */
-        BRAND, ATTR, CATALOG
+
+        /** 品牌聚合：算品牌分布时排除 brandId 过滤条件。 */
+        BRAND,
+
+        /** 属性聚合：算属性分布时排除 attrs 过滤条件。 */
+        ATTR,
+
+        /** 分类聚合：算分类分布时排除 catalog3Id 过滤条件。 */
+        CATALOG
     }
 
     /**
