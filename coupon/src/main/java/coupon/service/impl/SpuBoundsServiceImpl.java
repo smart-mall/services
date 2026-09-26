@@ -20,15 +20,30 @@ import java.util.Objects;
 
 
 import common.query.KeyPageQuery;
+/**
+ * 商品 SPU 积分设置的分页查询与按 spuId 批量删除实现。
+ *
+ * <p>无状态，线程安全。
+ */
 @Service("spuBoundsService")
 @Slf4j
 public class SpuBoundsServiceImpl extends ServiceImpl<SpuBoundsDao, SpuBoundsEntity> implements SpuBoundsService {
     private final ProductFeignService productFeignService;
 
+    /**
+     * 创建积分设置服务实例，注入商品远程查询客户端。
+     *
+     * @param productFeignService 商品服务远程调用客户端，用于回填 SPU 名称
+     */
     public SpuBoundsServiceImpl(ProductFeignService productFeignService) {
         this.productFeignService = productFeignService;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>当前页的 SPU 名称一次远程批量取回，不逐行调用。
+     */
     @Override
     public PageVO<SpuBoundsEntity> queryPage(KeyPageQuery query) {
         String key = query.getKey();
@@ -38,7 +53,6 @@ public class SpuBoundsServiceImpl extends ServiceImpl<SpuBoundsDao, SpuBoundsEnt
                 new LambdaQueryWrapper<>()
         );
 
-        // 去重 + 过滤 null
         List<Long> spuIds = page.getRecords().stream()
                 .map(SpuBoundsEntity::getSpuId)
                 .filter(Objects::nonNull)
@@ -71,6 +85,11 @@ public class SpuBoundsServiceImpl extends ServiceImpl<SpuBoundsDao, SpuBoundsEnt
         return pageUtils;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>整批 DELETE 在同一个事务内执行。
+     */
     @Override
     @Transactional
     public void deleteBySpuIds(List<Long> spuIds) {

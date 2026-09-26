@@ -13,9 +13,15 @@ import java.util.Map;
 
 
 import common.query.KeyPageQuery;
+/**
+ * 优惠券分页查询实现，{@code key} 非空时同时模糊匹配券名与券 ID。
+ *
+ * <p>无状态，线程安全；单表分页由 MyBatis-Plus 的 {@link ServiceImpl} 提供。
+ */
 @Service("couponService")
 public class CouponServiceImpl extends ServiceImpl<CouponDao, CouponEntity> implements CouponService {
 
+    /** {@inheritDoc} */
     @Override
     public PageVO<CouponEntity> queryPage(KeyPageQuery query) {
         String key = query.getKey();

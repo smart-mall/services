@@ -26,12 +26,24 @@ import java.util.Objects;
 
 
 import common.query.KeyPageQuery;
+/**
+ * 商品满减信息的分页查询，以及发布商品时满减、阶梯价、会员价三张表的一次性写入与按 SKU 删除。
+ *
+ * <p>无状态，线程安全。
+ */
 @Service("skuFullReductionService")
 public class SkuFullReductionServiceImpl extends ServiceImpl<SkuFullReductionDao, SkuFullReductionEntity> implements SkuFullReductionService {
     private final SkuLadderDao skuLadderDao;
     private final MemberPriceDao memberPriceDao;
     private final ProductFeignService productFeignService;
 
+    /**
+     * 创建商品满减服务实例，注入阶梯价、会员价数据访问对象与商品远程查询客户端。
+     *
+     * @param skuLadderDao 阶梯价数据访问对象
+     * @param memberPriceDao 会员价数据访问对象
+     * @param productFeignService 商品服务远程调用客户端，用于回填 SKU 名称
+     */
     public SkuFullReductionServiceImpl(SkuLadderDao skuLadderDao, MemberPriceDao memberPriceDao, ProductFeignService productFeignService) {
         this.skuLadderDao = skuLadderDao;
         this.memberPriceDao = memberPriceDao;
@@ -39,6 +51,11 @@ public class SkuFullReductionServiceImpl extends ServiceImpl<SkuFullReductionDao
     }
 
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>当前页的 SKU 名称一次远程批量取回，不逐行调用。
+     */
     @Override
     public PageVO<SkuFullReductionEntity> queryPage(KeyPageQuery query) {
         String key = query.getKey();
@@ -48,7 +65,6 @@ public class SkuFullReductionServiceImpl extends ServiceImpl<SkuFullReductionDao
                 new LambdaQueryWrapper<>()
         );
 
-        // 去重 + 过滤 null
         List<Long> spuIds = page.getRecords().stream()
                 .map(SkuFullReductionEntity::getSkuId)
                 .filter(Objects::nonNull)
@@ -81,6 +97,7 @@ public class SkuFullReductionServiceImpl extends ServiceImpl<SkuFullReductionDao
         return pageUtils;
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public void saveSkuReduction(SkuReductionTo skuReductionTo) {
@@ -115,6 +132,7 @@ public class SkuFullReductionServiceImpl extends ServiceImpl<SkuFullReductionDao
         }
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public void deleteBySkuIds(List<Long> skuIds) {

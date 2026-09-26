@@ -23,14 +23,25 @@ import java.util.stream.Collectors;
 
 
 import common.query.KeyPageQuery;
+/**
+ * 秒杀场次的分页查询，以及近三天场次的关联商品装配实现。
+ *
+ * <p>无状态，线程安全。
+ */
 @Service("seckillSessionService")
 public class SeckillSessionServiceImpl extends ServiceImpl<SeckillSessionDao, SeckillSessionEntity> implements SeckillSessionService {
     private final SeckillSkuRelationService seckillSkuRelationService;
 
+    /**
+     * 创建秒杀场次服务实例，注入秒杀商品关联服务。
+     *
+     * @param seckillSkuRelationService 秒杀商品关联服务，用于装配场次下的商品
+     */
     public SeckillSessionServiceImpl(SeckillSkuRelationService seckillSkuRelationService) {
         this.seckillSkuRelationService = seckillSkuRelationService;
     }
 
+    /** {@inheritDoc} */
     @Override
     public PageVO<SeckillSessionEntity> queryPage(KeyPageQuery query) {
 
@@ -52,28 +63,24 @@ public class SeckillSessionServiceImpl extends ServiceImpl<SeckillSessionDao, Se
         return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>时间窗口按服务器本地时区取自然日：起点为今天 00:00:00，终点为第三天 23:59:59。
+     */
     @Override
     public List<SeckillSessionEntity> getLates3DaySession() {
 
-        //计算最近三天
-        //查出这三天参与秒杀活动
         List<SeckillSessionEntity> list = this.baseMapper.selectList(
                 new LambdaQueryWrapper<SeckillSessionEntity>()
                         .between(SeckillSessionEntity::getStartTime, startTime(), endTime()));
 
-//        查询活动参加秒杀的商品
         if (list != null && !list.isEmpty()) {
-            //                当前活动id
-            //查出sms_seckill_sku_relation表中关联的skuId
-            //                设置所有参加活动的商品
             return list.stream().peek(session -> {
-//                当前活动id
                 Long id = session.getId();
-                //查出sms_seckill_sku_relation表中关联的skuId
                 List<SeckillSkuRelationEntity> relationSkus = seckillSkuRelationService.list(
                         new LambdaQueryWrapper<SeckillSkuRelationEntity>()
                                 .eq(SeckillSkuRelationEntity::getPromotionSessionId, id));
-//                设置所有参加活动的商品
                 session.setRelationSkus(relationSkus);
             }).collect(Collectors.toList());
         }
@@ -81,22 +88,32 @@ public class SeckillSessionServiceImpl extends ServiceImpl<SeckillSessionDao, Se
         return null;
     }
 
+    /**
+     * 返回今天 00:00:00 的字符串，作为场次开始时间的查询下界。
+     *
+     * @return {@code yyyy-MM-dd HH:mm:ss} 格式的当天起始时刻
+     */
     private String startTime() {
         LocalDate now = LocalDate.now();
         LocalTime min = LocalTime.MIN;
         LocalDateTime start = LocalDateTime.of(now, min);
 
-        //格式化时间
         return start.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
     }
 
+    /**
+     * 返回第三天 23:59:59 的字符串，作为场次开始时间的查询上界。
+     *
+     * <p>格式串只到秒，{@code LocalTime.MAX} 的纳秒部分会被丢掉，上界因此不含最后一秒的小数部分。
+     *
+     * @return {@code yyyy-MM-dd HH:mm:ss} 格式的第三天结束时刻
+     */
     private String endTime() {
         LocalDate now = LocalDate.now();
         LocalDate plus = now.plusDays(2);
         LocalTime max = LocalTime.MAX;
         LocalDateTime end = LocalDateTime.of(plus, max);
 
-        //格式化时间
         return end.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
     }
 

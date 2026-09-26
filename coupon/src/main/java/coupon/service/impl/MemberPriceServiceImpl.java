@@ -18,14 +18,29 @@ import java.util.Objects;
 
 
 import common.query.KeyPageQuery;
+/**
+ * 商品会员价分页查询实现，分页后按 SKU 回填商品名称。
+ *
+ * <p>无状态，线程安全。
+ */
 @Service("memberPriceService")
 public class MemberPriceServiceImpl extends ServiceImpl<MemberPriceDao, MemberPriceEntity> implements MemberPriceService {
 private final ProductFeignService productFeignService;
 
+    /**
+     * 创建会员价服务实例，注入商品远程查询客户端。
+     *
+     * @param productFeignService 商品服务远程调用客户端，用于回填 SKU 名称
+     */
     public MemberPriceServiceImpl(ProductFeignService productFeignService) {
         this.productFeignService = productFeignService;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>当前页的 SKU 名称一次远程批量取回，不逐行调用。
+     */
     @Override
     public PageVO<MemberPriceEntity> queryPage(KeyPageQuery query) {
         String key = query.getKey();
@@ -35,7 +50,6 @@ private final ProductFeignService productFeignService;
                 new LambdaQueryWrapper<>()
         );
 
-        // 去重 + 过滤 null
         List<Long> spuIds = page.getRecords().stream()
                 .map(MemberPriceEntity::getSkuId)
                 .filter(Objects::nonNull)

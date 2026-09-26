@@ -13,9 +13,15 @@ import java.util.Map;
 
 
 import common.query.KeyPageQuery;
+/**
+ * 首页专题分页查询实现，{@code key} 非空时同时模糊匹配专题名与专题 ID。
+ *
+ * <p>无状态，线程安全；单表分页由 MyBatis-Plus 的 {@link ServiceImpl} 提供。
+ */
 @Service("homeSubjectService")
 public class HomeSubjectServiceImpl extends ServiceImpl<HomeSubjectDao, HomeSubjectEntity> implements HomeSubjectService {
 
+    /** {@inheritDoc} */
     @Override
     public PageVO<HomeSubjectEntity> queryPage(KeyPageQuery query) {
         String key = query.getKey();
