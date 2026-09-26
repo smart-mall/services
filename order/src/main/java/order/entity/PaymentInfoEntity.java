@@ -9,25 +9,21 @@ import java.util.Date;
 import lombok.Data;
 
 /**
- * 支付信息表
+ * 支付信息表 {@code oms_payment_info} 的记录，保存每笔订单的支付流水与回调内容。
  */
 @Data
 @TableName("oms_payment_info")
 public class PaymentInfoEntity implements Serializable {
 	@Serial private static final long serialVersionUID = 1L;
 
-	/**
-	 * id
-	 */
+	/** 主键。 */
 	@TableId
 	private Long id;
 	/**
 	 * 订单号（对外业务号）
 	 */
 	private String orderSn;
-	/**
-	 * 订单id
-	 */
+	/** 关联的订单 ID。 */
 	private Long orderId;
 	/**
 	 * 支付宝交易流水号
@@ -41,9 +37,7 @@ public class PaymentInfoEntity implements Serializable {
 	 * 交易内容
 	 */
 	private String subject;
-	/**
-	 * 支付状态
-	 */
+	/** 支付状态，保存支付宝回调返回的 {@code trade_status} 原文。 */
 	private String paymentStatus;
 	/**
 	 * 创建时间

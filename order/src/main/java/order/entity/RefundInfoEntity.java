@@ -9,21 +9,17 @@ import java.util.Date;
 import lombok.Data;
 
 /**
- * 退款信息
+ * 退款信息表 {@code oms_refund_info} 的记录，保存退货申请对应的退款流水。
  */
 @Data
 @TableName("oms_refund_info")
 public class RefundInfoEntity implements Serializable {
 	@Serial private static final long serialVersionUID = 1L;
 
-	/**
-	 * id
-	 */
+	/** 主键。 */
 	@TableId
 	private Long id;
-	/**
-	 * 退款的订单
-	 */
+	/** 关联的退货申请 ID，指向 {@code oms_order_return_apply.id}。 */
 	private Long orderReturnId;
 	/**
 	 * 退款金额
@@ -41,6 +37,7 @@ public class RefundInfoEntity implements Serializable {
 	 * 退款渠道[1-支付宝，2-微信，3-银联，4-汇款]
 	 */
 	private Integer refundChannel;
+	/** 退款内容，长文本字段，本模块未解析其结构。 */
 	private String refundContent;
 
 }

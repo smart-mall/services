@@ -8,16 +8,14 @@ import java.util.Date;
 import lombok.Data;
 
 /**
- * 订单配置信息
+ * 订单配置表 {@code oms_order_setting} 的记录，按会员等级配置订单超时关闭与自动流转的时间。
  */
 @Data
 @TableName("oms_order_setting")
 public class OrderSettingEntity implements Serializable {
 	@Serial private static final long serialVersionUID = 1L;
 
-	/**
-	 * id
-	 */
+	/** 主键。 */
 	@TableId
 	private Long id;
 	/**

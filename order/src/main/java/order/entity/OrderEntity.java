@@ -11,37 +11,30 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * 订单
+ * 订单主表 {@code oms_order} 的记录，一笔订单对应一行。
+ *
+ * <p>{@code status} 的取值由 {@link order.enume.OrderStatusEnum} 定义；
+ * {@code orderItemEntityList} 与 {@code statusText} 不落库，由查询侧组装。
  */
 @Data
 @TableName("oms_order")
 public class OrderEntity implements Serializable {
 	@Serial private static final long serialVersionUID = 1L;
 
-	/**
-	 * id
-	 */
+	/** 主键。 */
 	@TableId
 	private Long id;
-	/**
-	 * member_id
-	 */
+	/** 所属会员 ID。 */
 	private Long memberId;
 	/**
 	 * 订单号
 	 */
 	private String orderSn;
-	/**
-	 * 使用的优惠券
-	 */
+	/** 使用的优惠券 ID。 */
 	private Long couponId;
-	/**
-	 * create_time
-	 */
+	/** 下单时间。 */
 	private Date createTime;
-	/**
-	 * 用户名
-	 */
+	/** 下单会员的用户名。 */
 	private String memberUsername;
 	/**
 	 * 订单总额
@@ -80,11 +73,7 @@ public class OrderEntity implements Serializable {
 	 */
 	private Integer sourceType;
 	/**
-	 * 订单状态，取值见 {@link order.enume.OrderStatusEnum}。
-	 *
-	 * ⚠️ 这条注释原来写的是另一套（0待付款 1待发货 2已发货 3已完成 4已关闭 5无效订单），
-	 * 和 OrderStatusEnum（0待付款 1已付款 2已发货 3已完成 4已取消 5售后中 6售后完成）
-	 * 在 1、4、5 三个码上含义都不一样。代码里用的是枚举，以枚举为准。
+	 * 订单状态，取值以 {@link order.enume.OrderStatusEnum} 为准，代码中通过该枚举读写。
 	 */
 	private Integer status;
 	/**
@@ -139,21 +128,13 @@ public class OrderEntity implements Serializable {
 	 * 收货人邮编
 	 */
 	private String receiverPostCode;
-	/**
-	 * 省份/直辖市
-	 */
+	/** 收货地址所在省份/直辖市。 */
 	private String receiverProvince;
-	/**
-	 * 城市
-	 */
+	/** 收货地址所在城市。 */
 	private String receiverCity;
-	/**
-	 * 区
-	 */
+	/** 收货地址所在区（县）。 */
 	private String receiverRegion;
-	/**
-	 * 详细地址
-	 */
+	/** 收货详细地址，精确到门牌号。 */
 	private String receiverDetailAddress;
 	/**
 	 * 订单备注
@@ -192,6 +173,7 @@ public class OrderEntity implements Serializable {
 	 */
 	private Date modifyTime;
 
+	/** 订单包含的订单项，查询时组装，不落库。 */
 	@TableField(exist = false)
 	private List<OrderItemEntity> orderItemEntityList;
 

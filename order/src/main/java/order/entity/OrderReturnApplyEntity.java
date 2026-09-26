@@ -9,29 +9,21 @@ import java.util.Date;
 import lombok.Data;
 
 /**
- * 订单退货申请
+ * 退货申请表 {@code oms_order_return_apply} 的记录，一笔退货申请对应一行。
  */
 @Data
 @TableName("oms_order_return_apply")
 public class OrderReturnApplyEntity implements Serializable {
 	@Serial private static final long serialVersionUID = 1L;
 
-	/**
-	 * id
-	 */
+	/** 主键。 */
 	@TableId
 	private Long id;
-	/**
-	 * order_id
-	 */
+	/** 所属订单 ID。 */
 	private Long orderId;
-	/**
-	 * 退货商品id
-	 */
+	/** 退货商品的 SKU ID。 */
 	private Long skuId;
-	/**
-	 * 订单编号
-	 */
+	/** 订单号。 */
 	private String orderSn;
 	/**
 	 * 申请时间
@@ -89,13 +81,9 @@ public class OrderReturnApplyEntity implements Serializable {
 	 * 商品实际支付单价
 	 */
 	private BigDecimal skuRealPrice;
-	/**
-	 * 原因
-	 */
+	/** 退货原因。 */
 	private String reason;
-	/**
-	 * 描述
-	 */
+	/** 退货问题的补充描述。 */
 	private String description述;
 	/**
 	 * 凭证图片，以逗号隔开

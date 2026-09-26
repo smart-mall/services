@@ -9,65 +9,41 @@ import java.util.Date;
 import lombok.Data;
 
 /**
- * 订单项信息
+ * 订单项表 {@code oms_order_item} 的记录，保存订单中每个 SKU 的下单明细。
+ *
+ * <p>商品名称、图片、价格等字段在下单时写入，是当时的商品快照，不随商品后续修改而变化。
  */
 @Data
 @TableName("oms_order_item")
 public class OrderItemEntity implements Serializable {
 	@Serial private static final long serialVersionUID = 1L;
 
-	/**
-	 * id
-	 */
+	/** 主键。 */
 	@TableId
 	private Long id;
-	/**
-	 * order_id
-	 */
+	/** 所属订单 ID。 */
 	private Long orderId;
-	/**
-	 * order_sn
-	 */
+	/** 所属订单号。 */
 	private String orderSn;
-	/**
-	 * spu_id
-	 */
+	/** 商品 SPU ID。 */
 	private Long spuId;
-	/**
-	 * spu_name
-	 */
+	/** 商品 SPU 名称。 */
 	private String spuName;
-	/**
-	 * spu_pic
-	 */
+	/** 商品 SPU 图片。 */
 	private String spuPic;
-	/**
-	 * 品牌
-	 */
+	/** 商品品牌名称。 */
 	private String spuBrand;
-	/**
-	 * 商品分类id
-	 */
+	/** 商品分类 ID。 */
 	private Long categoryId;
-	/**
-	 * 商品sku编号
-	 */
+	/** 商品 SKU ID。 */
 	private Long skuId;
-	/**
-	 * 商品sku名字
-	 */
+	/** 商品 SKU 名称。 */
 	private String skuName;
-	/**
-	 * 商品sku图片
-	 */
+	/** 商品 SKU 图片。 */
 	private String skuPic;
-	/**
-	 * 商品sku价格
-	 */
+	/** 商品 SKU 单价。 */
 	private BigDecimal skuPrice;
-	/**
-	 * 商品购买的数量
-	 */
+	/** 购买数量。 */
 	private Integer skuQuantity;
 	/**
 	 * 商品销售属性组合（JSON）
