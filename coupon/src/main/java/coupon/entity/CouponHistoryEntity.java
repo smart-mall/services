@@ -9,7 +9,9 @@ import java.io.Serializable;
 import java.util.Date;
 
 /**
- * 优惠券领取历史记录
+ * 优惠券领取记录，对应 {@code sms_coupon_history} 表：会员每领取一张券生成一行，并跟踪该券的使用状态。
+ *
+ * <p>券的模板信息保存在 {@link CouponEntity}，本表只记录领取与核销结果。
  */
 @Data
 @TableName("sms_coupon_history")
@@ -17,28 +19,28 @@ public class CouponHistoryEntity implements Serializable {
 	@Serial private static final long serialVersionUID = 1L;
 
 	/**
-	 * id
+	 * 主键。
 	 */
 	@TableId
 	private Long id;
 	/**
-	 * 优惠券id
+	 * 所领优惠券的模板 ID，关联 {@code sms_coupon.id}。
 	 */
 	private Long couponId;
 	/**
-	 * 会员id
+	 * 领取该券的会员 ID。
 	 */
 	private Long memberId;
 	/**
-	 * 会员名字
+	 * 领取时的会员昵称。
 	 */
 	private String memberNickName;
 	/**
-	 * 获取方式[0->后台赠送；1->主动领取]
+	 * 领取方式[0->后台赠送；1->主动领取]
 	 */
 	private Integer getType;
 	/**
-	 * 创建时间
+	 * 领取时间。
 	 */
 	private Date createTime;
 	/**
@@ -46,15 +48,15 @@ public class CouponHistoryEntity implements Serializable {
 	 */
 	private Integer useType;
 	/**
-	 * 使用时间
+	 * 核销时间，未使用时为空。
 	 */
 	private Date useTime;
 	/**
-	 * 订单id
+	 * 核销该券的订单 ID，未使用时为空。
 	 */
 	private Long orderId;
 	/**
-	 * 订单号
+	 * 核销该券的订单号，未使用时为空。
 	 */
 	private Long orderSn;
 

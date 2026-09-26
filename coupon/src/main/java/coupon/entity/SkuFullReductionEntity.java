@@ -10,7 +10,9 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 
 /**
- * 商品满减信息
+ * 商品满减规则，对应 {@code sms_sku_full_reduction} 表：按 SKU 配置满额后减免的促销。
+ *
+ * <p>能否与其它优惠叠加由 {@code addOther} 决定。
  */
 @Data
 @TableName("sms_sku_full_reduction")
@@ -18,27 +20,30 @@ public class SkuFullReductionEntity implements Serializable {
 	@Serial private static final long serialVersionUID = 1L;
 
 	/**
-	 * id
+	 * 主键。
 	 */
 	@TableId
 	private Long id;
 	/**
-	 * spu_id
+	 * 参与满减的商品 SKU ID。
 	 */
 	private Long skuId;
 	/**
-	 * 满多少
+	 * 满减门槛金额，该 SKU 的金额达到此值才减免。
 	 */
 	private BigDecimal fullPrice;
 	/**
-	 * 减多少
+	 * 达到门槛后减免的金额。
 	 */
 	private BigDecimal reducePrice;
 	/**
-	 * 是否参与其他优惠
+	 * 能否与其它优惠叠加。
 	 */
 	private Integer addOther;
 
+	/**
+	 * SKU 名称，非数据库字段，用于列表回显。
+	 */
 	@TableField(exist = false)
 	private String skuName;
 

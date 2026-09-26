@@ -8,7 +8,9 @@ import java.io.Serial;
 import java.io.Serializable;
 
 /**
- * 专题商品
+ * 首页专题与商品的关联，对应 {@code sms_home_subject_spu} 表：描述一个专题下挂了哪些商品。
+ *
+ * <p>专题本身由 {@link HomeSubjectEntity} 描述。
  */
 @Data
 @TableName("sms_home_subject_spu")
@@ -16,24 +18,24 @@ public class HomeSubjectSpuEntity implements Serializable {
 	@Serial private static final long serialVersionUID = 1L;
 
 	/**
-	 * id
+	 * 主键。
 	 */
 	@TableId
 	private Long id;
 	/**
-	 * 专题名字
+	 * 所属专题名称。
 	 */
 	private String name;
 	/**
-	 * 专题id
+	 * 所属专题 ID，关联 {@code sms_home_subject.id}。
 	 */
 	private Long subjectId;
 	/**
-	 * spu_id
+	 * 专题内展示的商品 SPU ID。
 	 */
 	private Long spuId;
 	/**
-	 * 排序
+	 * 专题内商品的排序值。
 	 */
 	private Integer sort;
 

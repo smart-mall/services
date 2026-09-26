@@ -10,7 +10,9 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 
 /**
- * 商品spu积分设置
+ * SPU 积分设置，对应 {@code sms_spu_bounds} 表：规定购买某个 SPU 时赠送的成长积分与购物积分。
+ *
+ * <p>积分是否赠送由 {@code work} 的四个状态位控制。
  */
 @Data
 @TableName("sms_spu_bounds")
@@ -18,17 +20,20 @@ public class SpuBoundsEntity implements Serializable {
 	@Serial private static final long serialVersionUID = 1L;
 
 	/**
-	 * id
+	 * 主键。
 	 */
 	@TableId
 	private Long id;
+	/**
+	 * 适用积分规则的 SPU ID。
+	 */
 	private Long spuId;
 	/**
-	 * 成长积分
+	 * 赠送的成长积分值。
 	 */
 	private BigDecimal growBounds;
 	/**
-	 * 购物积分
+	 * 赠送的购物积分值。
 	 */
 	private BigDecimal buyBounds;
 	/**
@@ -36,6 +41,9 @@ public class SpuBoundsEntity implements Serializable {
 	 */
 	private Integer work;
 
+	/**
+	 * SPU 名称，非数据库字段，用于列表回显。
+	 */
 	@TableField(exist = false)
 	private String spuName;
 
