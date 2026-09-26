@@ -13,7 +13,6 @@
         <module name="auth" />
         <module name="ware" />
         <module name="cart" />
-        <module name="renren-generator" />
         <module name="search" />
         <module name="common" />
         <module name="member" />
@@ -35,7 +34,6 @@
       <module name="order" options="-parameters" />
       <module name="product" options="-parameters" />
       <module name="renren-fast" options="-parameters" />
-      <module name="renren-generator" options="-parameters" />
       <module name="search" options="-parameters" />
       <module name="seckill" options="-parameters" />
       <module name="third-party" options="-parameters" />
