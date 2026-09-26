@@ -195,14 +195,14 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     /**
      * {@inheritDoc}
      *
-     * <p>三个远程调用并行发起；防重令牌写入 Redis 并带过期时间，每次进入结算页都会刷新。
+     * <p>地址与购物车两个远程调用并行发起；防重令牌写入 Redis 并带过期时间，每次进入结算页都会刷新。
      */
     @Override
     public OrderConfirmVo confirmOrder(MemberResponseVo user) {
         Long memberId = user.getId();
         OrderConfirmVo confirmVo = new OrderConfirmVo();
 
-        // 三个远程调用互不依赖，并行发。
+        // 地址与购物车互不依赖，并行发。
         // ⚠️ 异步线程没有请求上下文，必须手动搬 RequestAttributes，否则 Feign 取不到 X-Member-Claims
         RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
 
@@ -381,7 +381,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
             throw new BaseException(BaseCodeEnum.NO_STOCK_EXCEPTION, r.getMsg());
         }
 
-        // TODO 阶段 4：MQ 发送与清购物车都发生在事务提交之前，事务回滚时消费者会收到
+        // TODO 阶段 4：MQ 发送与清购物车都在事务提交前发生，事务回滚时消费者会收到
         //   数据库里不存在的订单、购物车也已清空；正确做法是注册 TransactionSynchronization.afterCommit
         mqPublisher.publish(MqConstant.Exchanges.ORDER_EVENT, MqConstant.RoutingKeys.ORDER_CREATE, order.getOrder());
         redisTemplate.delete(CART_PREFIX + memberId);
@@ -396,7 +396,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     /**
      * {@inheritDoc}
      *
-     * <p>只查当前会员未删除的订单，订单项按 orderSn 批量补齐。
+     * <p>订单项按 orderSn 一次批量查出再分组，不逐单查询。
      */
     @Override
     public PageVO<OrderEntity> queryMemberOrders(MemberResponseVo user, OrderPageQuery query) {
@@ -404,7 +404,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
         LambdaQueryWrapper<OrderEntity> wrapper = new LambdaQueryWrapper<OrderEntity>()
                 .eq(OrderEntity::getMemberId, memberId)
-                // 只列未删除的：deleteStatus=0 表示未删除
+                // 只列未删除的：deleteStatus 为 0 表示未删除
                 .eq(OrderEntity::getDeleteStatus, 0)
                 .orderByDesc(OrderEntity::getCreateTime);
 
@@ -563,12 +563,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         return payVo;
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>订单不存在时返回 {@code null}：ware 侧先看 {@code R.code}，非 0 会抛异常让消息重投，
-     * 库存反而永远解锁不掉。
-     */
+    /** {@inheritDoc} */
     @Override
     public OrderStatusVo getOrderStatus(String orderSn) {
         OrderEntity order = getOrderByOrderSn(orderSn);
@@ -849,7 +844,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     /**
      * {@inheritDoc}
      *
-     * <p>先落交易流水再推进订单状态，两者在同一事务内。
+     * <p>流水与订单状态在同一事务内写入，两者必须一起生效。
      */
     @Transactional(rollbackFor = Exception.class)
     @Override
@@ -889,11 +884,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         this.baseMapper.updateOrderStatus(orderSn,code,payType);
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>验签、状态幂等判断与改单都在本方法内完成，应答固定为 SUCCESS。
-     */
+    /** {@inheritDoc} */
     @Override
     public String asyncNotify(String notifyData) {
 
@@ -905,7 +896,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         OrderEntity orderEntity = this.getOrderByOrderSn(payResponse.getOrderId());
 
         if (orderEntity == null) {
-            // TODO: 订单查不到时发出告警（钉钉、短信），当前只中断本次通知
+            // TODO: 订单查不到时发出告警（钉钉、短信），当前只中断这条通知
             throw new RuntimeException("通过订单编号查询出来的结果是null");
         }
 
@@ -929,11 +920,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     }
 
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>订单与订单项分别落库，收货信息取自会员的地址列表。
-     */
+    /** {@inheritDoc} */
     @Override
     public void createSeckillOrder(SeckillOrderTo orderTo) {
 
