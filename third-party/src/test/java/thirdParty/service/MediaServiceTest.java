@@ -28,10 +28,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * MediaService 的单元测试。
  *
- * <p>刻意不启动 Spring：这次新增的逻辑（key 生成、魔数校验、URL 拼装、前缀反解）
- * 都是纯函数，把存储层换成替身就能完整覆盖，不需要 Nacos / MySQL / MinIO 在场。
- * 改造前那个 {@code ThirdPartyApplicationTests} 是 {@code @SpringBootTest}，
- * 里面调的 {@code createEmptyFile} 又是个和项目无关的方法，等于既跑不起来也没测什么。</p>
+ * <p>不启动 Spring：被测的都是纯函数（key 生成、魔数校验、URL 拼装、前缀反解），
+ * 把存储层换成替身就能完整覆盖，不需要 Nacos / MySQL / MinIO 在场。</p>
  */
 class MediaServiceTest {
 
@@ -62,9 +60,11 @@ class MediaServiceTest {
         return properties;
     }
 
+    /** 一条测试用例：标签 + 文件内容 + 期望的扩展名与 Content-Type。 */
     private record Case(String label, byte[] content, String extension, String contentType) {
     }
 
+    /** 记录一次 putObject 的实参。 */
     private record PutCall(String bucket, String key, String contentType) {
     }
 
