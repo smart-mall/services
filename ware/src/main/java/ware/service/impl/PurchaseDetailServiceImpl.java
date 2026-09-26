@@ -25,16 +25,29 @@ import java.util.Objects;
 
 
 import ware.vo.PurchaseDetailPageQuery;
+/**
+ * 采购需求单服务的默认实现，基于 MyBatis-Plus 的 {@code ServiceImpl} 读写 {@code wms_purchase_detail}。
+ *
+ * <p>状态与归属一律由本类写入，列表查询通过商品服务补齐 SKU 名称；
+ * 字段校验集中在 {@link #validate(PurchaseDetailEntity)}，仓库与 SKU 的存在性在写入前各查一次。
+ */
 @Service("purchaseDetailService")
 public class PurchaseDetailServiceImpl extends ServiceImpl<PurchaseDetailDao, PurchaseDetailEntity> implements PurchaseDetailService {
     private final ProductFeignService productFeignService;
     private final WareInfoService wareInfoService;
 
+    /**
+     * 由容器注入商品服务客户端与仓库服务构造。
+     *
+     * @param productFeignService 商品服务客户端，列表查询补 SKU 名称、建单前确认 SKU 存在
+     * @param wareInfoService 仓库服务，列表查询补仓库名、建单前确认仓库存在
+     */
     public PurchaseDetailServiceImpl(ProductFeignService productFeignService, WareInfoService wareInfoService) {
         this.productFeignService = productFeignService;
         this.wareInfoService = wareInfoService;
     }
 
+    /** {@inheritDoc} */
     @Override
     public PageVO<PurchaseDetailEntity> queryPage(PurchaseDetailPageQuery query) {
         LambdaQueryWrapper<PurchaseDetailEntity> queryWrapper = new LambdaQueryWrapper<>();
@@ -62,7 +75,7 @@ public class PurchaseDetailServiceImpl extends ServiceImpl<PurchaseDetailDao, Pu
                 queryWrapper
         );
 
-        // 添加wareName
+        // 1. 补仓库名：仓库被删过的话找不到，用空串兜住
         List<WareInfoEntity> list = wareInfoService.list();
         page.getRecords().forEach(item -> {
             item.setWareName(list.stream()
@@ -73,7 +86,7 @@ public class PurchaseDetailServiceImpl extends ServiceImpl<PurchaseDetailDao, Pu
             item.setAllowedActions(PurchaseDetailEnum.allowedActions(item.getStatus()));
         });
 
-        // 添加skuName
+        // 2. 补 SKU 名称：只把当前页用到的 skuId 传给商品服务
         List<Long> skuIds = page.getRecords().stream()
                 .map(PurchaseDetailEntity::getSkuId)
                 .filter(Objects::nonNull)
@@ -93,7 +106,7 @@ public class PurchaseDetailServiceImpl extends ServiceImpl<PurchaseDetailDao, Pu
         }
 
 
-        // 关键字过滤。skuName 是远程查出来的，可能为 null，直接 contains 会 NPE
+        // 3. 关键字过滤。skuName 是远程查出来的，可能为 null，直接 contains 会 NPE
         if (key != null && !key.trim().isEmpty()) {
             page.getRecords().removeIf(item -> {
                 String skuName = Objects.toString(item.getSkuName(), "");
@@ -105,10 +118,7 @@ public class PurchaseDetailServiceImpl extends ServiceImpl<PurchaseDetailDao, Pu
         return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
-    /**
-     * 新增采购需求单（人工提单）。状态和归属由服务端定，不接受前端传 ——
-     * 否则可以直接造一条"已完成"或"已并到某单"的需求单，把状态流转整个绕过。
-     */
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public void saveDetail(PurchaseDetailEntity detail) {
@@ -120,12 +130,7 @@ public class PurchaseDetailServiceImpl extends ServiceImpl<PurchaseDetailDao, Pu
         this.save(detail);
     }
 
-    /**
-     * 修改采购需求单：只在"新建"（还没并进任何采购单）时允许。
-     *
-     * <p>并入采购单之后采购员已经照着它在买了，这时候改数量/仓库会出现
-     * "买 10 件、系统入库 100 件"。要改就先取消分配退回"新建"。</p>
-     */
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public void updateDetail(PurchaseDetailEntity detail) {
@@ -148,6 +153,7 @@ public class PurchaseDetailServiceImpl extends ServiceImpl<PurchaseDetailDao, Pu
         this.updateById(detail);
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public void removeDetails(List<Long> ids) {
@@ -172,6 +178,13 @@ public class PurchaseDetailServiceImpl extends ServiceImpl<PurchaseDetailDao, Pu
         this.removeByIds(distinctIds);
     }
 
+    /**
+     * 校验需求单的必填字段，并确认仓库与 SKU 都存在。
+     *
+     * @param detail 待校验的需求单，不能为 {@code null}
+     * @throws common.exception.ValidationException 字段缺失或不合法、SKU 不存在时抛出
+     * @throws common.exception.BaseException 仓库不存在，或商品服务不可用时抛出
+     */
     private void validate(PurchaseDetailEntity detail) {
         if (detail.getSkuId() == null) {
             throw new ValidationException("skuId", "请选择采购商品");
@@ -198,7 +211,11 @@ public class PurchaseDetailServiceImpl extends ServiceImpl<PurchaseDetailDao, Pu
      *
      * <p>删商品那侧保证的是"有在途采购需求就不许删"，这里补的是反方向：商品已经删了，
      * 就不该再给它建需求单 —— 否则采购完成时 {@code addStock} 会把这个 sku 的库存行重新建出来，
-     * 商品没了库存却回来了。</p>
+     * 商品没了库存却回来了。
+     *
+     * @param skuId 采购商品的 SKU ID，不能为 {@code null}
+     * @throws common.exception.ValidationException 商品服务返回商品不存在时抛出
+     * @throws common.exception.BaseException 商品服务不可用时抛出
      */
     private void assertSkuExists(Long skuId) {
         R<Map<String, Object>> r;

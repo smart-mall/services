@@ -38,6 +38,12 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import common.query.KeyPageQuery;
+/**
+ * 仓库信息服务的默认实现，基于 MyBatis-Plus 的 {@code ServiceImpl} 读写 {@code wms_ware_info}。
+ *
+ * <p>删除仓库要跨库存、采购需求、采购单与库存工作单明细四张表做占用检查，
+ * 全部通过后在事务内连同该仓的附属记录一起删除。
+ */
 @Slf4j
 @Service("wareInfoService")
 public class WareInfoServiceImpl extends ServiceImpl<WareInfoDao, WareInfoEntity> implements WareInfoService {
@@ -48,6 +54,15 @@ public class WareInfoServiceImpl extends ServiceImpl<WareInfoDao, WareInfoEntity
     private final PurchaseDetailDao purchaseDetailDao;
     private final WareOrderTaskDetailDao wareOrderTaskDetailDao;
 
+    /**
+     * 由容器注入会员客户端与四张关联表的 Mapper 构造。
+     *
+     * @param memberFeignService 会员服务客户端，按收货地址取运费计算所需的手机号
+     * @param wareSkuDao 库存 Mapper，删除仓库前查库存占用并清理该仓的库存行
+     * @param purchaseDao 采购单 Mapper，删除仓库前查采购单状态并清理该仓的采购单
+     * @param purchaseDetailDao 采购需求单 Mapper，删除仓库前查需求状态并清理该仓的需求
+     * @param wareOrderTaskDetailDao 库存工作单明细 Mapper，删除仓库前查有没有已锁定未解锁的明细
+     */
     public WareInfoServiceImpl(MemberFeignService memberFeignService, WareSkuDao wareSkuDao,
                                PurchaseDao purchaseDao, PurchaseDetailDao purchaseDetailDao,
                                WareOrderTaskDetailDao wareOrderTaskDetailDao) {
@@ -58,6 +73,7 @@ public class WareInfoServiceImpl extends ServiceImpl<WareInfoDao, WareInfoEntity
         this.wareOrderTaskDetailDao = wareOrderTaskDetailDao;
     }
 
+    /** {@inheritDoc} */
     @Override
     public PageVO<WareInfoEntity> queryPage(KeyPageQuery query) {
         LambdaQueryWrapper<WareInfoEntity> queryWrapper = new LambdaQueryWrapper<>();
@@ -80,19 +96,7 @@ public class WareInfoServiceImpl extends ServiceImpl<WareInfoDao, WareInfoEntity
         return new PageVO<>(page.getTotal(), page.getRecords());
     }
 
-    /**
-     * 删除仓库。三条都满足才允许：
-     *
-     * <ol>
-     *   <li>库存全为 0，<b>含锁定库存</b> —— 还有订单锁着货的仓库不能删</li>
-     *   <li>关联的采购需求和采购单都在终态（已完成 / 采购失败 / 有异常），没有在途采购</li>
-     *   <li>没有"已锁定未解锁"的库存工作单明细 —— 删了仓库，订单解锁时按 detailId 找不到凭证，
-     *       消息被正常 ack，{@code stock_locked} 就永远减不回去了</li>
-     * </ol>
-     *
-     * <p>都通过之后，把该仓库的库存行、采购需求、采购单一并删掉 —— 它们都是空壳或终态记录，
-     * 留着只会让 {@code ware_id} 悬空，而悬空的仓库引用没有任何意义。</p>
-     */
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public void deleteByIds(List<Long> ids) {
@@ -111,7 +115,7 @@ public class WareInfoServiceImpl extends ServiceImpl<WareInfoDao, WareInfoEntity
         for (WareInfoEntity ware : wares) {
             Long wareId = ware.getId();
 
-            // 1、库存必须清空
+            // 1. 库存必须清空（含锁定库存）
             List<WareSkuEntity> stocks = wareSkuDao.selectList(new LambdaQueryWrapper<WareSkuEntity>()
                     .eq(WareSkuEntity::getWareId, wareId));
             boolean hasStock = stocks.stream().anyMatch(stock ->
@@ -122,7 +126,7 @@ public class WareInfoServiceImpl extends ServiceImpl<WareInfoDao, WareInfoEntity
                         "仓库「" + ware.getName() + "」还有库存（或被订单锁定的库存），不能删除");
             }
 
-            // 2、采购需求必须在终态
+            // 2. 采购需求必须在终态
             List<PurchaseDetailEntity> details = purchaseDetailDao.selectList(
                     new LambdaQueryWrapper<PurchaseDetailEntity>()
                             .eq(PurchaseDetailEntity::getWareId, wareId));
@@ -131,7 +135,7 @@ public class WareInfoServiceImpl extends ServiceImpl<WareInfoDao, WareInfoEntity
                         "仓库「" + ware.getName() + "」还有没走完的采购需求，不能删除");
             }
 
-            // 3、采购单必须在终态（ware_id 直接指向这个仓库的也一起算上）
+            // 3. 采购单必须在终态（ware_id 直接指向这个仓库的也一起算上）
             List<Long> purchaseIds = details.stream()
                     .map(PurchaseDetailEntity::getPurchaseId)
                     .filter(Objects::nonNull)
@@ -152,7 +156,7 @@ public class WareInfoServiceImpl extends ServiceImpl<WareInfoDao, WareInfoEntity
                 }
             }
 
-            // 4、不能有已锁定未解锁的库存工作单明细
+            // 4. 不能有已锁定未解锁的库存工作单明细
             Long lockedTasks = wareOrderTaskDetailDao.selectCount(new LambdaQueryWrapper<WareOrderTaskDetailEntity>()
                     .eq(WareOrderTaskDetailEntity::getWareId, wareId)
                     .eq(WareOrderTaskDetailEntity::getLockStatus, 1));
@@ -162,7 +166,7 @@ public class WareInfoServiceImpl extends ServiceImpl<WareInfoDao, WareInfoEntity
                                 + " 条已锁定未解锁的库存工作单，不能删除");
             }
 
-            // 都过了：库存行、采购需求、采购单一起删
+            // 5. 都过了：库存行、采购需求、采购单一起删
             wareSkuDao.delete(new LambdaQueryWrapper<WareSkuEntity>()
                     .eq(WareSkuEntity::getWareId, wareId));
             purchaseDetailDao.delete(new LambdaQueryWrapper<PurchaseDetailEntity>()
@@ -178,12 +182,12 @@ public class WareInfoServiceImpl extends ServiceImpl<WareInfoDao, WareInfoEntity
         this.removeByIds(distinctIds);
     }
 
+    /** {@inheritDoc} */
     @Override
     public FareVo getFare(Long addrId) {
 
         FareVo fareVo = new FareVo();
 
-        //收获地址的详细信息
         R<MemberAddressVo> addrInfo = memberFeignService.info(addrId);
         log.info("收获地址信息：{}", JSON.toJSONString(addrInfo, SerializerFeature.PrettyFormat));
 
@@ -192,14 +196,12 @@ public class WareInfoServiceImpl extends ServiceImpl<WareInfoDao, WareInfoEntity
         if (memberAddressVo != null) {
             String phone = memberAddressVo.getPhone();
             if (phone == null || phone.length() < 10) {
-                // 运费算法本身是 demo：取手机号倒数第 10~8 位当金额。
-                // 但手机号可能为空或长度不足（历史数据、测试数据），原来直接 substring 会
-                // StringIndexOutOfBoundsException —— 在 order 那边表现为一个没有 code 的 500，
-                // 整个结算页打不开。这里按 0 处理并留一条日志。
+                // 手机号为空或不足 10 位时下面的 substring 会越界；越界异常在 order 侧表现为
+                // 一个没有 code 的 500，整个结算页打不开，所以这里按 0 处理并留一条日志
                 log.warn("收货地址 {} 的手机号无法用于计算运费，按 0 处理：{}", addrId, phone);
                 fareVo.setFare(BigDecimal.ZERO);
             } else {
-                //截取用户手机号码最后一位作为我们的运费计算
+                // 运费取手机号倒数第 10、9 位组成的两位数字
                 String fare = phone.substring(phone.length() - 10, phone.length()-8);
                 fareVo.setFare(new BigDecimal(fare));
             }
