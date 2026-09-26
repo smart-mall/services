@@ -32,10 +32,14 @@ import java.util.Map;
 @RequestMapping(value = "/thirdParty/email")
 public class EmailSendController {
 
+    /** Resend API 基地址，与 {@code RESEND_PATH} 拼成请求 URL。 */
     private static final String RESEND_HOST = "https://api.resend.com";
+    /** 邮件发送接口路径，拼在 {@code RESEND_HOST} 之后。 */
     private static final String RESEND_PATH = "/emails";
 
+    /** Resend API Key，取自配置 {@code resend.api-key}，以 Bearer 形式放进 Authorization 头。 */
     private final String apiKey;
+    /** 发件人地址，取自配置 {@code resend.from}。 */
     private final String from;
 
     /**

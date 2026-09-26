@@ -144,8 +144,10 @@ public class GlobalExceptionHandler {
         return TYPE_MISMATCH_MESSAGE + "：" + text;
     }
 
+    /** 类型不匹配的固定提示前缀，不含被拒绝的原值。 */
     private static final String TYPE_MISMATCH_MESSAGE = "参数类型不正确";
 
+    /** 回显被拒绝原值时保留的最大字符数，超出部分截断并补省略号，避免超长参数把提示撑满一屏。 */
     private static final int MAX_REJECTED_VALUE_LENGTH = 50;
 
     /**

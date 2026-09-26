@@ -47,9 +47,13 @@ import java.util.Set;
  */
 public class HttpClientUtils {
 
+	/** 默认建立连接超时，单位毫秒；{@code postParameters} 与 {@code get(url, charset)} 取该值。 */
 	public static final int connTimeout=10000;
+	/** 默认读取响应超时，单位毫秒；{@code postParameters} 与 {@code get(url, charset)} 取该值。 */
 	public static final int readTimeout=10000;
+	/** 默认字符编码，既用于请求体编码，也用于响应体解码。 */
 	public static final String charset="UTF-8";
+	/** 非 HTTPS 请求共用的连接池客户端，在静态块中初始化；HTTPS 请求另建客户端，不走该字段。 */
 	private static HttpClient client = null;
 
 	static {
@@ -123,7 +127,10 @@ public class HttpClientUtils {
 	}
 
 	/**
-	 * 发送 GET 请求，超时取默认的 10 秒。
+	 * 发送 GET 请求。
+	 *
+	 * <p>两个超时都不设置，走 Apache 的默认值（不限时）；需要超时请改用 {@link #get(String, String)}，
+	 * 它取 {@link #connTimeout} 与 {@link #readTimeout} 的默认值。</p>
 	 *
 	 * @param url 请求地址
 	 * @return 响应体，按 UTF-8 解码
@@ -350,21 +357,25 @@ public class HttpClientUtils {
 
 			SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, new X509HostnameVerifier() {
 
+				/** {@inheritDoc} */
 				@Override
 				public boolean verify(String arg0, SSLSession arg1) {
 					return true;
 				}
 
+				/** {@inheritDoc} */
 				@Override
 				public void verify(String host, SSLSocket ssl)
 						throws IOException {
 				}
 
+				/** {@inheritDoc} */
 				@Override
 				public void verify(String host, X509Certificate cert)
 						throws SSLException {
 				}
 
+				/** {@inheritDoc} */
 				@Override
 				public void verify(String host, String[] cns,
 								   String[] subjectAlts) throws SSLException {
