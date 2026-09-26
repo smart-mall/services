@@ -3,9 +3,11 @@ package member;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
+/** Spring 上下文加载冒烟测试：容器能启动即通过。 */
 @SpringBootTest
 class MemberApplicationTests {
 
+	/** 启动 Spring 容器。 */
 	@Test
 	void contextLoads() {
 	}
