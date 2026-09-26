@@ -13,29 +13,36 @@ import lombok.Data;
 @Data
 public class AddressSaveVo {
 
+    /** 收货人姓名。 */
     @NotBlank(message = "收货人不能为空")
     @Size(max = 255, message = "收货人姓名过长")
     private String name;
 
+    /** 收货人手机号，只接受中国大陆号码。 */
     @NotBlank(message = "手机号不能为空")
     @Pattern(regexp = "^1[3-9]\\d{9}$", message = "手机号格式不正确")
     private String phone;
 
+    /** 邮政编码，选填。 */
     @Size(max = 64, message = "邮政编码过长")
     private String postCode;
 
+    /** 省 / 直辖市名称。 */
     @NotBlank(message = "请选择省份")
     @Size(max = 100, message = "省份名称过长")
     private String province;
 
+    /** 城市名称。 */
     @NotBlank(message = "请选择城市")
     @Size(max = 100, message = "城市名称过长")
     private String city;
 
+    /** 区县名称。 */
     @NotBlank(message = "请选择区县")
     @Size(max = 100, message = "区县名称过长")
     private String region;
 
+    /** 详细地址，含街道与门牌号。 */
     @NotBlank(message = "详细地址不能为空")
     @Size(max = 255, message = "详细地址过长")
     private String detailAddress;

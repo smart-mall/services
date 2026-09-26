@@ -4,7 +4,7 @@ import com.alibaba.fastjson.annotation.JSONField;
 import lombok.Data;
 
 /**
- * QQ登录用户信息实体类
+ * QQ 互联返回的用户信息。字段名与 QQ 返回的 JSON 不一致的，用 {@code @JSONField} 显式映射。
  */
 @Data
 public class QQUserInfo {
@@ -119,5 +119,6 @@ public class QQUserInfo {
     @JSONField(name = "open_id")
     private String openId;
 
+    /** QQ 互联的 access_token。 */
     private String token;
 }

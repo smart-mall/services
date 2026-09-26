@@ -3,13 +3,16 @@ package member.vo;
 import lombok.Data;
 
 
+/**
+ * 收货地址的传输对象：新增地址接口的请求体与返回体共用。
+ */
 @Data
 public class MemberAddressVo {
 
+    /** 地址 ID。 */
     private Long id;
-    /**
-     * member_id
-     */
+
+    /** 所属会员 ID。 */
     private Long memberId;
     /**
      * 收货人姓名

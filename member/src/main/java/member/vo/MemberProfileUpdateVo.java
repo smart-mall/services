@@ -38,12 +38,15 @@ public class MemberProfileUpdateVo {
     @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")
     private Date birth;
 
+    /** 所在城市。 */
     @Size(max = 500, message = "所在城市过长")
     private String city;
 
+    /** 职业。 */
     @Size(max = 255, message = "职业过长")
     private String job;
 
+    /** 个性签名。 */
     @Size(max = 255, message = "个性签名过长")
     private String sign;
 }

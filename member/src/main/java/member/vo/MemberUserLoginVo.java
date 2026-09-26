@@ -6,15 +6,15 @@ import lombok.Data;
 /**
  * 账号密码登录入参。
  *
- * <p>字段名从 {@code loginacct} 改成了 {@code username}：原来那个名字是 renren 的遗留，
- * 还对应着"能拿手机号当账号登录"的旧行为（{@code username = ? OR mobile = ?}），
- * 现在账号就是账号，和手机号分开了。</p>
+ * <p>{@code username} 只匹配账号，不会回退到手机号：手机号登录走短信验证码那条链路。</p>
  */
 @Data
 public class MemberUserLoginVo {
 
+    /** 登录账号。 */
     private String username;
 
+    /** 登录密码。 */
     private String password;
 
 }
