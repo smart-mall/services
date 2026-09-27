@@ -34,6 +34,7 @@ import order.service.OrderItemService;
 import order.service.OrderService;
 import order.service.PaymentInfoService;
 import order.to.OrderCreateTo;
+import order.vo.FareItemVo;
 import order.vo.FareVo;
 import order.vo.MemberAddressVo;
 import order.vo.OrderConfirmVo;
@@ -47,6 +48,10 @@ import order.vo.SkuInfoVo;
 import order.vo.SkuStockVo;
 import order.vo.SpuInfoVo;
 import order.vo.SubmitOrderResponseVo;
+import order.vo.WareFareItemResultVo;
+import order.vo.WareFareQueryItemVo;
+import order.vo.WareFareQueryVo;
+import order.vo.WareFareVo;
 import order.vo.WareSkuLockVo;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -259,22 +264,14 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         }
 
         // 金额三个数都由后端算好：前端自己算一遍会和提交时的校验算成两个数
-        BigDecimal totalAmount = BigDecimal.ZERO;
-        for (OrderItemVo item : confirmVo.getItems()) {
-            if (item.getPrice() == null || item.getCount() == null) {
-                throw new BaseException(BaseCodeEnum.ORDER_ITEM_INCOMPLETE, "购物项价格信息不完整，请返回购物车重试");
-            }
-            totalAmount = totalAmount.add(item.getPrice().multiply(BigDecimal.valueOf(item.getCount())));
-        }
-        confirmVo.setTotalAmount(totalAmount);
-
-        BigDecimal freightAmount = BigDecimal.ZERO;
-        if (defaultAddress != null) {
-            // 地址取自会员自己的列表，归属已经成立，不必再校验一次
-            freightAmount = fetchFare(defaultAddress.getId()).getFare();
-        }
-        confirmVo.setFreightAmount(freightAmount);
-        confirmVo.setPayAmount(totalAmount.add(freightAmount));
+        // 没有收货地址时运费记 0：此时页面本来就不可提交，不必为一个用不上的数去计费
+        FareVo fare = defaultAddress == null
+                ? zeroFare(sumItemAmount(confirmVo.getItems()))
+                : calcFare(defaultAddress, confirmVo.getItems());
+        confirmVo.setTotalAmount(fare.getTotalAmount());
+        confirmVo.setFreightAmount(fare.getFreightAmount());
+        confirmVo.setPayAmount(fare.getPayAmount());
+        confirmVo.setFareItems(fare.getFareItems());
 
         confirmVo.setIntegration(user.getIntegration());
 
@@ -293,27 +290,130 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     /** {@inheritDoc} */
     @Override
     public FareVo getFare(MemberResponseVo user, Long addrId) {
-        requireOwnAddress(addrId, memberAddresses(user));
-        return fetchFare(addrId);
+        MemberAddressVo address = requireOwnAddress(addrId, memberAddresses(user));
+        return calcFare(address, checkedCartItems());
+    }
+
+    /* ═══════════════════ 运费计算 ═══════════════════ */
+
+    /**
+     * 按收货地址与购物项算运费，并补齐整单的三个金额。
+     *
+     * <p>确认页与换地址两条路径共用本方法：同一组入参必须算出同一结果，
+     * 否则提交时重算出的金额与确认页展示的不一致，会被判成价格变动。
+     *
+     * @param address 收货地址，必须属于当前会员，且带行政区划编码
+     * @param items 已勾选的购物项，不能为 {@code null}
+     * @return 三个金额与按商品拆分的运费明细
+     * @throws BaseException 地址没有行政区划编码、或 ware 算不出运费时抛出
+     */
+    private FareVo calcFare(MemberAddressVo address, List<OrderItemVo> items) {
+        if (address.getAreacode() == null || address.getAreacode().isBlank()) {
+            // 区划编码是计费的入参；缺了它不是运费不准，而是整个结算页打不开，所以文案指向地址本身
+            throw new BaseException(BaseCodeEnum.ORDER_FARE_FAILED, "收货地址缺少行政区划编码，请重新选择省市区");
+        }
+
+        BigDecimal totalAmount = sumItemAmount(items);
+        WareFareVo wareFare = requestWareFare(address.getAreacode(), items);
+
+        FareVo fareVo = new FareVo();
+        fareVo.setTotalAmount(totalAmount);
+        fareVo.setFreightAmount(wareFare.getTotalFare());
+        fareVo.setPayAmount(totalAmount.add(wareFare.getTotalFare()));
+        fareVo.setFareItems(toFareItems(wareFare.getItems()));
+        return fareVo;
     }
 
     /**
-     * 查询指定地址的运费。
+     * 没有收货地址时用的金额：商品总额照常算，运费记 0。
      *
-     * <p>归属校验由调用方负责。
-     *
-     * @param addrId 收货地址 id
-     * @return 运费与收货地址信息
-     * @throws BaseException 运费查不到时抛出
+     * @param totalAmount 商品总额
+     * @return 运费为 0、应付总额等于商品总额的金额对象
      */
-    private FareVo fetchFare(Long addrId) {
-        R<FareVo> fareResp = wmsFeignService.getFare(addrId);
-        FareVo fare = fareResp.getData();
-        if (fare == null || fare.getFare() == null) {
-            // ware 在地址查不到时返回 data=null，直接取 fare 会空指针
-            throw new BaseException(BaseCodeEnum.ORDER_FARE_FAILED);
+    private FareVo zeroFare(BigDecimal totalAmount) {
+        FareVo fareVo = new FareVo();
+        fareVo.setTotalAmount(totalAmount);
+        fareVo.setFreightAmount(BigDecimal.ZERO);
+        fareVo.setPayAmount(totalAmount);
+        fareVo.setFareItems(List.of());
+        return fareVo;
+    }
+
+    /**
+     * 汇总购物项的商品总额。
+     *
+     * @param items 购物项列表，不能为 {@code null}
+     * @return 各项「单价 × 数量」之和
+     * @throws BaseException 有购物项缺价格或数量时抛 {@code ORDER_ITEM_INCOMPLETE}
+     */
+    private BigDecimal sumItemAmount(List<OrderItemVo> items) {
+        BigDecimal totalAmount = BigDecimal.ZERO;
+        for (OrderItemVo item : items) {
+            if (item.getPrice() == null || item.getCount() == null) {
+                throw new BaseException(BaseCodeEnum.ORDER_ITEM_INCOMPLETE, "购物项价格信息不完整，请返回购物车重试");
+            }
+            totalAmount = totalAmount.add(item.getPrice().multiply(BigDecimal.valueOf(item.getCount())));
         }
-        return fare;
+        return totalAmount;
+    }
+
+    /**
+     * 查询购物车里已勾选的购物项。
+     *
+     * @return 已勾选的购物项；没有勾选项时为空列表，不返回 {@code null}
+     */
+    private List<OrderItemVo> checkedCartItems() {
+        R<List<OrderItemVo>> cartResult = cartFeignService.getCheckedItems();
+        List<OrderItemVo> items = cartResult.getData();
+        return items == null ? List.of() : items;
+    }
+
+    /**
+     * 向 ware 请求计费。
+     *
+     * @param destNode 收货地区划编码，不能为 {@code null}
+     * @param items 已勾选的购物项，不能为 {@code null}
+     * @return ware 返回的整单运费与明细
+     * @throws BaseException ware 报错时原样转发它的错误码；
+     *         码为 0 却没给数据时抛 {@code ORDER_FARE_FAILED}
+     */
+    private WareFareVo requestWareFare(String destNode, List<OrderItemVo> items) {
+        WareFareQueryVo query = new WareFareQueryVo();
+        query.setDestNode(destNode);
+        query.setItems(items.stream().map(item -> {
+            WareFareQueryItemVo queryItem = new WareFareQueryItemVo();
+            queryItem.setSkuId(item.getSkuId());
+            queryItem.setNum(item.getCount());
+            return queryItem;
+        }).toList());
+
+        R<WareFareVo> response = wmsFeignService.getFare(query);
+        if (response.getCode() != 0) {
+            // 原样转发 ware 的错误码：商品没入库和仓库没配区划编码是两回事，排查方向不同
+            throw new BaseException(response.getCode(), response.getMsg());
+        }
+        if (response.getData() == null) {
+            throw new BaseException(BaseCodeEnum.ORDER_FARE_FAILED, "仓库服务没有返回运费");
+        }
+        return response.getData();
+    }
+
+    /**
+     * 把 ware 的运费明细转成前端契约，只保留前端要用的两个字段。
+     *
+     * @param wareItems ware 返回的明细，可以为 {@code null}
+     * @return 只带 SKU 与运费的明细列表；{@code wareItems} 为 {@code null} 时返回空列表
+     */
+    private List<FareItemVo> toFareItems(List<WareFareItemResultVo> wareItems) {
+        if (wareItems == null) {
+            return List.of();
+        }
+        return wareItems.stream().map(wareItem -> {
+            FareItemVo fareItem = new FareItemVo();
+            fareItem.setSkuId(wareItem.getSkuId());
+            fareItem.setFare(wareItem.getFare());
+            return fareItem;
+        }).toList();
     }
 
     /* ═══════════════════ 提交订单 ═══════════════════ */
@@ -331,7 +431,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
         // 0. 地址归属。放在最前面：后面几步都有副作用（删令牌、落库、锁库存），
         //    校验失败时必须保证什么都没动过
-        requireOwnAddress(vo.getAddrId(), memberAddresses(user));
+        MemberAddressVo address = requireOwnAddress(vo.getAddrId(), memberAddresses(user));
 
         // 1. 验证并消费防重令牌，用 Lua 保证比较与删除的原子性：返回 1 表示消费成功
         String script = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
@@ -346,7 +446,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         }
 
         // 2. 创建订单与订单项
-        OrderCreateTo order = createOrder(user, vo);
+        OrderCreateTo order = createOrder(user, vo, address);
 
         // 3. 验证价格。必须用 compareTo：两边 scale 不同（前端传 41941，库里是 41941.0000），
         //    BigDecimal.equals 会判不等，compareTo 只比数值
@@ -652,22 +752,28 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     }
 
 
-    private OrderCreateTo createOrder(MemberResponseVo user, OrderSubmitVo submitVo) {
+    private OrderCreateTo createOrder(MemberResponseVo user, OrderSubmitVo submitVo, MemberAddressVo address) {
 
         OrderCreateTo createTo = new OrderCreateTo();
 
-        // 1. 生成订单号并组装订单主表
-        String orderSn = IdWorker.getTimeId();
-        OrderEntity orderEntity = builderOrder(user, orderSn, submitVo);
-
-        // 2. 组装订单项；购物车可能已被清空或全部取消勾选，空车会建出只有运费的空单
-        List<OrderItemEntity> orderItemEntities = builderOrderItems(orderSn);
-        if (orderItemEntities.isEmpty()) {
+        // 1. 购物车只取一次：运费与订单项都要用它，取两次会给两处结果不一致留窗口
+        List<OrderItemVo> cartItems = checkedCartItems();
+        if (cartItems.isEmpty()) {
             throw new BaseException(BaseCodeEnum.ORDER_CART_EMPTY);
         }
 
-        // 3. 计算价格与积分
-        computePrice(orderEntity,orderItemEntities);
+        // 2. 生成订单号；订单主表与订单项都要写它
+        String orderSn = IdWorker.getTimeId();
+
+        // 3. 按与确认页同一套逻辑重算运费，两次算出的必须是同一个数
+        BigDecimal freightAmount = calcFare(address, cartItems).getFreightAmount();
+
+        // 4. 组装订单主表与订单项
+        OrderEntity orderEntity = builderOrder(user, orderSn, submitVo, address, freightAmount);
+        List<OrderItemEntity> orderItemEntities = builderOrderItems(orderSn, cartItems);
+
+        // 5. 计算价格与积分
+        computePrice(orderEntity, orderItemEntities);
 
         createTo.setOrder(orderEntity);
         createTo.setOrderItems(orderItemEntities);
@@ -719,22 +825,20 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
      * @param user 当前登录会员
      * @param orderSn 已生成的订单号
      * @param submitVo 提交入参，提供收货地址 id 与备注
+     * @param address 收货地址，地址归属已在 {@code submitOrder} 入口校验
+     * @param freightAmount 已重算的运费
      * @return 未落库的订单实体
      */
-    private OrderEntity builderOrder(MemberResponseVo user, String orderSn, OrderSubmitVo submitVo) {
+    private OrderEntity builderOrder(MemberResponseVo user, String orderSn, OrderSubmitVo submitVo,
+                                     MemberAddressVo address, BigDecimal freightAmount) {
 
         OrderEntity orderEntity = new OrderEntity();
         orderEntity.setMemberId(user.getId());
         orderEntity.setOrderSn(orderSn);
         orderEntity.setMemberUsername(user.getUsername());
         orderEntity.setNote(submitVo.getRemarks());
+        orderEntity.setFreightAmount(freightAmount);
 
-        // ⚠️ 地址归属已在 submitOrder 入口校验，这里拿到的 fareResp 一定对应自己的地址
-        FareVo fareResp = fetchFare(submitVo.getAddrId());
-
-        orderEntity.setFreightAmount(fareResp.getFare());
-
-        MemberAddressVo address = fareResp.getAddress();
         orderEntity.setReceiverName(address.getName());
         orderEntity.setReceiverPhone(address.getPhone());
         orderEntity.setReceiverPostCode(address.getPostCode());
@@ -753,25 +857,15 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
      * 构建订单包含的全部订单项。
      *
      * @param orderSn 订单号，写入每个订单项
+     * @param cartItems 购物车中已勾选的购物项，不能为 {@code null}
      * @return 订单项列表；购物车没有已勾选商品时返回空列表
      */
-    public List<OrderItemEntity> builderOrderItems(String orderSn) {
-
-        List<OrderItemEntity> orderItemEntityList = new ArrayList<>();
-
-        R<List<OrderItemVo>> cartResult = cartFeignService.getCheckedItems();
-        List<OrderItemVo> currentCartItems =
-                cartResult.getData();
-        if (currentCartItems != null && !currentCartItems.isEmpty()) {
-            orderItemEntityList = currentCartItems.stream().map((items) -> {
-                OrderItemEntity orderItemEntity = builderOrderItem(items);
-                orderItemEntity.setOrderSn(orderSn);
-
-                return orderItemEntity;
-            }).collect(Collectors.toList());
-        }
-
-        return orderItemEntityList;
+    private List<OrderItemEntity> builderOrderItems(String orderSn, List<OrderItemVo> cartItems) {
+        return cartItems.stream().map(cartItem -> {
+            OrderItemEntity orderItemEntity = builderOrderItem(cartItem);
+            orderItemEntity.setOrderSn(orderSn);
+            return orderItemEntity;
+        }).collect(Collectors.toList());
     }
 
 

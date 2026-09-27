@@ -42,15 +42,17 @@ public interface OrderService extends IService<OrderEntity> {
     OrderConfirmVo confirmOrder(MemberResponseVo user);
 
     /**
-     * 计算指定收货地址的运费。
+     * 按当前购物车与指定收货地址计算运费。
      *
-     * <p>先确认地址属于该会员再向 ware 取运费，避免用别人的地址算运费。
+     * <p>商品清单取购物车已勾选项而不是前端传的参数，与提交订单取的是同一份数据；
+     * 先确认地址属于该会员再计费，避免拿别人的地址算运费。
      *
      * @param user   当前登录会员，不能为 {@code null}
      * @param addrId 收货地址 id，不能为 {@code null}，且必须是该会员的地址
-     * @return 运费与地址信息，{@code fare} 不为 {@code null}
+     * @return 三个金额与按商品拆分的运费明细；购物车没有勾选项时运费为 0
      * @throws common.exception.BaseException 地址不属于该会员时抛 {@code ADDRESS_NOT_FOUND}；
-     *         ware 查不到该地址、算不出运费时抛兜底码 {@code UNKNOWN_EXCEPTION}
+     *         地址没有行政区划编码、ware 算不出运费时抛 {@code ORDER_FARE_FAILED}
+     *         或原样转发 ware 的错误码
      */
     FareVo getFare(MemberResponseVo user, Long addrId);
 

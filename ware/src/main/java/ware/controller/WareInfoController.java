@@ -2,11 +2,13 @@ package ware.controller;
 
 import common.vo.PageVO;
 import common.utils.R;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import ware.entity.WareInfoEntity;
 import ware.service.WareInfoService;
+import ware.vo.FareQueryVo;
 import ware.vo.FareVo;
 
 import java.util.Arrays;
@@ -14,7 +16,7 @@ import java.util.List;
 
 
 import common.query.KeyPageQuery;
-/** 仓库信息接口：仓库的增删改查，以及按收货地址计算运费。 */
+/** 仓库信息接口：仓库的增删改查，以及按收货地区划计算运费。 */
 @RestController
 @Slf4j
 @RequestMapping("ware/wareinfo")
@@ -23,22 +25,17 @@ public class WareInfoController {
     private WareInfoService wareInfoService;
 
     /**
-     * 计算指定收货地址的运费。
+     * 计算一张订单的运费。
      *
-     * <p>运费按收货地址手机号推算，手机号缺失或长度不足 10 位时按 0 处理；
-     * 地址查不到时返回的 {@code data} 为 {@code null}。</p>
+     * <p>服务间接口：调用方传收货地区划编码与商品清单。本接口只管商品与仓库，
+     * 不认识会员地址，也不再回头去问会员服务。
      *
-     * @param addrId 会员收货地址 ID
-     * @return 收货地址与运费；地址不存在时返回 {@code null}
+     * @param query 收货地区划编码与要计价的商品清单，不能为 {@code null}
+     * @return 整单运费与按商品拆分的明细
      */
-    @GetMapping(value = "/fare")
-    public R<FareVo> getFare(@RequestParam("addrId") Long addrId) {
-        log.info("获取运费：{}", addrId);
-
-
-        FareVo fare = wareInfoService.getFare(addrId);
-
-        return R.ok(fare);
+    @PostMapping(value = "/fare")
+    public R<FareVo> getFare(@Valid @RequestBody FareQueryVo query) {
+        return R.ok(wareInfoService.getFare(query));
     }
 
 

@@ -46,6 +46,14 @@ public class OrderConfirmVo {
     private BigDecimal payAmount;
 
     /**
+     * 每个商品的运费明细，与 {@code items} 按 {@code skuId} 对应；前端逐行显示商品自己的运费。
+     *
+     * <p>与 {@code freightAmount} 出自同一次计费，所以两者必然自洽；不要按这份明细再求一次和，
+     * 前端求和与后端汇总的舍入方式一旦不同就会差几分钱。
+     */
+    private List<FareItemVo> fareItems;
+
+    /**
      * 商品总件数。
      *
      * <p>是计算属性不是字段（Lombok 不会为它生成 getter）。金额一律不用这种方式算 ——

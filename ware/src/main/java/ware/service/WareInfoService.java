@@ -3,6 +3,7 @@ package ware.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import common.vo.PageVO;
 import ware.entity.WareInfoEntity;
+import ware.vo.FareQueryVo;
 import ware.vo.FareVo;
 
 import java.util.List;
@@ -26,14 +27,21 @@ public interface WareInfoService extends IService<WareInfoEntity> {
     PageVO<WareInfoEntity> queryPage(KeyPageQuery query);
 
     /**
-     * 按收货地址计算运费。
+     * 按收货地区划计算一张订单的运费。
      *
-     * <p>运费取收货地址手机号倒数第 10、9 位组成的两位数字；手机号为空或不足 10 位时按 0 处理并记一条日志。
+     * <p>计费规则：每个商品在它所有有库存记录的仓库里选距离收货地最近的一个作为计费仓，
+     * 基准运费按距离分档，同一商品多买的部分在第一件的基础上按比例加价。
      *
-     * @param addrId 会员收货地址 ID，不能为 {@code null}
-     * @return 收货地址与运费；地址查不到时返回 {@code null}
+     * <p>实现方需保证同一组入参算出同一结果，不能依赖实时可售数量——确认页与提交订单各算一次，
+     * 两次不一致会被订单侧判成价格变动而拒绝下单。因此候选仓只看有没有库存记录，不看当前库存。
+     *
+     * @param query 收货地区划编码与要计价的商品清单，不能为 {@code null}
+     * @return 整单运费与按商品拆分的明细；{@code totalFare} 是明细之和
+     * @throws common.exception.BaseException 商品没有任何库存记录时抛 {@code WARE_FARE_NO_WAREHOUSE}；
+     *         候选仓都取不到距离时抛 {@code WARE_FARE_WAREHOUSE_NO_AREA}；
+     *         地理服务不可用时抛 {@code WARE_FARE_DISTANCE_FAILED}
      */
-    FareVo getFare(Long addrId);
+    FareVo getFare(FareQueryVo query);
 
     /**
      * 批量删除仓库，并清理该仓的库存行、采购需求与采购单。

@@ -1,14 +1,13 @@
 package order.feign;
 
 import common.utils.R;
-import order.vo.FareVo;
 import order.vo.SkuStockVo;
+import order.vo.WareFareQueryVo;
+import order.vo.WareFareVo;
 import order.vo.WareSkuLockVo;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
@@ -28,13 +27,14 @@ public interface WmsFeignService {
 
 
     /**
-     * 按收货地址查询运费与地址详情。
+     * 按收货地区划与商品清单计算运费。
      *
-     * @param addrId 收货地址 id，不能为 {@code null}
-     * @return {@code data} 为运费与地址；ware 查不到该地址时 {@code data} 为 {@code null}
+     * @param query 收货地区划编码与要计价的商品清单，不能为 {@code null}
+     * @return {@code data} 为整单运费与按商品拆分的明细；商品没有库存记录、
+     *         或候选仓都取不到距离时 {@code code} 非 0，{@code msg} 说明是哪一种
      */
-    @GetMapping(value = "/ware/wareinfo/fare")
-    R<FareVo> getFare(@RequestParam("addrId") Long addrId);
+    @PostMapping(value = "/ware/wareinfo/fare")
+    R<WareFareVo> getFare(@RequestBody WareFareQueryVo query);
 
 
     /**
