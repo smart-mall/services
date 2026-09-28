@@ -66,8 +66,8 @@ public class ProductDeletedListener {
             int retried = MqRetryUtils.attemptCount(message, MqConstant.Queues.COUPON_PRODUCT_DELETED);
             if (retried >= MAX_RETRY) {
                 // 到上限：投死信队列让人看见后再 ack 收尾；此处若 nack 会被无限重投回来
-                mqPublisher.publish(MqConstant.Exchanges.COUPON_PRODUCT_DELETED_DLX,
-                        MqConstant.Queues.COUPON_PRODUCT_DELETED_DLQ, to);
+                mqPublisher.publish(MqConstant.Exchanges.COUPON_DLX,
+                        MqConstant.RoutingKeys.COUPON_PRODUCT_DELETED_DLQ, to);
                 channel.basicAck(deliveryTag, false);
                 log.error("清理商品优惠数据重试 {} 次仍失败，已投入死信队列 {}：spuIds={}",
                         retried, MqConstant.Queues.COUPON_PRODUCT_DELETED_DLQ, to.getSpuIds(), e);

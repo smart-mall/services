@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 /**
- * 商品下架事件。product 发到 {@code product-event-exchange}，search 消费后清掉这些 SPU 在 ES 里的文档。
+ * 商品下架事件。product 发到 {@code product.exchange}，search 消费后清掉这些 SPU 在 ES 里的文档。
  */
 @Data
 @NoArgsConstructor

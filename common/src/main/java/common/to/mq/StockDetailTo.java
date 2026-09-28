@@ -4,7 +4,7 @@ import lombok.Data;
 
 
 /**
- * 库存工作单详情：ware 锁定库存后随 {@link StockLockedTo} 发到 {@code stock-event-exchange}
+ * 库存工作单详情：ware 锁定库存后随 {@link StockLockedTo} 发到 {@code stock.exchange}
  * （路由键 {@code stock.locked}），经延迟队列到期后由 ware 自己消费，据此判断该不该解锁。
  */
 @Data

@@ -16,7 +16,7 @@ import java.io.IOException;
 
 
 /**
- * 消费 {@code stock.release.stock.queue}，释放不再需要的锁定库存。
+ * 消费 {@code ware.stock-release.queue}，释放不再需要的锁定库存。
  *
  * <p>队列上有两种消息体，按类型分派到两个 {@code @RabbitHandler}：{@link StockLockedTo} 来自本服务
  * 锁定成功后投出的消息（延迟 2 分钟到期，覆盖"下单后业务调用失败回滚"与"订单超时未支付被取消"两种情况），
@@ -26,7 +26,7 @@ import java.io.IOException;
  * 没有退避、没有次数上限，一条毒消息会一直被重投并持续占用消费者。</p>
  */
 @Slf4j
-@RabbitListener(queues = MqConstant.Queues.STOCK_RELEASE)
+@RabbitListener(queues = MqConstant.Queues.WARE_STOCK_RELEASE)
 @Service
 public class StockReleaseListener {
 

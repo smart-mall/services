@@ -68,8 +68,8 @@ public class ProductDeletedListener {
         } catch (Exception e) {
             int retried = MqRetryUtils.attemptCount(message, MqConstant.Queues.THIRDPARTY_PRODUCT_DELETED);
             if (retried >= MAX_RETRY) {
-                mqPublisher.publish(MqConstant.Exchanges.THIRDPARTY_PRODUCT_DELETED_DLX,
-                        MqConstant.Queues.THIRDPARTY_PRODUCT_DELETED_DLQ, to);
+                mqPublisher.publish(MqConstant.Exchanges.THIRDPARTY_DLX,
+                        MqConstant.RoutingKeys.THIRDPARTY_PRODUCT_DELETED_DLQ, to);
                 channel.basicAck(deliveryTag, false);
                 log.error("清理商品图片重试 {} 次仍失败，已投入死信队列 {}：spuIds={}",
                         retried, MqConstant.Queues.THIRDPARTY_PRODUCT_DELETED_DLQ, to.getSpuIds(), e);

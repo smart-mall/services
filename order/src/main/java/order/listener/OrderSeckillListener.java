@@ -15,14 +15,14 @@ import java.io.IOException;
 
 
 /**
- * 秒杀建单监听器：消费 {@code order.seckill.order.queue}，把秒杀成功的消息落成真实订单。
+ * 秒杀建单监听器：消费 {@code order.seckill-created.queue}，把秒杀成功的消息落成真实订单。
  *
  * <p>消息体 {@link SeckillOrderTo} 由 seckill 服务在扣减秒杀库存成功后投递；监听器只负责建单落库，
  * 不再校验库存。
  */
 @Slf4j
 @Component
-@RabbitListener(queues = MqConstant.Queues.ORDER_SECKILL)
+@RabbitListener(queues = MqConstant.Queues.ORDER_SECKILL_CREATED)
 public class OrderSeckillListener {
 
     @Autowired

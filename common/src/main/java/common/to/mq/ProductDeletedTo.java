@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 /**
- * 商品被删除的事件。由 product 发到 {@code product-event-exchange}，
+ * 商品被删除的事件。由 product 发到 {@code product.exchange}，
  * coupon、third-party 与 ware 各有一个独立队列，互不阻塞地各消费一次。
  *
  * <p><b>为什么 imageUrls 要放在消息里，而不是让消费方回查：</b>

@@ -59,8 +59,8 @@ public class ProductDeletedListener {
         } catch (Exception e) {
             int retried = MqRetryUtils.attemptCount(message, MqConstant.Queues.WARE_PRODUCT_DELETED);
             if (retried >= MAX_RETRY) {
-                mqPublisher.publish(MqConstant.Exchanges.WARE_PRODUCT_DELETED_DLX,
-                        MqConstant.Queues.WARE_PRODUCT_DELETED_DLQ, to);
+                mqPublisher.publish(MqConstant.Exchanges.WARE_DLX,
+                        MqConstant.RoutingKeys.WARE_PRODUCT_DELETED_DLQ, to);
                 // 已经落到死信队列，必须 ack 掉原消息；不 ack 会被重新投递，同一条消息反复进死信
                 channel.basicAck(deliveryTag, false);
                 log.error("清理商品库存行重试 {} 次仍失败，已投入死信队列 {}：skuIds={}",

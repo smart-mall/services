@@ -12,9 +12,12 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 
-/** 定时关闭订单。 */
-
-@RabbitListener(queues = MqConstant.Queues.ORDER_RELEASE)
+/**
+ * 超时关单监听器：消费 {@code order.timed-out.queue}，关闭延迟队列死信出来的订单。
+ *
+ * <p>本类无状态。队列没有重试上限与死信兜底，处理失败会把消息放回队列一直重投。</p>
+ */
+@RabbitListener(queues = MqConstant.Queues.ORDER_TIMED_OUT)
 @Service
 public class OrderCloseListener {
 
@@ -24,9 +27,9 @@ public class OrderCloseListener {
     /**
      * 消费过期订单消息，调用 {@link OrderService#closeOrder} 关单。
      *
-     * <p>消息来自 {@code order.delay.queue} 的 TTL 死信，消息体是下单时投递的 {@link OrderEntity} 快照。
-     * 处理成功即 ack；任何异常都 {@code basicReject(requeue=true)} 重新入队，队列没有重试上限与死信兜底，
-     * 会一直重投到关单不再抛异常为止。
+     * <p>消息来自 {@code order.created.delay.queue} 的 TTL 死信，消息体是下单时投递的
+     * {@link OrderEntity} 快照。处理成功即 ack；任何异常都 {@code basicReject(requeue=true)}
+     * 重新入队，会一直重投到关单不再抛异常为止。</p>
      *
      * @param orderEntity 过期订单快照，至少带 orderSn
      * @param channel RabbitMQ 信道，用于回执

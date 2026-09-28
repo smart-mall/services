@@ -228,7 +228,7 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
                     lockedTo.setDetailTo(detailTo);
                     // 消息先于事务提交发出：若本事务最终回滚，解锁时按明细 ID 查不到记录，
                     // 那条消息就成了空操作，不会误放别单的库存
-                    mqPublisher.publish(MqConstant.Exchanges.STOCK_EVENT, MqConstant.RoutingKeys.STOCK_LOCKED, lockedTo);
+                    mqPublisher.publish(MqConstant.Exchanges.STOCK, MqConstant.RoutingKeys.STOCK_LOCKED, lockedTo);
                     break;
                 } else {
                     //当前仓库锁失败，重试下一个仓库

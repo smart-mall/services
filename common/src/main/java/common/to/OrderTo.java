@@ -7,7 +7,7 @@ import java.util.Date;
 
 
 /**
- * 订单快照。order 关单后发到 {@code order-event-exchange}（路由键 {@code order.release.other}），
+ * 订单快照。order 关单后发到 {@code order.exchange}（路由键 {@code order.closed}），
  * ware 收到后按订单号解锁该单占用的库存。
  *
  * <p>ware 只读其中的 {@code orderSn} 去定位库存工作单，其余字段仅作为下单时的订单快照。

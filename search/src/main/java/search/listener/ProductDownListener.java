@@ -15,11 +15,11 @@ import search.service.ProductSaveService;
 import java.io.IOException;
 
 /**
- * 消费 {@code product.down}，把下架商品从 ES 里清掉。失败走 DLX → 重试队列 → 最多 3 次 → DLQ。
+ * 消费 {@code product.delisted}，把下架商品从 ES 里清掉。失败走 DLX → 重试队列 → 最多 3 次 → DLQ。
  */
 @Slf4j
 @Component
-@RabbitListener(queues = MqConstant.Queues.SEARCH_PRODUCT_DOWN)
+@RabbitListener(queues = MqConstant.Queues.SEARCH_PRODUCT_DELISTED)
 public class ProductDownListener {
 
     /** 重试上限：达到后直接投进死信队列。 */
@@ -51,13 +51,13 @@ public class ProductDownListener {
             channel.basicAck(deliveryTag, false);
             log.info("下架商品已从 ES 清除：spuIds={}", to.getSpuIds());
         } catch (Exception e) {
-            int retried = MqRetryUtils.attemptCount(message, MqConstant.Queues.SEARCH_PRODUCT_DOWN);
+            int retried = MqRetryUtils.attemptCount(message, MqConstant.Queues.SEARCH_PRODUCT_DELISTED);
             if (retried >= MAX_RETRY) {
-                mqPublisher.publish(MqConstant.Exchanges.SEARCH_PRODUCT_DOWN_DLX,
-                        MqConstant.Queues.SEARCH_PRODUCT_DOWN_DLQ, to);
+                mqPublisher.publish(MqConstant.Exchanges.SEARCH_DLX,
+                        MqConstant.RoutingKeys.SEARCH_PRODUCT_DELISTED_DLQ, to);
                 channel.basicAck(deliveryTag, false);
                 log.error("下架商品从 ES 清除重试 {} 次仍失败，已投入死信队列 {}：spuIds={}",
-                        retried, MqConstant.Queues.SEARCH_PRODUCT_DOWN_DLQ, to.getSpuIds(), e);
+                        retried, MqConstant.Queues.SEARCH_PRODUCT_DELISTED_DLQ, to.getSpuIds(), e);
             } else {
                 channel.basicNack(deliveryTag, false, false);
                 log.warn("下架商品从 ES 清除失败，交由重试队列延迟重投（已重试 {} 次）：spuIds={}",

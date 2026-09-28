@@ -338,8 +338,8 @@ public class SeckillServiceImpl implements SeckillService {
         orderTo.setSkuId(redisTo.getSkuId());
         orderTo.setSeckillPrice(redisTo.getSeckillPrice());
         mqPublisher.publish(
-                MqConstant.Exchanges.ORDER_EVENT,
-                MqConstant.RoutingKeys.ORDER_SECKILL,
+                MqConstant.Exchanges.ORDER,
+                MqConstant.RoutingKeys.ORDER_SECKILL_CREATED,
                 orderTo);
 
         log.info("秒杀成功，memberId={}，killId={}，num={}，orderSn={}，耗时={}ms",

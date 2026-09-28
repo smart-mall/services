@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * search 侧消费 {@code product.down} 所需的交换机、队列与绑定。
+ * search 侧消费 {@code product.delisted} 所需的交换机、队列与绑定。
  *
  * <p>拓扑：业务队列消费失败 → DLX → 重试队列躺 TTL → 重回业务队列；重试到上限由监听器投进 DLQ。
  */
@@ -17,13 +17,13 @@ import org.springframework.context.annotation.Configuration;
 public class RabbitMQConfig {
 
     /**
-     * 商品事件主题交换机，{@code product.down} 由它路由到本模块的业务队列。
+     * 商品事件主题交换机，{@code product.delisted} 由它路由到本模块的业务队列。
      *
      * @return 商品事件主题交换机
      */
     @Bean
-    public Exchange productEventExchange() {
-        return MqBuilder.topicExchange(MqConstant.Exchanges.PRODUCT_EVENT);
+    public Exchange productExchange() {
+        return MqBuilder.topicExchange(MqConstant.Exchanges.PRODUCT);
     }
 
     /**
@@ -32,11 +32,11 @@ public class RabbitMQConfig {
      * @return 下架事件业务队列
      */
     @Bean
-    public Queue searchProductDownQueue() {
+    public Queue searchProductDelistedQueue() {
         return MqBuilder.deadLetterQueue(
-                MqConstant.Queues.SEARCH_PRODUCT_DOWN,
-                MqConstant.Exchanges.SEARCH_PRODUCT_DOWN_DLX,
-                MqConstant.RoutingKeys.SEARCH_PRODUCT_DOWN_RETRY);
+                MqConstant.Queues.SEARCH_PRODUCT_DELISTED,
+                MqConstant.Exchanges.SEARCH_DLX,
+                MqConstant.RoutingKeys.SEARCH_PRODUCT_DELISTED_RETRY);
     }
 
     /**
@@ -45,11 +45,11 @@ public class RabbitMQConfig {
      * @return 业务队列与商品事件交换机的绑定
      */
     @Bean
-    public Binding searchProductDownBinding() {
+    public Binding searchProductDelistedBinding() {
         return MqBuilder.bind(
-                MqConstant.Queues.SEARCH_PRODUCT_DOWN,
-                MqConstant.Exchanges.PRODUCT_EVENT,
-                MqConstant.RoutingKeys.PRODUCT_DOWN);
+                MqConstant.Queues.SEARCH_PRODUCT_DELISTED,
+                MqConstant.Exchanges.PRODUCT,
+                MqConstant.RoutingKeys.PRODUCT_DELISTED);
     }
 
     /**
@@ -58,8 +58,8 @@ public class RabbitMQConfig {
      * @return 下架事件死信交换机
      */
     @Bean
-    public Exchange searchProductDownDlx() {
-        return MqBuilder.directExchange(MqConstant.Exchanges.SEARCH_PRODUCT_DOWN_DLX);
+    public Exchange searchDlxExchange() {
+        return MqBuilder.directExchange(MqConstant.Exchanges.SEARCH_DLX);
     }
 
     /**
@@ -68,12 +68,12 @@ public class RabbitMQConfig {
      * @return 下架事件重试队列
      */
     @Bean
-    public Queue searchProductDownRetryQueue() {
+    public Queue searchProductDelistedRetryQueue() {
         return MqBuilder.ttlQueue(
-                MqConstant.Queues.SEARCH_PRODUCT_DOWN_RETRY,
-                MqConstant.Exchanges.PRODUCT_EVENT,
-                MqConstant.RoutingKeys.PRODUCT_DOWN,
-                MqConstant.TtlMillis.PRODUCT_DOWN_RETRY);
+                MqConstant.Queues.SEARCH_PRODUCT_DELISTED_RETRY,
+                MqConstant.Exchanges.PRODUCT,
+                MqConstant.RoutingKeys.PRODUCT_DELISTED,
+                MqConstant.TtlMillis.PRODUCT_DELISTED_RETRY);
     }
 
     /**
@@ -82,11 +82,11 @@ public class RabbitMQConfig {
      * @return 重试队列与死信交换机的绑定
      */
     @Bean
-    public Binding searchProductDownRetryBinding() {
+    public Binding searchProductDelistedRetryBinding() {
         return MqBuilder.bind(
-                MqConstant.Queues.SEARCH_PRODUCT_DOWN_RETRY,
-                MqConstant.Exchanges.SEARCH_PRODUCT_DOWN_DLX,
-                MqConstant.RoutingKeys.SEARCH_PRODUCT_DOWN_RETRY);
+                MqConstant.Queues.SEARCH_PRODUCT_DELISTED_RETRY,
+                MqConstant.Exchanges.SEARCH_DLX,
+                MqConstant.RoutingKeys.SEARCH_PRODUCT_DELISTED_RETRY);
     }
 
     /**
@@ -95,8 +95,8 @@ public class RabbitMQConfig {
      * @return 下架事件死信队列
      */
     @Bean
-    public Queue searchProductDownDlq() {
-        return MqBuilder.durableQueue(MqConstant.Queues.SEARCH_PRODUCT_DOWN_DLQ);
+    public Queue searchProductDelistedDlq() {
+        return MqBuilder.durableQueue(MqConstant.Queues.SEARCH_PRODUCT_DELISTED_DLQ);
     }
 
     /**
@@ -107,10 +107,10 @@ public class RabbitMQConfig {
      * @return 死信队列与死信交换机的绑定
      */
     @Bean
-    public Binding searchProductDownDlqBinding() {
+    public Binding searchProductDelistedDlqBinding() {
         return MqBuilder.bind(
-                MqConstant.Queues.SEARCH_PRODUCT_DOWN_DLQ,
-                MqConstant.Exchanges.SEARCH_PRODUCT_DOWN_DLX,
-                MqConstant.Queues.SEARCH_PRODUCT_DOWN_DLQ);
+                MqConstant.Queues.SEARCH_PRODUCT_DELISTED_DLQ,
+                MqConstant.Exchanges.SEARCH_DLX,
+                MqConstant.RoutingKeys.SEARCH_PRODUCT_DELISTED_DLQ);
     }
 }

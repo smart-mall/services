@@ -12,7 +12,8 @@ import org.springframework.context.annotation.Configuration;
  * ware 侧的 MQ 拓扑：库存释放所需的交换机、队列与绑定，以及删商品后清理零库存行的队列组。
  *
  * <p>库存释放队列由本服务（消费方）声明，同时绑到 stock 与 order 两个交换机上：
- * {@code stock.release.#} 收延迟 2 分钟到期的释放消息，{@code order.release.other.#} 收订单关闭的释放消息。</p>
+ * {@code stock.released.#} 收延迟 2 分钟到期的释放消息，{@code order.closed.#} 收订单关闭的释放消息。
+ * 它是全套拓扑里唯一的多键扇入点，因此按职责命名。</p>
  *
  * <p>删商品那组是业务队列 + 自己的 DLX + TTL 重试队列 + 死信队列，消费失败经重试队列延迟 1 分钟回投，
  * 重试到上限由监听器投进死信队列等人工处理。</p>
@@ -26,8 +27,8 @@ public class RabbitMQConfig {
      * @return 持久化的 topic 交换机
      */
     @Bean
-    public Exchange stockEventExchange() {
-        return MqBuilder.topicExchange(MqConstant.Exchanges.STOCK_EVENT);
+    public Exchange stockExchange() {
+        return MqBuilder.topicExchange(MqConstant.Exchanges.STOCK);
     }
 
     /**
@@ -38,8 +39,8 @@ public class RabbitMQConfig {
      * @return 持久化的 topic 交换机
      */
     @Bean
-    public Exchange orderEventExchange() {
-        return MqBuilder.topicExchange(MqConstant.Exchanges.ORDER_EVENT);
+    public Exchange orderExchange() {
+        return MqBuilder.topicExchange(MqConstant.Exchanges.ORDER);
     }
 
     /**
@@ -50,8 +51,8 @@ public class RabbitMQConfig {
      * @return 持久化的 topic 交换机
      */
     @Bean
-    public Exchange productEventExchange() {
-        return MqBuilder.topicExchange(MqConstant.Exchanges.PRODUCT_EVENT);
+    public Exchange productExchange() {
+        return MqBuilder.topicExchange(MqConstant.Exchanges.PRODUCT);
     }
 
     /**
@@ -60,35 +61,35 @@ public class RabbitMQConfig {
      * @return 持久化队列
      */
     @Bean
-    public Queue stockReleaseStockQueue() {
-        return MqBuilder.durableQueue(MqConstant.Queues.STOCK_RELEASE);
+    public Queue wareStockReleaseQueue() {
+        return MqBuilder.durableQueue(MqConstant.Queues.WARE_STOCK_RELEASE);
     }
 
     /**
-     * 库存延迟队列，消息滞留 2 分钟后以 {@code stock.release} 死信进释放队列。
+     * 库存延迟队列，消息滞留 2 分钟后以 {@code stock.released} 死信进释放队列。
      *
      * @return 带 TTL 与死信参数的持久化队列
      */
     @Bean
-    public Queue stockDelay() {
+    public Queue wareStockLockedDelayQueue() {
         return MqBuilder.ttlQueue(
-                MqConstant.Queues.STOCK_DELAY,
-                MqConstant.Exchanges.STOCK_EVENT,
-                MqConstant.RoutingKeys.STOCK_RELEASE,
-                MqConstant.TtlMillis.STOCK_LOCK_RELEASE);
+                MqConstant.Queues.WARE_STOCK_LOCKED_DELAY,
+                MqConstant.Exchanges.STOCK,
+                MqConstant.RoutingKeys.STOCK_RELEASED,
+                MqConstant.TtlMillis.STOCK_LOCK_TIMEOUT);
     }
 
     /**
-     * 把释放队列绑到库存事件交换机上，接收 {@code stock.release.#} 匹配的延迟到期消息。
+     * 把释放队列绑到库存事件交换机上，接收 {@code stock.released.#} 匹配的延迟到期消息。
      *
      * @return 队列与交换机的绑定
      */
     @Bean
-    public Binding stockLocked() {
+    public Binding wareStockReleasedBinding() {
         return MqBuilder.bind(
-                MqConstant.Queues.STOCK_RELEASE,
-                MqConstant.Exchanges.STOCK_EVENT,
-                MqConstant.RoutingKeys.STOCK_RELEASE_PATTERN);
+                MqConstant.Queues.WARE_STOCK_RELEASE,
+                MqConstant.Exchanges.STOCK,
+                MqConstant.RoutingKeys.STOCK_RELEASED_PATTERN);
     }
 
     /**
@@ -97,24 +98,24 @@ public class RabbitMQConfig {
      * @return 队列与交换机的绑定
      */
     @Bean
-    public Binding stockLockedBinding() {
+    public Binding wareStockLockedDelayBinding() {
         return MqBuilder.bind(
-                MqConstant.Queues.STOCK_DELAY,
-                MqConstant.Exchanges.STOCK_EVENT,
+                MqConstant.Queues.WARE_STOCK_LOCKED_DELAY,
+                MqConstant.Exchanges.STOCK,
                 MqConstant.RoutingKeys.STOCK_LOCKED);
     }
 
     /**
-     * 把释放队列绑到订单事件交换机上，接收 {@code order.release.other.#} 匹配的订单关闭消息。
+     * 把释放队列绑到订单事件交换机上，接收 {@code order.closed.#} 匹配的订单关闭消息。
      *
      * @return 队列与交换机的绑定
      */
     @Bean
-    public Binding stockReleaseFromOrderBinding() {
+    public Binding wareStockReleaseFromOrderBinding() {
         return MqBuilder.bind(
-                MqConstant.Queues.STOCK_RELEASE,
-                MqConstant.Exchanges.ORDER_EVENT,
-                MqConstant.RoutingKeys.ORDER_RELEASE_OTHER_PATTERN);
+                MqConstant.Queues.WARE_STOCK_RELEASE,
+                MqConstant.Exchanges.ORDER,
+                MqConstant.RoutingKeys.ORDER_CLOSED_PATTERN);
     }
 
     // ── 商品删除后清掉已删 sku 的零库存行 ──
@@ -128,7 +129,7 @@ public class RabbitMQConfig {
     public Queue wareProductDeletedQueue() {
         return MqBuilder.deadLetterQueue(
                 MqConstant.Queues.WARE_PRODUCT_DELETED,
-                MqConstant.Exchanges.WARE_PRODUCT_DELETED_DLX,
+                MqConstant.Exchanges.WARE_DLX,
                 MqConstant.RoutingKeys.WARE_PRODUCT_DELETED_RETRY);
     }
 
@@ -141,7 +142,7 @@ public class RabbitMQConfig {
     public Binding wareProductDeletedBinding() {
         return MqBuilder.bind(
                 MqConstant.Queues.WARE_PRODUCT_DELETED,
-                MqConstant.Exchanges.PRODUCT_EVENT,
+                MqConstant.Exchanges.PRODUCT,
                 MqConstant.RoutingKeys.PRODUCT_DELETED);
     }
 
@@ -151,8 +152,8 @@ public class RabbitMQConfig {
      * @return 持久化的 direct 交换机
      */
     @Bean
-    public Exchange wareProductDeletedDlx() {
-        return MqBuilder.directExchange(MqConstant.Exchanges.WARE_PRODUCT_DELETED_DLX);
+    public Exchange wareDlxExchange() {
+        return MqBuilder.directExchange(MqConstant.Exchanges.WARE_DLX);
     }
 
     /**
@@ -164,7 +165,7 @@ public class RabbitMQConfig {
     public Queue wareProductDeletedRetryQueue() {
         return MqBuilder.ttlQueue(
                 MqConstant.Queues.WARE_PRODUCT_DELETED_RETRY,
-                MqConstant.Exchanges.PRODUCT_EVENT,
+                MqConstant.Exchanges.PRODUCT,
                 MqConstant.RoutingKeys.PRODUCT_DELETED,
                 MqConstant.TtlMillis.PRODUCT_DELETED_RETRY);
     }
@@ -178,7 +179,7 @@ public class RabbitMQConfig {
     public Binding wareProductDeletedRetryBinding() {
         return MqBuilder.bind(
                 MqConstant.Queues.WARE_PRODUCT_DELETED_RETRY,
-                MqConstant.Exchanges.WARE_PRODUCT_DELETED_DLX,
+                MqConstant.Exchanges.WARE_DLX,
                 MqConstant.RoutingKeys.WARE_PRODUCT_DELETED_RETRY);
     }
 
@@ -201,7 +202,7 @@ public class RabbitMQConfig {
     public Binding wareProductDeletedDlqBinding() {
         return MqBuilder.bind(
                 MqConstant.Queues.WARE_PRODUCT_DELETED_DLQ,
-                MqConstant.Exchanges.WARE_PRODUCT_DELETED_DLX,
-                MqConstant.Queues.WARE_PRODUCT_DELETED_DLQ);
+                MqConstant.Exchanges.WARE_DLX,
+                MqConstant.RoutingKeys.WARE_PRODUCT_DELETED_DLQ);
     }
 }

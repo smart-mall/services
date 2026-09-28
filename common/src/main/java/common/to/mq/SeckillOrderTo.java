@@ -6,7 +6,7 @@ import java.math.BigDecimal;
 
 
 /**
- * 秒杀下单消息：seckill 抢到信号量后发到 {@code order-event-exchange}（路由键 {@code order.seckill.order}），
+ * 秒杀下单消息：seckill 抢到信号量后发到 {@code order.exchange}（路由键 {@code order.seckill-created}），
  * order 消费后异步建单。
  */
 @Data

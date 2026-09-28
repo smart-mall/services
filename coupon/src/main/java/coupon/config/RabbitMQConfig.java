@@ -11,25 +11,12 @@ import org.springframework.context.annotation.Configuration;
 /**
  * coupon 侧消费 {@code product.deleted} 所需的交换机与队列。
  *
- * <p>结构（失败路径靠"队列自己的 DLX + TTL 重试队列"实现）：</p>
+ * <p>拓扑：业务队列消费失败 nack 后进 coupon.dlx，由它转进重试队列躺 1 分钟，到期死信回
+ * product.exchange 并被重新路由到业务队列；重试到上限仍失败的消息由监听器直接投进死信队列。</p>
  *
- * <pre>
- * product-event-exchange ──product.deleted──> coupon.product.deleted.queue
- *                                                    │ 消费失败 basicNack(requeue=false)
- *                                                    ▼ DLX
- *                                     coupon.product.deleted.dlx
- *                                                    │ coupon.product.deleted.retry
- *                                                    ▼
- *                              coupon.product.deleted.retry.queue  (TTL 1 分钟)
- *                                                    │ 到期死信回 product-event-exchange
- *                                                    └──> 回到 coupon.product.deleted.queue（下一轮）
- *
- * 重试到上限仍失败 → 由监听器直接投到 coupon.product.deleted.dlq（消费端手动处理）
- * </pre>
- *
- * <p><b>失败必须 basicNack(requeue=false)：</b>requeue=true 会把消息塞回队头全速重投，
- * 没有退避、没有上限、没有出口 —— 一条毒消息能把消费者打死，而且完全静默；
- * 走 DLX 才能让消息先躺 TTL 再重投，并在超过上限后落进死信队列。</p>
+ * <p><b>失败必须 basicNack(requeue=false)：</b>requeue=true 会把消息塞回队头全速重投，没有退避、
+ * 没有上限、没有出口，一条毒消息能把消费者打死且完全静默；走 DLX 才能让消息先躺 TTL 再重投，
+ * 并在超过上限后落进死信队列。</p>
  */
 @Configuration
 public class RabbitMQConfig {
@@ -40,8 +27,8 @@ public class RabbitMQConfig {
      * @return 持久化的 topic 交换机
      */
     @Bean
-    public Exchange productEventExchange() {
-        return MqBuilder.topicExchange(MqConstant.Exchanges.PRODUCT_EVENT);
+    public Exchange productExchange() {
+        return MqBuilder.topicExchange(MqConstant.Exchanges.PRODUCT);
     }
 
     /**
@@ -53,7 +40,7 @@ public class RabbitMQConfig {
     public Queue couponProductDeletedQueue() {
         return MqBuilder.deadLetterQueue(
                 MqConstant.Queues.COUPON_PRODUCT_DELETED,
-                MqConstant.Exchanges.COUPON_PRODUCT_DELETED_DLX,
+                MqConstant.Exchanges.COUPON_DLX,
                 MqConstant.RoutingKeys.COUPON_PRODUCT_DELETED_RETRY);
     }
 
@@ -66,7 +53,7 @@ public class RabbitMQConfig {
     public Binding couponProductDeletedBinding() {
         return MqBuilder.bind(
                 MqConstant.Queues.COUPON_PRODUCT_DELETED,
-                MqConstant.Exchanges.PRODUCT_EVENT,
+                MqConstant.Exchanges.PRODUCT,
                 MqConstant.RoutingKeys.PRODUCT_DELETED);
     }
 
@@ -76,8 +63,8 @@ public class RabbitMQConfig {
      * @return 持久化的 direct 交换机
      */
     @Bean
-    public Exchange couponProductDeletedDlx() {
-        return MqBuilder.directExchange(MqConstant.Exchanges.COUPON_PRODUCT_DELETED_DLX);
+    public Exchange couponDlxExchange() {
+        return MqBuilder.directExchange(MqConstant.Exchanges.COUPON_DLX);
     }
 
     /**
@@ -90,7 +77,7 @@ public class RabbitMQConfig {
     public Queue couponProductDeletedRetryQueue() {
         return MqBuilder.ttlQueue(
                 MqConstant.Queues.COUPON_PRODUCT_DELETED_RETRY,
-                MqConstant.Exchanges.PRODUCT_EVENT,
+                MqConstant.Exchanges.PRODUCT,
                 MqConstant.RoutingKeys.PRODUCT_DELETED,
                 MqConstant.TtlMillis.PRODUCT_DELETED_RETRY);
     }
@@ -104,7 +91,7 @@ public class RabbitMQConfig {
     public Binding couponProductDeletedRetryBinding() {
         return MqBuilder.bind(
                 MqConstant.Queues.COUPON_PRODUCT_DELETED_RETRY,
-                MqConstant.Exchanges.COUPON_PRODUCT_DELETED_DLX,
+                MqConstant.Exchanges.COUPON_DLX,
                 MqConstant.RoutingKeys.COUPON_PRODUCT_DELETED_RETRY);
     }
 
@@ -127,7 +114,7 @@ public class RabbitMQConfig {
     public Binding couponProductDeletedDlqBinding() {
         return MqBuilder.bind(
                 MqConstant.Queues.COUPON_PRODUCT_DELETED_DLQ,
-                MqConstant.Exchanges.COUPON_PRODUCT_DELETED_DLX,
-                MqConstant.Queues.COUPON_PRODUCT_DELETED_DLQ);
+                MqConstant.Exchanges.COUPON_DLX,
+                MqConstant.RoutingKeys.COUPON_PRODUCT_DELETED_DLQ);
     }
 }

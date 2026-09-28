@@ -58,7 +58,7 @@ public interface SpuInfoService extends IService<SpuInfoEntity> {
     void up(Long spuId);
 
     /**
-     * 下架 spu：本地只改状态并落一条 {@code product.down} 事件，ES 里的文档由 search 异步清掉。
+     * 下架 spu：本地只改状态并落一条 {@code product.delisted} 事件，ES 里的文档由 search 异步清掉。
      *
      * <p>幂等：已下架的商品也会照常重发事件，用于修掉「库说下架、搜索还能搜到」。
      *

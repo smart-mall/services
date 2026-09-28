@@ -329,7 +329,7 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
         // 7. 跨服务的清理（coupon 的优惠数据、MinIO 图片）落一条本地消息，与上面 7 张表的删除同事务，
         // 提交后才投出去。远程删除不可回滚，不能直接调
         reliableMqPublisher.publish(
-                MqConstant.Exchanges.PRODUCT_EVENT,
+                MqConstant.Exchanges.PRODUCT,
                 MqConstant.RoutingKeys.PRODUCT_DELETED,
                 new ProductDeletedTo(existingSpuIds, skuIds, imageUrls));
 
@@ -605,8 +605,8 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
         spuInfoDao.updateSpuStatus(spuId, ProductConstant.ProductStatusEnum.DOWN.getCode());
 
         reliableMqPublisher.publish(
-                MqConstant.Exchanges.PRODUCT_EVENT,
-                MqConstant.RoutingKeys.PRODUCT_DOWN,
+                MqConstant.Exchanges.PRODUCT,
+                MqConstant.RoutingKeys.PRODUCT_DELISTED,
                 new ProductDownTo(List.of(spuId)));
 
         log.info("商品下架完成：spuId=" + spuId);

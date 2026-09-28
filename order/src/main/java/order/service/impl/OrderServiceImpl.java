@@ -479,7 +479,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
         // TODO 阶段 4：MQ 发送与清购物车都在事务提交前发生，事务回滚时消费者会收到
         //   数据库里不存在的订单、购物车也已清空；正确做法是注册 TransactionSynchronization.afterCommit
-        mqPublisher.publish(MqConstant.Exchanges.ORDER_EVENT, MqConstant.RoutingKeys.ORDER_CREATE, order.getOrder());
+        mqPublisher.publish(MqConstant.Exchanges.ORDER, MqConstant.RoutingKeys.ORDER_CREATED, order.getOrder());
         redisTemplate.delete(CART_PREFIX + memberId);
 
         SubmitOrderResponseVo responseVo = new SubmitOrderResponseVo();
@@ -732,7 +732,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         try {
             // TODO 阶段 4：先改库再发消息，发失败就丢了解锁库存的机会（这里只打日志）。
             //   要做的是本地消息表 + 定时重投，或者让 ware 那边容忍漏消息
-            mqPublisher.publish(MqConstant.Exchanges.ORDER_EVENT, MqConstant.RoutingKeys.ORDER_RELEASE_OTHER, orderTo);
+            mqPublisher.publish(MqConstant.Exchanges.ORDER, MqConstant.RoutingKeys.ORDER_CLOSED, orderTo);
         } catch (Exception e) {
             log.error("发送库存释放消息失败，orderSn={}", orderInfo.getOrderSn(), e);
         }

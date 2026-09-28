@@ -23,8 +23,8 @@ public class RabbitMQConfig {
      * @return 持久化的 topic 交换机
      */
     @Bean
-    public Exchange productEventExchange() {
-        return MqBuilder.topicExchange(MqConstant.Exchanges.PRODUCT_EVENT);
+    public Exchange productExchange() {
+        return MqBuilder.topicExchange(MqConstant.Exchanges.PRODUCT);
     }
 
     /**
@@ -36,7 +36,7 @@ public class RabbitMQConfig {
     public Queue thirdPartyProductDeletedQueue() {
         return MqBuilder.deadLetterQueue(
                 MqConstant.Queues.THIRDPARTY_PRODUCT_DELETED,
-                MqConstant.Exchanges.THIRDPARTY_PRODUCT_DELETED_DLX,
+                MqConstant.Exchanges.THIRDPARTY_DLX,
                 MqConstant.RoutingKeys.THIRDPARTY_PRODUCT_DELETED_RETRY);
     }
 
@@ -49,7 +49,7 @@ public class RabbitMQConfig {
     public Binding thirdPartyProductDeletedBinding() {
         return MqBuilder.bind(
                 MqConstant.Queues.THIRDPARTY_PRODUCT_DELETED,
-                MqConstant.Exchanges.PRODUCT_EVENT,
+                MqConstant.Exchanges.PRODUCT,
                 MqConstant.RoutingKeys.PRODUCT_DELETED);
     }
 
@@ -59,8 +59,8 @@ public class RabbitMQConfig {
      * @return 持久化的 direct 交换机
      */
     @Bean
-    public Exchange thirdPartyProductDeletedDlx() {
-        return MqBuilder.directExchange(MqConstant.Exchanges.THIRDPARTY_PRODUCT_DELETED_DLX);
+    public Exchange thirdPartyDlxExchange() {
+        return MqBuilder.directExchange(MqConstant.Exchanges.THIRDPARTY_DLX);
     }
 
     /**
@@ -72,7 +72,7 @@ public class RabbitMQConfig {
     public Queue thirdPartyProductDeletedRetryQueue() {
         return MqBuilder.ttlQueue(
                 MqConstant.Queues.THIRDPARTY_PRODUCT_DELETED_RETRY,
-                MqConstant.Exchanges.PRODUCT_EVENT,
+                MqConstant.Exchanges.PRODUCT,
                 MqConstant.RoutingKeys.PRODUCT_DELETED,
                 MqConstant.TtlMillis.PRODUCT_DELETED_RETRY);
     }
@@ -86,7 +86,7 @@ public class RabbitMQConfig {
     public Binding thirdPartyProductDeletedRetryBinding() {
         return MqBuilder.bind(
                 MqConstant.Queues.THIRDPARTY_PRODUCT_DELETED_RETRY,
-                MqConstant.Exchanges.THIRDPARTY_PRODUCT_DELETED_DLX,
+                MqConstant.Exchanges.THIRDPARTY_DLX,
                 MqConstant.RoutingKeys.THIRDPARTY_PRODUCT_DELETED_RETRY);
     }
 
@@ -109,7 +109,7 @@ public class RabbitMQConfig {
     public Binding thirdPartyProductDeletedDlqBinding() {
         return MqBuilder.bind(
                 MqConstant.Queues.THIRDPARTY_PRODUCT_DELETED_DLQ,
-                MqConstant.Exchanges.THIRDPARTY_PRODUCT_DELETED_DLX,
-                MqConstant.Queues.THIRDPARTY_PRODUCT_DELETED_DLQ);
+                MqConstant.Exchanges.THIRDPARTY_DLX,
+                MqConstant.RoutingKeys.THIRDPARTY_PRODUCT_DELETED_DLQ);
     }
 }
