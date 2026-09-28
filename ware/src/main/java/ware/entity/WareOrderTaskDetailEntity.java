@@ -29,7 +29,7 @@ public class WareOrderTaskDetailEntity implements Serializable {
 	private Long id;
 	/** 被锁定的 SKU 标识。 */
 	private Long skuId;
-	/** SKU 名称；建明细时写入空串，真实名称未落库。 */
+	/** SKU 名称，取自 order 侧购物项的标题。 */
 	private String skuName;
 	/** 该明细锁定的数量。 */
 	private Integer skuNum;

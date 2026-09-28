@@ -176,8 +176,15 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
     @Override
     public boolean orderLockStock(WareSkuLockVo vo) {
         // 1. 先建库存工作单：这一单锁定的所有明细都挂在它下面
+        //    收货信息与付款方式取自订单快照，让工作单自包含，发货时不必回查订单
         WareOrderTaskEntity wareOrderTaskEntity = new WareOrderTaskEntity();
+        wareOrderTaskEntity.setOrderId(vo.getOrderId());
         wareOrderTaskEntity.setOrderSn(vo.getOrderSn());
+        wareOrderTaskEntity.setConsignee(vo.getConsignee());
+        wareOrderTaskEntity.setConsigneeTel(vo.getConsigneeTel());
+        wareOrderTaskEntity.setDeliveryAddress(vo.getDeliveryAddress());
+        wareOrderTaskEntity.setOrderComment(vo.getOrderComment());
+        wareOrderTaskEntity.setPaymentWay(vo.getPaymentWay());
         wareOrderTaskEntity.setCreateTime(new Date());
         wareOrderTaskService.save(wareOrderTaskEntity);
 
@@ -189,6 +196,7 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
             SkuWareHasStock stock = new SkuWareHasStock();
             Long skuId = item.getSkuId();
             stock.setSkuId(skuId);
+            stock.setSkuName(item.getTitle());
             stock.setNum(item.getCount());
             List<Long> wareIdList = wareSkuDao.listWareIdHasSkuStock(skuId);
             stock.setWareId(wareIdList);
@@ -213,7 +221,7 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
                     skuStocked = true;
                     WareOrderTaskDetailEntity taskDetailEntity = WareOrderTaskDetailEntity.builder()
                             .skuId(skuId)
-                            .skuName("")
+                            .skuName(hasStock.getSkuName())
                             .skuNum(hasStock.getNum())
                             .taskId(wareOrderTaskEntity.getId())
                             .wareId(wareId)
@@ -431,10 +439,11 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
 
     /** 锁定库存的中间态：一个 SKU 的待锁数量与它有货的仓库列表。 */
     @Data
-    static
-    class SkuWareHasStock {
+    static class SkuWareHasStock {
         /** SKU ID。 */
         private Long skuId;
+        /** SKU 名称，来自 order 侧购物项的标题，写入工作单明细。 */
+        private String skuName;
         /** 待锁定的数量。 */
         private Integer num;
         /** 有该 SKU 库存的仓库 ID 列表。 */

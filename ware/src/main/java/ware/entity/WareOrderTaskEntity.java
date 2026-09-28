@@ -13,6 +13,9 @@ import lombok.Data;
  * 明细挂在它下面。
  *
  * <p>解锁时按订单号反查工作单，再逐条处理其明细。
+ *
+ * <p>收货人、配送地址、订单备注与付款方式在 lockStock 时从 order 侧传来的订单快照写入，
+ * 工作单因此是自包含的，发货流程不必回查订单。
  */
 @Data
 @TableName("wms_ware_order_task")
@@ -22,7 +25,7 @@ public class WareOrderTaskEntity implements Serializable {
 	/** 主键 ID。 */
 	@TableId
 	private Long id;
-	/** 订单 ID；建单时不写，关联以 {@code orderSn} 为准。 */
+	/** 订单 ID，建单时由 order 侧带过来。 */
 	private Long orderId;
 	/** 订单号，解锁时按它反查工作单。 */
 	private String orderSn;
@@ -44,7 +47,12 @@ public class WareOrderTaskEntity implements Serializable {
 	private String trackingNo;
 	/** 工作单创建时间。 */
 	private Date createTime;
-	/** 仓库 ID。 */
+	/**
+	 * 仓库 ID；建单时不写。
+	 *
+	 * <p>一张工作单会跨仓库 —— 每个 SKU 各自挑一个有货的仓锁定 —— 工作单级放不下这个事实，
+	 * 所以仓库记在明细上。
+	 */
 	private Long wareId;
 	/** 工作单备注。 */
 	private String taskComment;

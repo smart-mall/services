@@ -14,7 +14,7 @@ public class StockDetailTo {
     private Long id;
     /** SKU ID。 */
     private Long skuId;
-    /** SKU 名称；锁定流程写入的是空串。 */
+    /** SKU 名称。 */
     private String skuName;
     /** 锁定数量。 */
     private Integer skuNum;

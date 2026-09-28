@@ -462,8 +462,16 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         saveOrder(order);
 
         // 4. 锁定库存；失败抛异常，由事务回滚已落库的订单
+        OrderEntity newOrder = order.getOrder();
         WareSkuLockVo lockVo = new WareSkuLockVo();
-        lockVo.setOrderSn(order.getOrder().getOrderSn());
+        lockVo.setOrderSn(newOrder.getOrderSn());
+        // 收货信息按订单上的快照带过去，ware 据此建出的工作单才是自包含的，发货不必回查订单
+        lockVo.setOrderId(newOrder.getId());
+        lockVo.setConsignee(newOrder.getReceiverName());
+        lockVo.setConsigneeTel(newOrder.getReceiverPhone());
+        lockVo.setDeliveryAddress(joinDeliveryAddress(newOrder));
+        lockVo.setOrderComment(newOrder.getNote());
+        lockVo.setPaymentWay(toPaymentWay(vo.getPayType()));
         List<OrderItemVo> orderItemVos = order.getOrderItems().stream().map((item) -> {
             OrderItemVo orderItemVo = new OrderItemVo();
             orderItemVo.setSkuId(item.getSkuId());
@@ -482,7 +490,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
         // 消息记录与订单在同一事务里落库，提交之后才真正投递：事务回滚时记录一并消失，
         // 消费者不会收到库里不存在的订单；投递失败留给本地消息表的重投任务兜底
-        reliableMqPublisher.publish(MqConstant.Exchanges.ORDER, MqConstant.RoutingKeys.ORDER_CREATED, order.getOrder());
+        reliableMqPublisher.publish(MqConstant.Exchanges.ORDER, MqConstant.RoutingKeys.ORDER_CREATED, newOrder);
 
         // 清购物车回滚不了，只能等提交成功之后再清：否则事务回滚时订单没落下来、车却先空了
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
@@ -869,6 +877,36 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         orderEntity.setAutoConfirmDay(7);
         orderEntity.setConfirmStatus(0);
         return orderEntity;
+    }
+
+    /**
+     * 把订单上的收货地址快照拼成一行配送地址。
+     *
+     * <p>逐段跳过 null 与空串：省市区在库里允许为 null，不过滤会拼出"湖南 长沙 null 望城区"
+     * 这种脏字符串。分隔符与会员端 {@code tools/address.ts} 的 {@code joinAddress} 一致。
+     *
+     * @param order 订单，取它的省市区与详细地址四段
+     * @return 一行配送地址，段间以空格分隔；四段都为空时返回空串
+     */
+    private String joinDeliveryAddress(OrderEntity order) {
+        return Arrays.asList(order.getReceiverProvince(), order.getReceiverCity(),
+                        order.getReceiverRegion(), order.getReceiverDetailAddress())
+                .stream()
+                .filter(StringUtils::hasText)
+                .collect(Collectors.joining(" "));
+    }
+
+    /**
+     * 把订单的支付方式换算成库存工作单口径。
+     *
+     * <p>两者取值口径不同：{@code oms_order.pay_type} 是 1 支付宝 / 2 微信 / 3 银联 / 4 货到付款，
+     * 而工作单的 {@code payment_way} 只分 1 在线付款 / 2 货到付款，不能直拷。
+     *
+     * @param payType 下单时选择的支付方式，见 {@link PayConstant}
+     * @return 货到付款返回 2，其余返回 1；本项目尚无货到付款链路，当前恒为 1
+     */
+    private Integer toPaymentWay(Integer payType) {
+        return PayConstant.CASH_ON_DELIVERY.equals(payType) ? 2 : 1;
     }
 
     /**
