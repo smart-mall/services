@@ -530,7 +530,6 @@ CREATE TABLE IF NOT EXISTS `sms_coupon` (
   `coupon_type` tinyint(1) DEFAULT NULL COMMENT '优惠卷类型[0->全场赠券；1->会员赠券；2->购物赠券；3->注册赠券]',
   `coupon_img` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '优惠券图片',
   `coupon_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '优惠卷名字',
-  `num` int DEFAULT NULL COMMENT '数量',
   `amount` decimal(18,4) DEFAULT NULL COMMENT '金额',
   `per_limit` int DEFAULT NULL COMMENT '每人限领张数',
   `min_point` decimal(18,4) DEFAULT NULL COMMENT '使用门槛',
@@ -551,6 +550,11 @@ CREATE TABLE IF NOT EXISTS `sms_coupon` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
+-- 【注意】已部署的库里 `sms_coupon_history` 只有主键，没有 (coupon_id, member_id) 索引：
+-- `CREATE TABLE IF NOT EXISTS` 对已存在的表整句跳过，不会补索引。手工补一次
+-- （重复执行会报 duplicate key name）：
+--   ALTER TABLE `sms_coupon_history` ADD INDEX `idx_coupon_member` (`coupon_id`, `member_id`);
+-- 领取记录按 coupon_id 查、限领判定按 (coupon_id, member_id) 查，两条路径共用这个索引。
 CREATE TABLE IF NOT EXISTS `sms_coupon_history` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `coupon_id` bigint DEFAULT NULL COMMENT '优惠券id',
@@ -562,7 +566,8 @@ CREATE TABLE IF NOT EXISTS `sms_coupon_history` (
   `use_time` datetime DEFAULT NULL COMMENT '使用时间',
   `order_id` bigint DEFAULT NULL COMMENT '订单id',
   `order_sn` bigint DEFAULT NULL COMMENT '订单号',
-  PRIMARY KEY (`id`) USING BTREE
+  PRIMARY KEY (`id`) USING BTREE,
+  KEY `idx_coupon_member` (`coupon_id`, `member_id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='优惠券领取历史记录';
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;

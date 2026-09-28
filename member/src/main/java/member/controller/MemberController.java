@@ -19,11 +19,13 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 
 
 
-import common.query.PageQuery;
+import common.query.KeyPageQuery;
 /**
  * 会员账号接口：账号密码注册与登录、验证码与社交登录、换绑手机号 / 邮箱，以及会员的后台 CRUD。
  *
@@ -169,16 +171,31 @@ public class MemberController {
     }
 
     /**
-     * 分页查询会员。
+     * 分页查询会员，{@code key} 同时模糊匹配账号、昵称、手机号与邮箱。
      *
-     * @param query 分页参数，{@code page} 为页码、{@code limit} 为每页条数
+     * @param query 分页参数与关键字，{@code key} 不传则返回全部会员
      * @return 分页结果，{@code rows} 为会员列表
      */
     @RequestMapping("/list")
-    public R<PageVO<MemberEntity>> list(PageQuery query){
+    public R<PageVO<MemberEntity>> list(KeyPageQuery query){
         PageVO<MemberEntity> page = memberService.queryPage(query);
 
         return R.ok(page);
+    }
+
+
+    /**
+     * 按会员 ID 批量查询昵称。
+     *
+     * <p>给只存了会员 ID 的跨服务记录补一个展示用的名字，由 coupon 经 Feign 直连本服务调用；
+     * 直连不走网关，因此不需要管理端凭证。
+     *
+     * @param memberIds 会员 ID 列表
+     * @return 会员 ID 到昵称的映射；入参里查不到或昵称为空的 ID 不会出现在结果中
+     */
+    @PostMapping("/getMemberNames")
+    public R<Map<Long, String>> getMemberNames(@RequestBody List<Long> memberIds){
+        return R.ok(memberService.getMemberNames(memberIds));
     }
 
 

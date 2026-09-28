@@ -10,7 +10,11 @@ import member.vo.QQUserInfo;
 import member.vo.SocialUser;
 
 
-import common.query.PageQuery;
+import common.query.KeyPageQuery;
+
+import java.util.List;
+import java.util.Map;
+
 /**
  * 会员账号服务：注册、多链路登录、资料与联系方式的维护。
  *
@@ -20,14 +24,26 @@ import common.query.PageQuery;
 public interface MemberService extends IService<MemberEntity> {
 
     /**
-     * 分页查询全部会员。
+     * 分页查询会员，{@code key} 同时模糊匹配账号、昵称、手机号与邮箱。
      *
-     * <p>管理端使用，不带筛选条件；返回的实体带密码密文，不能直接出网。
+     * <p>管理端使用，供会员列表与发券时的会员选择器检索；返回的实体带密码密文，
+     * 但 {@code password} 标注了 {@code WRITE_ONLY}，序列化时不会出网。
      *
-     * @param query 分页参数，不能为 {@code null}；{@code page} / {@code limit} 非法时取默认值并截断上限
+     * @param query 分页参数与关键字，不能为 {@code null}；{@code key} 可以为 {@code null} 或空白
      * @return 分页结果，无数据时 {@code rows} 为空列表、{@code total} 为 0，不返回 {@code null}
      */
-    PageVO<MemberEntity> queryPage(PageQuery query);
+    PageVO<MemberEntity> queryPage(KeyPageQuery query);
+
+    /**
+     * 按会员 ID 批量查询昵称。
+     *
+     * <p>供其它服务经 Feign 调用，用来给只存了会员 ID 的记录补一个展示用的名字。
+     * 昵称为空的会员不会出现在结果里，调用方取值会得到 {@code null}。
+     *
+     * @param memberIds 会员 ID 列表，不能为 {@code null}；空列表直接返回空映射
+     * @return 会员 ID 到昵称的映射，不含查不到或昵称为空的 ID，不返回 {@code null}
+     */
+    Map<Long, String> getMemberNames(List<Long> memberIds);
 
     /**
      * 以账号密码注册新会员。

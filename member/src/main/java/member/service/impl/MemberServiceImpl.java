@@ -30,11 +30,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 
-import common.query.PageQuery;
+import common.query.KeyPageQuery;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 /**
  * 会员账号服务的实现：注册、多链路登录、资料与联系方式维护。
@@ -57,10 +59,34 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
 
     /** {@inheritDoc} */
     @Override
-    public PageVO<MemberEntity> queryPage(PageQuery query) {
-        IPage<MemberEntity> page = this.page(query.toPage());
+    public PageVO<MemberEntity> queryPage(KeyPageQuery query) {
+        String key = query.getKey();
+        LambdaQueryWrapper<MemberEntity> wrapper = new LambdaQueryWrapper<>();
+
+        if (key != null && !key.isEmpty()) {
+            // 整体括起来：不加括号时后续再补条件会被 or 拆散，变成"或"掉全部筛选
+            wrapper.and(inner -> inner.like(MemberEntity::getUsername, key)
+                    .or().like(MemberEntity::getNickname, key)
+                    .or().like(MemberEntity::getMobile, key)
+                    .or().like(MemberEntity::getEmail, key));
+        }
+
+        IPage<MemberEntity> page = this.page(query.toPage(), wrapper);
 
         return new PageVO<>(page.getTotal(), page.getRecords());
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public Map<Long, String> getMemberNames(List<Long> memberIds) {
+        // 必须先判空：空集合会让 SQL 拼成 IN ()，MySQL 直接报语法错
+        if (memberIds == null || memberIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return this.listByIds(memberIds).stream()
+                .filter(member -> member.getNickname() != null)
+                .collect(Collectors.toMap(MemberEntity::getId, MemberEntity::getNickname, (first, second) -> first));
     }
 
     /** {@inheritDoc} */

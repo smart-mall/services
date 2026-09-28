@@ -28,7 +28,6 @@ CREATE TABLE `sms_coupon`  (
   `coupon_type` tinyint(1) NULL DEFAULT NULL COMMENT '优惠卷类型[0->全场赠券；1->会员赠券；2->购物赠券；3->注册赠券]',
   `coupon_img` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '优惠券图片',
   `coupon_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '优惠卷名字',
-  `num` int(11) NULL DEFAULT NULL COMMENT '数量',
   `amount` decimal(18, 4) NULL DEFAULT NULL COMMENT '金额',
   `per_limit` int(11) NULL DEFAULT NULL COMMENT '每人限领张数',
   `min_point` decimal(18, 4) NULL DEFAULT NULL COMMENT '使用门槛',
@@ -62,7 +61,8 @@ CREATE TABLE `sms_coupon_history`  (
   `use_time` datetime(0) NULL DEFAULT NULL COMMENT '使用时间',
   `order_id` bigint(20) NULL DEFAULT NULL COMMENT '订单id',
   `order_sn` bigint(20) NULL DEFAULT NULL COMMENT '订单号',
-  PRIMARY KEY (`id`) USING BTREE
+  PRIMARY KEY (`id`) USING BTREE,
+  KEY `idx_coupon_member` (`coupon_id`, `member_id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '优惠券领取历史记录' ROW_FORMAT = Dynamic;
 
 -- ----------------------------

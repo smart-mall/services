@@ -15,7 +15,7 @@ import common.utils.R;
 
 
 
-import common.query.PageQuery;
+import coupon.vo.CouponHistoryPageQuery;
 /**
  * 优惠券领取记录的后台管理接口：分页列表、详情、新增、修改、删除。
  *
@@ -30,11 +30,11 @@ public class CouponHistoryController {
     /**
      * 分页查询优惠券领取记录。
      *
-     * @param query 分页参数，{@code page} 为页码、{@code limit} 为每页条数
-     * @return 分页结果，{@code rows} 为领取记录列表
+     * @param query 分页参数与筛选条件，{@code couponId} / {@code memberId} 不传则不按该条件筛选
+     * @return 分页结果，{@code rows} 为领取记录列表，按领取时间倒序
      */
     @RequestMapping("/list")
-    public R<PageVO<CouponHistoryEntity>> list(PageQuery query){
+    public R<PageVO<CouponHistoryEntity>> list(CouponHistoryPageQuery query){
         PageVO<CouponHistoryEntity> page = couponHistoryService.queryPage(query);
 
         return R.ok(page);
