@@ -52,4 +52,8 @@ public class SpuInfoEntity implements Serializable {
 	@TableField(exist = false)
 	private String catalogName;
 
+	/** SPU 主图地址；非数据库字段，按 skuId 反查商品时从图集里取一张回填。 */
+	@TableField(exist = false)
+	private String spuPic;
+
 }

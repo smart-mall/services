@@ -21,6 +21,9 @@ public class SpuInfoVo {
     /** 商品描述。 */
     private String spuDescription;
 
+    /** SPU 主图地址，product 从该 SPU 的图集里取一张回填。 */
+    private String spuPic;
+
     /** 所属分类 ID。 */
     private Long catalogId;
 

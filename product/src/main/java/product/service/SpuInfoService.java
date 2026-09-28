@@ -68,7 +68,7 @@ public interface SpuInfoService extends IService<SpuInfoEntity> {
     void down(Long spuId);
 
     /**
-     * 按 sku ID 反查所属 spu，并回填品牌名。
+     * 按 sku ID 反查所属 spu，并回填品牌名与主图地址。
      *
      * @param skuId sku ID，不能为 {@code null}
      * @return 该 sku 所属的 spu；sku 不存在时会在取 spuId 处抛空指针异常，调用方需先确认 sku 有效

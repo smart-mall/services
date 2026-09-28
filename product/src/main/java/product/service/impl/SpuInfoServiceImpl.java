@@ -625,6 +625,16 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
         BrandEntity brandEntity = brandService.getById(spuInfoEntity.getBrandId());
         spuInfoEntity.setBrandName(brandEntity.getName());
 
+        // default_img 没有写入方，所以「默认图优先」实际落在按入库顺序取第一张
+        List<SpuImagesEntity> images = spuImagesDao.selectList(new LambdaQueryWrapper<SpuImagesEntity>()
+                .eq(SpuImagesEntity::getSpuId, spuId)
+                .orderByDesc(SpuImagesEntity::getDefaultImg)
+                .orderByAsc(SpuImagesEntity::getId)
+                .last("limit 1"));
+        if (!images.isEmpty()) {
+            spuInfoEntity.setSpuPic(images.get(0).getImgUrl());
+        }
+
         return spuInfoEntity;
     }
 

@@ -774,6 +774,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         this.baseMapper.insert(order);
 
         List<OrderItemEntity> orderItems = orderCreateTo.getOrderItems();
+        // 订单项要记 order_id，而自增主键要等订单落库之后才回填，所以在这里补
+        orderItems.forEach(orderItem -> orderItem.setOrderId(order.getId()));
         orderItemService.saveBatch(orderItems);
     }
 
@@ -876,6 +878,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         orderEntity.setStatus(OrderStatusEnum.CREATE_NEW.getCode());
         orderEntity.setAutoConfirmDay(7);
         orderEntity.setConfirmStatus(0);
+        // 支付方式在提交订单时已选定，落库记录下来；支付回调会按实际结果覆盖一次
+        orderEntity.setPayType(submitVo.getPayType());
+        orderEntity.setSourceType(OrderConstant.SOURCE_TYPE_PC);
         return orderEntity;
     }
 
@@ -949,6 +954,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         }
         orderItemEntity.setSpuId(spuInfoData.getId());
         orderItemEntity.setSpuName(spuInfoData.getSpuName());
+        orderItemEntity.setSpuPic(spuInfoData.getSpuPic());
         orderItemEntity.setSpuBrand(spuInfoData.getBrandName());
         orderItemEntity.setCategoryId(spuInfoData.getCatalogId());
 
@@ -1077,6 +1083,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         BigDecimal totalPrice = orderTo.getSeckillPrice().multiply(BigDecimal.valueOf(orderTo.getNum()));
         orderEntity.setPayAmount(totalPrice);
         orderEntity.setStatus(OrderStatusEnum.CREATE_NEW.getCode());
+        // 秒杀单同样来自会员端 SPA；支付方式此时尚未选定，留空由支付回调写入
+        orderEntity.setSourceType(OrderConstant.SOURCE_TYPE_PC);
 
         List<MemberAddressVo> address = memberFeignService.getAddress(orderTo.getMemberId());
         if (address == null || address.isEmpty()) {
@@ -1097,6 +1105,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         this.save(orderEntity);
 
         OrderItemEntity orderItem = new OrderItemEntity();
+        // 订单已落库，自增主键此时才回填
+        orderItem.setOrderId(orderEntity.getId());
         orderItem.setOrderSn(orderTo.getOrderSn());
         orderItem.setRealAmount(totalPrice);
 
@@ -1106,6 +1116,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         SpuInfoVo spuInfoData = spuInfo.getData();
         orderItem.setSpuId(spuInfoData.getId());
         orderItem.setSpuName(spuInfoData.getSpuName());
+        orderItem.setSpuPic(spuInfoData.getSpuPic());
         orderItem.setSpuBrand(spuInfoData.getBrandName());
         orderItem.setCategoryId(spuInfoData.getCatalogId());
 

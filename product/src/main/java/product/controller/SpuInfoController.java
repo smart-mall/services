@@ -70,7 +70,7 @@ public class SpuInfoController {
     /**
      * 按 sku ID 反查所属商品。
      *
-     * <p>返回的 spu 已回填品牌名；sku 不存在时会在取 spuId 处抛空指针异常。
+     * <p>返回的 spu 已回填品牌名与主图地址；sku 不存在时会在取 spuId 处抛空指针异常。
      *
      * @param skuId sku ID
      * @return 该 sku 所属的 spu
