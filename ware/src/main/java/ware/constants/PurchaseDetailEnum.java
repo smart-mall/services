@@ -1,4 +1,4 @@
-package ware.costant;
+package ware.constants;
 
 import lombok.Getter;
 

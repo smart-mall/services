@@ -19,7 +19,7 @@ public interface OrderDao extends BaseMapper<OrderEntity> {
      * 总是被置为当前时间，与传入的 {@code code} 无关，因此只适用于支付相关的状态流转。
      *
      * @param orderSn 订单号，业务主键，不能为 {@code null}
-     * @param code 目标状态码，取值见 {@link order.enume.OrderStatusEnum}
+     * @param code 目标状态码，取值见 {@link order.enums.OrderStatusEnum}
      * @param payType 支付方式，取值见 {@code PayConstant}
      */
     void updateOrderStatus(String orderSn, Integer code, Integer payType);

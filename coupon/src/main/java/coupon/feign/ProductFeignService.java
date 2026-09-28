@@ -1,4 +1,4 @@
-package coupon.fegin;
+package coupon.feign;
 
 import common.utils.R;
 import org.springframework.cloud.openfeign.FeignClient;

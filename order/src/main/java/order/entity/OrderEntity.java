@@ -14,7 +14,7 @@ import java.util.List;
 /**
  * 订单主表 {@code oms_order} 的记录，一笔订单对应一行。
  *
- * <p>{@code status} 的取值由 {@link order.enume.OrderStatusEnum} 定义；
+ * <p>{@code status} 的取值由 {@link order.enums.OrderStatusEnum} 定义；
  * {@code orderItemEntityList} 与 {@code statusText} 不落库，由查询侧组装。
  */
 @Data
@@ -56,7 +56,7 @@ public class OrderEntity implements Serializable {
 	/** 订单来源[0->PC订单；1->app订单]。 */
 	private Integer sourceType;
 	/**
-	 * 订单状态，取值以 {@link order.enume.OrderStatusEnum} 为准，代码中通过该枚举读写。
+	 * 订单状态，取值以 {@link order.enums.OrderStatusEnum} 为准，代码中通过该枚举读写。
 	 */
 	private Integer status;
 	/** 物流公司(配送方式)。 */
@@ -119,7 +119,7 @@ public class OrderEntity implements Serializable {
 	/**
 	 * 状态文案，给前端直接显示。
 	 *
-	 * <p>不落库（{@code exist = false}）：它就是 {@link order.enume.OrderStatusEnum} 的措辞，
+	 * <p>不落库（{@code exist = false}）：它就是 {@link order.enums.OrderStatusEnum} 的措辞，
 	 * 在数据库里再存一份等于多一个会和枚举漂移的副本。</p>
 	 */
 	@TableField(exist = false)

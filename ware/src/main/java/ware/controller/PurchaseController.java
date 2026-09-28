@@ -25,7 +25,7 @@ import ware.vo.PurchasePageQuery;
 /**
  * 采购单接口：采购单的查询、合并需求单、分配与领取采购员、提交完成与删除。
  *
- * <p>采购单由合并采购需求单时自动生成，状态流转规则见 {@link ware.costant.PurchaseStatusEnum}，
+ * <p>采购单由合并采购需求单时自动生成，状态流转规则见 {@link ware.constants.PurchaseStatusEnum}，
  * 本类只做参数接收与转发，校验都在 service 层。
  */
 @RestController

@@ -11,7 +11,7 @@ import ware.vo.PurchaseDetailPageQuery;
  * 采购需求单服务：需求单的分页查询、新建、修改与删除。
  *
  * <p>状态与归属由服务端决定，调用方传入的 {@code status} 与 {@code purchaseId} 会被忽略；
- * 状态流转规则见 {@link ware.costant.PurchaseDetailEnum}。
+ * 状态流转规则见 {@link ware.constants.PurchaseDetailEnum}。
  */
 public interface PurchaseDetailService extends IService<PurchaseDetailEntity> {
 

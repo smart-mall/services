@@ -14,6 +14,6 @@ public class PurchasePageQuery extends PageQuery {
     /** 关键词：按采购单 ID 精确匹配，或按采购员姓名模糊匹配。 */
     private String key;
 
-    /** 采购单状态码，取值见 {@link ware.costant.PurchaseStatusEnum}；不传不过滤。 */
+    /** 采购单状态码，取值见 {@link ware.constants.PurchaseStatusEnum}；不传不过滤。 */
     private String status;
 }

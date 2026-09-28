@@ -10,7 +10,7 @@ import common.vo.PageVO;
 import common.utils.R;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ware.costant.PurchaseDetailEnum;
+import ware.constants.PurchaseDetailEnum;
 import ware.dao.PurchaseDetailDao;
 import ware.entity.PurchaseDetailEntity;
 import ware.entity.WareInfoEntity;

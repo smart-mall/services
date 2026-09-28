@@ -25,7 +25,7 @@ import order.dao.OrderDao;
 import order.entity.OrderEntity;
 import order.entity.OrderItemEntity;
 import order.entity.PaymentInfoEntity;
-import order.enume.OrderStatusEnum;
+import order.enums.OrderStatusEnum;
 import order.feign.CartFeignService;
 import order.feign.MemberFeignService;
 import order.feign.ProductFeignService;

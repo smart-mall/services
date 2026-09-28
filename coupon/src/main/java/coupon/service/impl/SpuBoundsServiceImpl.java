@@ -8,7 +8,7 @@ import common.vo.PageVO;
 import common.utils.R;
 import coupon.dao.SpuBoundsDao;
 import coupon.entity.SpuBoundsEntity;
-import coupon.fegin.ProductFeignService;
+import coupon.feign.ProductFeignService;
 import coupon.service.SpuBoundsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

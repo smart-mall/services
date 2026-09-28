@@ -8,7 +8,7 @@ import common.vo.PageVO;
 import common.utils.R;
 import coupon.dao.SeckillPromotionDao;
 import coupon.entity.SeckillPromotionEntity;
-import coupon.fegin.RenrenFeignService;
+import coupon.feign.RenrenFeignService;
 import coupon.service.SeckillPromotionService;
 import org.springframework.stereotype.Service;
 

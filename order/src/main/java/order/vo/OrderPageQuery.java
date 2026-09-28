@@ -9,6 +9,6 @@ import lombok.Setter;
 @Setter
 public class OrderPageQuery extends PageQuery {
 
-    /** 订单状态筛选，取值见 {@link order.enume.OrderStatusEnum}；不传则返回全部状态。 */
+    /** 订单状态筛选，取值见 {@link order.enums.OrderStatusEnum}；不传则返回全部状态。 */
     private String status;
 }

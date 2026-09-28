@@ -23,7 +23,7 @@ public class PurchaseDoneVO {
         /** 采购需求单 ID，必须属于该采购单。 */
         private Long itemId;
 
-        /** 采购结果状态，只接受已完成(3)或采购失败(4)，取值见 {@link ware.costant.PurchaseDetailEnum}。 */
+        /** 采购结果状态，只接受已完成(3)或采购失败(4)，取值见 {@link ware.constants.PurchaseDetailEnum}。 */
         private Integer status;
 
         /** 采购失败原因，由采购员填写；完成流程只落 {@code status}，不回写该字段。 */

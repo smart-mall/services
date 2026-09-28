@@ -1,4 +1,4 @@
-package order.enume;
+package order.enums;
 
 /**
  * 订单状态枚举，{@code code} 落库到 {@code oms_order.status}，{@code msg} 作为状态文案返回前端。

@@ -14,7 +14,7 @@ import common.query.PageQuery;
 /**
  * 采购单服务：采购单的分页查询、需求单合并、采购员分配与领取、提交完成与删除。
  *
- * <p>采购单由合并采购需求单时自动生成，状态流转规则见 {@link ware.costant.PurchaseStatusEnum}；
+ * <p>采购单由合并采购需求单时自动生成，状态流转规则见 {@link ware.constants.PurchaseStatusEnum}；
  * 所有写操作都以服务端查出的状态为准，调用方传入的 {@code status} 不参与判断。
  */
 public interface PurchaseService extends IService<PurchaseEntity> {

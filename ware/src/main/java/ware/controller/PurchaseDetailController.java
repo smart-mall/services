@@ -20,7 +20,7 @@ import ware.vo.PurchaseDetailPageQuery;
  * 采购需求单接口：需求单的查询、新建、修改与删除。
  *
  * <p>状态与归属由服务端决定，前端传的 {@code status} / {@code purchaseId} 会被忽略；
- * 状态流转规则见 {@link ware.costant.PurchaseDetailEnum}。
+ * 状态流转规则见 {@link ware.constants.PurchaseDetailEnum}。
  */
 @RestController
 @RequestMapping("ware/purchasedetail")

@@ -13,7 +13,7 @@ import coupon.dao.SkuLadderDao;
 import coupon.entity.MemberPriceEntity;
 import coupon.entity.SkuFullReductionEntity;
 import coupon.entity.SkuLadderEntity;
-import coupon.fegin.ProductFeignService;
+import coupon.feign.ProductFeignService;
 import coupon.service.SkuFullReductionService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;

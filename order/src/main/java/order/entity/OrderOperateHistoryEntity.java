@@ -25,7 +25,7 @@ public class OrderOperateHistoryEntity implements Serializable {
 	private String operateMan;
 	/** 操作时间。 */
 	private Date createTime;
-	/** 订单状态，取值以 {@link order.enume.OrderStatusEnum} 为准。 */
+	/** 订单状态，取值以 {@link order.enums.OrderStatusEnum} 为准。 */
 	private Integer orderStatus;
 	/** 操作备注。 */
 	private String note;

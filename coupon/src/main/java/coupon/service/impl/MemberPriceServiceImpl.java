@@ -8,7 +8,7 @@ import common.vo.PageVO;
 import common.utils.R;
 import coupon.dao.MemberPriceDao;
 import coupon.entity.MemberPriceEntity;
-import coupon.fegin.ProductFeignService;
+import coupon.feign.ProductFeignService;
 import coupon.service.MemberPriceService;
 import org.springframework.stereotype.Service;
 

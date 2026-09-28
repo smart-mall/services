@@ -14,7 +14,7 @@ public class PurchaseDetailPageQuery extends PageQuery {
     /** 关键词：按 SKU 名称或 SKU ID 包含匹配，在当页结果内过滤。 */
     private String key;
 
-    /** 采购需求单状态码，取值见 {@link ware.costant.PurchaseDetailEnum}；不传不过滤。 */
+    /** 采购需求单状态码，取值见 {@link ware.constants.PurchaseDetailEnum}；不传不过滤。 */
     private String status;
 
     /** 仓库 ID，精确匹配；不传不过滤。 */
