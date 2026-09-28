@@ -8,3 +8,8 @@ spring:
     name: gulimall_oms
 server:
   port: 52300
+
+gl:
+  mq:
+    outbox:
+      enabled: true

@@ -11,7 +11,7 @@ import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
 import common.exception.ValidationException;
 import common.mq.MqConstant;
-import common.mq.MqPublisher;
+import common.mq.outbox.ReliableMqPublisher;
 import common.to.OrderTo;
 import common.to.mq.SeckillOrderTo;
 import common.vo.PageVO;
@@ -59,6 +59,8 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -113,8 +115,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     @Autowired
     private StringRedisTemplate redisTemplate;
 
+    // 注入具体类型而非 MqPublisher 接口：只有本地消息表那条实现保证消息记录与订单变更同事务落库
     @Autowired
-    private MqPublisher mqPublisher;
+    private ReliableMqPublisher reliableMqPublisher;
 
     @Autowired
     private PaymentInfoService paymentInfoService;
@@ -421,8 +424,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     /**
      * {@inheritDoc}
      *
-     * <p>整个方法在一个事务内：价格校验、订单落库、锁定库存任一步失败都整体回滚，
-     * 不会留下已写入的订单与订单项。
+     * <p>整个方法在一个事务内：价格校验、订单落库、锁定库存、消息记录任一步失败都整体回滚，
+     * 不会留下已写入的订单与订单项，订单创建事件也不会发出。
      */
     @Transactional(rollbackFor = Exception.class)
     @Override
@@ -477,10 +480,17 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
             throw new BaseException(BaseCodeEnum.NO_STOCK_EXCEPTION, r.getMsg());
         }
 
-        // TODO 阶段 4：MQ 发送与清购物车都在事务提交前发生，事务回滚时消费者会收到
-        //   数据库里不存在的订单、购物车也已清空；正确做法是注册 TransactionSynchronization.afterCommit
-        mqPublisher.publish(MqConstant.Exchanges.ORDER, MqConstant.RoutingKeys.ORDER_CREATED, order.getOrder());
-        redisTemplate.delete(CART_PREFIX + memberId);
+        // 消息记录与订单在同一事务里落库，提交之后才真正投递：事务回滚时记录一并消失，
+        // 消费者不会收到库里不存在的订单；投递失败留给本地消息表的重投任务兜底
+        reliableMqPublisher.publish(MqConstant.Exchanges.ORDER, MqConstant.RoutingKeys.ORDER_CREATED, order.getOrder());
+
+        // 清购物车回滚不了，只能等提交成功之后再清：否则事务回滚时订单没落下来、车却先空了
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                redisTemplate.delete(CART_PREFIX + memberId);
+            }
+        });
 
         SubmitOrderResponseVo responseVo = new SubmitOrderResponseVo();
         responseVo.setOrder(order.getOrder());
@@ -682,7 +692,13 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
     /* ═══════════════════ 取消 / 关单 ═══════════════════ */
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     *
+     * <p>事务边界落在这里而不是 {@code doClose}：私有方法上的 {@code @Transactional} 不生效，
+     * 而关单状态与"释放库存"的消息记录必须同事务提交。
+     */
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public void cancelOrder(MemberResponseVo user, String orderSn) {
         OrderEntity order = requireOwnOrder(user, orderSn);
@@ -692,7 +708,12 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         doClose(order);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     *
+     * <p>事务边界说明同 {@link #cancelOrder}。
+     */
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public void closeOrder(OrderEntity orderEntity) {
         // 以库里的最新状态为准：消息重投时订单可能已被支付或取消
@@ -713,7 +734,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     /**
      * 关单：置为已取消并通知仓库释放库存。
      *
-     * <p>超时关单（MQ）与用户主动取消共用这一段。
+     * <p>超时关单（MQ）与用户主动取消共用这一段。本方法自己不承担事务边界 —— 它是私有方法，
+     * 注解在此不生效；边界由两个调用者 {@code cancelOrder} 与 {@code closeOrder} 承担，
+     * 保证"置为已取消"与"释放库存的消息记录"同事务提交。
      *
      * @param orderInfo 待关闭的订单
      */
@@ -729,13 +752,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         // 不读这个字段，但 OrderTo 是订单快照，发出去的状态必须与库里一致
         orderTo.setStatus(OrderStatusEnum.CANCLED.getCode());
 
-        try {
-            // TODO 阶段 4：先改库再发消息，发失败就丢了解锁库存的机会（这里只打日志）。
-            //   要做的是本地消息表 + 定时重投，或者让 ware 那边容忍漏消息
-            mqPublisher.publish(MqConstant.Exchanges.ORDER, MqConstant.RoutingKeys.ORDER_CLOSED, orderTo);
-        } catch (Exception e) {
-            log.error("发送库存释放消息失败，orderSn={}", orderInfo.getOrderSn(), e);
-        }
+        // 不吞异常：消息记录写不进去就整体回滚，宁可不关单，也不能关了单却不释放库存
+        reliableMqPublisher.publish(MqConstant.Exchanges.ORDER, MqConstant.RoutingKeys.ORDER_CLOSED, orderTo);
     }
 
     /* ═══════════════════ 订单创建（内部） ═══════════════════ */
