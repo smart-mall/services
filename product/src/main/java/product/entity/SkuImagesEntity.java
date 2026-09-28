@@ -22,6 +22,8 @@ public class SkuImagesEntity implements Serializable {
 	 * 所属 SKU ID，指向 {@code pms_sku_info.sku_id}。
 	 */
 	private Long skuId;
+	/** 图片名，取上传时的原始文件名。 */
+	private String imgName;
 	/** 图片地址。 */
 	private String imgUrl;
 	/** 展示顺序。 */

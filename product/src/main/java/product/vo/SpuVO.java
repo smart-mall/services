@@ -29,8 +29,8 @@ public class SpuVO {
 
     /** 描述图片地址列表，落库时用逗号拼成 {@code pms_spu_info_desc.description}。 */
     private List<String> description;
-    /** 实物图片地址列表。 */
-    private List<String> images;
+    /** 实物图集，列表顺序即 {@code imgSort}，落库到 {@code pms_spu_images}。 */
+    private List<Images> images;
     /** 积分策略，经 coupon 服务写入 {@code sms_spu_bounds}。 */
     private Bounds bounds;
     /** 规格参数（基本属性）的取值列表。 */
@@ -75,13 +75,19 @@ public class SpuVO {
         private String attrValue;
     }
 
-    /** sku 图集中的一张图。 */
+    /**
+     * 图集中的一张图，spu 图集与 sku 图集共用同一结构。
+     */
     @Data
     public static class Images {
 
+        /** 图片名，取上传时的原始文件名。 */
+        private String imgName;
         /** 图片地址。 */
         private String imgUrl;
-        /** 是否为默认展示图：0 否，1 是；为 1 的图会成为 sku 的默认图。 */
+        /** 展示顺序，由调用方从 0 起连续编号；落库到 {@code img_sort}。 */
+        private Integer imgSort;
+        /** 是否为默认图：0 否，1 是；sku 图集中为 1 的那张会成为该 sku 的主图。 */
         private Integer defaultImg;
     }
 

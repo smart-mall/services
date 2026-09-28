@@ -53,6 +53,9 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
     /** 已上架商品的错误信息里最多列几个商品名，列多了前端 toast 显示不下。 */
     private static final int MAX_UP_SHELVED_IN_MESSAGE = 3;
 
+    /** 图集里 {@code defaultImg} 等于该值的图是默认图。 */
+    private static final int DEFAULT_IMG_FLAG = 1;
+
     /** 仓库阻塞信息里最多列几个 sku，列多了前端 toast 显示不下。 */
     private static final int MAX_WARE_BLOCKERS_IN_MESSAGE = 3;
 
@@ -154,14 +157,17 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
         }
 
 
-        // 3. 商品图集
-        List<String> images = spuInfo.getImages();
+        // 3. 商品图集：顺序与默认图都由调用方给定，这里照搬
+        List<SpuVO.Images> images = spuInfo.getImages();
         if (images != null && !images.isEmpty()) {
             Long id = spuInfoEntity.getId();
             List<SpuImagesEntity> spuImagesEntityStream = images.stream().map(item -> {
                 SpuImagesEntity spuImagesEntity = new SpuImagesEntity();
                 spuImagesEntity.setSpuId(id);
-                spuImagesEntity.setImgUrl(item);
+                spuImagesEntity.setImgName(item.getImgName());
+                spuImagesEntity.setImgUrl(item.getImgUrl());
+                spuImagesEntity.setImgSort(item.getImgSort());
+                spuImagesEntity.setDefaultImg(item.getDefaultImg());
 
                 return spuImagesEntity;
             }).toList();
@@ -206,7 +212,7 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
                 // 6.1 主图取 defaultImg 为 1 的那张；一张都没标时留空串
                 String defaultImage = "";
                 for (SpuVO.Images image : sku.getImages()) {
-                    if (image.getDefaultImg() == 1) {
+                    if (image.getDefaultImg() != null && image.getDefaultImg() == DEFAULT_IMG_FLAG) {
                         defaultImage = image.getImgUrl();
                     }
                 }
@@ -222,16 +228,21 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
                 skuInfoDao.insert(skuInfoEntity);
 
                 // 6.2 sku 图集：空地址不入库，避免图集里出现取不到图的记录
+                // 调用方下发 spu 图集整池，未勾选进本 sku 的项 imgUrl 为空串，正是上面要滤掉的
                 Long skuId = skuInfoEntity.getSkuId();
 
-                List<SkuImagesEntity> skuImagesEntityStream = sku.getImages().stream().map(item -> {
-                    SkuImagesEntity skuImagesEntity = new SkuImagesEntity();
-                    skuImagesEntity.setSkuId(skuId);
-                    skuImagesEntity.setImgUrl(item.getImgUrl());
-                    skuImagesEntity.setImgSort(item.getDefaultImg());
+                List<SkuImagesEntity> skuImagesEntityStream = sku.getImages().stream()
+                        .filter(item -> StringUtils.hasText(item.getImgUrl()))
+                        .map(item -> {
+                            SkuImagesEntity skuImagesEntity = new SkuImagesEntity();
+                            skuImagesEntity.setSkuId(skuId);
+                            skuImagesEntity.setImgName(item.getImgName());
+                            skuImagesEntity.setImgUrl(item.getImgUrl());
+                            skuImagesEntity.setImgSort(item.getImgSort());
+                            skuImagesEntity.setDefaultImg(item.getDefaultImg());
 
-                    return skuImagesEntity;
-                }).filter( item -> !item.getImgUrl().isEmpty()).toList();
+                            return skuImagesEntity;
+                        }).toList();
 
                 skuImagesDao.insert(skuImagesEntityStream);
 
@@ -625,10 +636,11 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
         BrandEntity brandEntity = brandService.getById(spuInfoEntity.getBrandId());
         spuInfoEntity.setBrandName(brandEntity.getName());
 
-        // default_img 没有写入方，所以「默认图优先」实际落在按入库顺序取第一张
+        // 默认图优先，其次按运营排的 imgSort；两列均为 NULL 时退化成取 id 最小的
         List<SpuImagesEntity> images = spuImagesDao.selectList(new LambdaQueryWrapper<SpuImagesEntity>()
                 .eq(SpuImagesEntity::getSpuId, spuId)
                 .orderByDesc(SpuImagesEntity::getDefaultImg)
+                .orderByAsc(SpuImagesEntity::getImgSort)
                 .orderByAsc(SpuImagesEntity::getId)
                 .last("limit 1"));
         if (!images.isEmpty()) {

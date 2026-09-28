@@ -1641,6 +1641,8 @@ CREATE TABLE `pms_sku_images`  (
   `img_url` varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '图片地址',
   `img_sort` int(11) NULL DEFAULT NULL COMMENT '排序',
   `default_img` int(11) NULL DEFAULT NULL COMMENT '默认图[0 - 不是默认图，1 - 是默认图]',
+  /* 追加在末列：下面 Records 段的 INSERT 不带列名，插在中间会让既有数据行整体错位 */
+  `img_name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '图片名',
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 68 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'sku图片' ROW_FORMAT = Dynamic;
 

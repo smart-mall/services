@@ -140,12 +140,18 @@ CREATE TABLE IF NOT EXISTS `pms_product_attr_value` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
+-- 【注意】已部署的库里 `pms_sku_images` 可能没有 `img_name` 列：`CREATE TABLE IF NOT EXISTS`
+-- 对已存在的表整句跳过，不会补列。先查一下 information_schema 确认，缺了再执行一次
+-- （重复执行会报 duplicate column）：
+--   ALTER TABLE `pms_sku_images` ADD COLUMN `img_name` varchar(200) DEFAULT NULL;
 CREATE TABLE IF NOT EXISTS `pms_sku_images` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `sku_id` bigint DEFAULT NULL,
   `img_url` varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '图片地址',
   `img_sort` int DEFAULT NULL COMMENT '排序',
   `default_img` int DEFAULT NULL COMMENT '默认图[0 - 不是默认图，1 - 是默认图]',
+  /* 追加在末列：本表在 gulimall_pms.sql 里的数据行 INSERT 不带列名，插在中间会让既有数据整体错位 */
+  `img_name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '图片名',
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=70 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='sku图片';
 /*!40101 SET character_set_client = @saved_cs_client */;
