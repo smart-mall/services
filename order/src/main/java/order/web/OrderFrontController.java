@@ -45,31 +45,39 @@ public class OrderFrontController {
     }
 
     /**
-     * 结算页初始化：返回收货地址列表、已勾选购物项、库存、积分、防重令牌与金额。
+     * 结算页初始化：返回收货地址列表、已勾选购物项、库存、积分、可用券、防重令牌与金额。
      *
-     * <p>三个金额字段（totalAmount / freightAmount / payAmount）都由后端算好，前端只显示和原样回传 payAmount ——
-     * 提交时要拿它和重新算出来的金额比对。
+     * <p>四个金额字段（totalAmount / freightAmount / couponAmount / payAmount）都由后端算好，
+     * 前端只显示和原样回传 payAmount —— 提交时要拿它和重新算出来的金额比对。
+     *
+     * <p>切换优惠券后必须重新调用本接口：抵扣额要并进应付金额，前端拿券面金额自己减
+     * 会与提交时的校验算成两个数。
      *
      * @param request 当前请求，用于取出登录用户
+     * @param couponHistoryId 选中的优惠券领取记录 ID；不用券时不传
      * @return 结算页数据
      */
     @GetMapping("/confirm")
-    public R<OrderConfirmVo> confirm(HttpServletRequest request) {
-        return R.ok(orderService.confirmOrder(LoginUserUtils.requireCurrentUser(request)));
+    public R<OrderConfirmVo> confirm(HttpServletRequest request,
+                                     @RequestParam(value = "couponHistoryId", required = false) Long couponHistoryId) {
+        return R.ok(orderService.confirmOrder(LoginUserUtils.requireCurrentUser(request), couponHistoryId));
     }
 
     /**
      * 换收货地址时重算运费。
      *
-     * <p>收口在 order 是为了带上地址归属校验，也不让前端算钱。
+     * <p>收口在 order 是为了带上地址归属校验，也不让前端算钱。选中券的抵扣额会一并并进
+     * {@code payAmount}，所以换地址时也要把当前选中的券带上，否则应付金额会退回原价。
      *
      * @param request 当前请求，用于取出登录用户
      * @param addrId 收货地址主键，必须是当前用户自己的地址
+     * @param couponHistoryId 选中的优惠券领取记录 ID；不用券时不传
      * @return 运费信息
      */
     @GetMapping("/fare")
-    public R<FareVo> fare(HttpServletRequest request, @RequestParam("addrId") Long addrId) {
-        return R.ok(orderService.getFare(LoginUserUtils.requireCurrentUser(request), addrId));
+    public R<FareVo> fare(HttpServletRequest request, @RequestParam("addrId") Long addrId,
+                          @RequestParam(value = "couponHistoryId", required = false) Long couponHistoryId) {
+        return R.ok(orderService.getFare(LoginUserUtils.requireCurrentUser(request), addrId, couponHistoryId));
     }
 
     /**

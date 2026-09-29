@@ -555,6 +555,10 @@ CREATE TABLE IF NOT EXISTS `sms_coupon` (
 -- （重复执行会报 duplicate key name）：
 --   ALTER TABLE `sms_coupon_history` ADD INDEX `idx_coupon_member` (`coupon_id`, `member_id`);
 -- 领取记录按 coupon_id 查、限领判定按 (coupon_id, member_id) 查，两条路径共用这个索引。
+-- 【注意】`order_sn` 原为 bigint，与拥有方 `oms_order.order_sn`（char(100) / String）不一致。
+-- 订单号由 `IdWorker` 生成，当前恰好是纯数字，但按数值存会在换成含字母的号段时直接溢出。
+-- 已部署的库需改列类型（值本身不变，可直接转换）：
+--   ALTER TABLE `sms_coupon_history` MODIFY COLUMN `order_sn` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '占用或核销该券的订单号';
 CREATE TABLE IF NOT EXISTS `sms_coupon_history` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `coupon_id` bigint DEFAULT NULL COMMENT '优惠券id',
@@ -562,10 +566,10 @@ CREATE TABLE IF NOT EXISTS `sms_coupon_history` (
   `member_nick_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '会员名字',
   `get_type` tinyint(1) DEFAULT NULL COMMENT '获取方式[0->后台赠送；1->主动领取]',
   `create_time` datetime DEFAULT NULL COMMENT '创建时间',
-  `use_type` tinyint(1) DEFAULT NULL COMMENT '使用状态[0->未使用；1->已使用；2->已过期]',
-  `use_time` datetime DEFAULT NULL COMMENT '使用时间',
-  `order_id` bigint DEFAULT NULL COMMENT '订单id',
-  `order_sn` bigint DEFAULT NULL COMMENT '订单号',
+  `use_type` tinyint(1) DEFAULT NULL COMMENT '使用状态[0->未使用；1->已使用；2->已过期；3->占用中]',
+  `use_time` datetime DEFAULT NULL COMMENT '核销时间',
+  `order_id` bigint DEFAULT NULL COMMENT '占用或核销该券的订单id',
+  `order_sn` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '占用或核销该券的订单号',
   PRIMARY KEY (`id`) USING BTREE,
   KEY `idx_coupon_member` (`coupon_id`, `member_id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='优惠券领取历史记录';

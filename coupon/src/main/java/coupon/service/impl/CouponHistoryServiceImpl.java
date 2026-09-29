@@ -24,6 +24,7 @@ public class CouponHistoryServiceImpl extends ServiceImpl<CouponHistoryDao, Coup
         LambdaQueryWrapper<CouponHistoryEntity> wrapper = new LambdaQueryWrapper<CouponHistoryEntity>()
                 .eq(query.getCouponId() != null, CouponHistoryEntity::getCouponId, query.getCouponId())
                 .eq(query.getMemberId() != null, CouponHistoryEntity::getMemberId, query.getMemberId())
+                .eq(query.getUseType() != null, CouponHistoryEntity::getUseType, query.getUseType())
                 // 主键兜底排序：同一秒内领的多张券时间相同，只按时间排会让翻页结果不稳定
                 .orderByDesc(CouponHistoryEntity::getCreateTime)
                 .orderByDesc(CouponHistoryEntity::getId);

@@ -3,8 +3,10 @@ package coupon.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import common.exception.BaseException;
 import common.query.KeyPageQuery;
+import common.vo.MemberResponseVo;
 import common.vo.PageVO;
 import coupon.entity.CouponEntity;
+import coupon.vo.CouponReceivableVo;
 
 import java.util.List;
 
@@ -101,4 +103,33 @@ public interface CouponService extends IService<CouponEntity> {
      * @throws BaseException 券不存在、当前不可领取，或券限定了会员等级时抛出
      */
     int grant(Long couponId, List<Long> memberIds);
+
+    /**
+     * 会员主动领取一张优惠券，写入的领取记录领取方式为主动领取。
+     *
+     * <p>实现方必须保证：与后台发券走同一套闸门（券已发布且在领取窗口内、还有余量、
+     * 未超出每人限领、会员等级匹配），两条路径的判定必须同步修改，否则同一张券
+     * 会因为发起方不同而有两套规则。
+     *
+     * <p>发行量扣减与限领计数必须在同一次串行化里完成：先扣减拿到券行的排他锁，再数该会员已领张数，
+     * 超限时抛异常由事务把扣减一并回滚。反过来先数后扣，两个并发请求会各自数到旧值、双双放行。
+     *
+     * @param couponId 优惠券主键，不能为 {@code null}
+     * @param user 当前登录会员，{@code id} 必填，昵称用于写领取记录
+     * @throws BaseException 券不存在、当前不可领取、已领完、超出每人限领，或券限定了会员等级时抛出
+     */
+    void receive(Long couponId, MemberResponseVo user);
+
+    /**
+     * 列出当前会员可领取的券，供券中心的"可领取"一档展示。
+     *
+     * <p>只列此刻真的领得到的券：已发布、在领取窗口内、还有余量，且没限定会员等级 ——
+     * 等级体系未接通，限等级的券领一次失败一次，列出来只会误导。
+     *
+     * <p>已被该会员领满的券仍然列出：前端要把它显示成"已领取"而不是从列表里消失。
+     *
+     * @param memberId 会员主键，不能为 {@code null}
+     * @return 可领取的券，面额大的排前面；一张都没有时为空列表，不返回 {@code null}
+     */
+    List<CouponReceivableVo> listReceivable(Long memberId);
 }

@@ -20,13 +20,21 @@ public class OrderSubmitVo {
     private Integer payType;
 
     // 不提交要购买的商品列表：下单时按会员的购物车重新取一遍
-    // TODO: 优惠与发票尚未支持
+    // 发票尚未支持
+
+    /**
+     * 使用的优惠券领取记录 ID；不用券时不传。
+     *
+     * <p>只传这个 ID，不传抵扣额：金额由券服务按购物车重算，与结算页展示的同源，
+     * 前端传金额等于把优惠额交给客户端决定。
+     */
+    private Long couponHistoryId;
 
     /** 防重令牌。 */
     @NotBlank(message = "缺少防重令牌，请返回结算页重试")
     private String orderToken;
 
-    /** 应付价格。前端回传「商品总额 + 运费」（由 {@code /order/front/jwt/confirm} 给全），提交时和重算结果比对。 */
+    /** 应付价格。前端回传「商品总额 + 运费 - 优惠券抵扣额」（由 {@code /order/front/jwt/confirm} 给全），提交时和重算结果比对。 */
     @NotNull(message = "缺少应付金额")
     private BigDecimal payPrice;
 

@@ -8,6 +8,7 @@ import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
 import common.query.KeyPageQuery;
 import common.utils.R;
+import common.vo.MemberResponseVo;
 import common.vo.PageVO;
 import coupon.dao.CouponDao;
 import coupon.entity.CouponEntity;
@@ -20,6 +21,7 @@ import coupon.service.CouponHistoryService;
 import coupon.service.CouponService;
 import coupon.service.CouponSpuCategoryRelationService;
 import coupon.service.CouponSpuRelationService;
+import coupon.vo.CouponReceivableVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,15 +31,17 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
- * 优惠券模板的管理端服务实现：分页查询、新增、修改、删除、发布与停发，以及后台定向发券。
+ * 优惠券模板的服务实现：分页查询、新增、修改、删除、发布与停发，以及发券（后台定向发与会员主动领）。
  *
- * <p>无状态、线程安全。依赖的三个 service 都由构造器注入，不持有连接或线程。
+ * <p>无状态、线程安全。依赖的四个 service 都由构造器注入，不持有连接或线程。
  *
- * <p>两条贯穿全类的规则：一是券的统计计数（{@code publish}、{@code receiveCount}、
+ * <p>三条贯穿全类的规则：一是券的统计计数（{@code publish}、{@code receiveCount}、
  * {@code useCount}）只由服务端维护，管理端提交的值一律丢弃；二是已有会员领取后模板的关键字段
- * 整体锁定，因为领取记录只存 {@code coupon_id}、不存券面权益。
+ * 整体锁定，因为领取记录只存 {@code coupon_id}、不存券面权益；三是后台发券与会员主动领取共用
+ * 同一套闸门，改判定时必须两条路径一起改。
  */
 @Service("couponService")
 @Slf4j
@@ -49,6 +53,8 @@ public class CouponServiceImpl extends ServiceImpl<CouponDao, CouponEntity> impl
     private static final int USE_TYPE_SPU = 2;
     /** 领取方式：后台赠送。 */
     private static final int GET_TYPE_GRANT = 0;
+    /** 领取方式：会员主动领取。 */
+    private static final int GET_TYPE_RECEIVE = 1;
     /** 使用状态：未使用。 */
     private static final int USE_STATUS_UNUSED = 0;
 
@@ -236,11 +242,7 @@ public class CouponServiceImpl extends ServiceImpl<CouponDao, CouponEntity> impl
 
         Date now = new Date();
         assertReceivable(coupon, now);
-
-        // 限等级的券在等级体系接通前一律拒绝：服务端拿不到会员等级，放行等于把限定范围作废
-        if (coupon.getMemberLevel() != null && coupon.getMemberLevel() != 0) {
-            throw new BaseException(BaseCodeEnum.COUPON_MEMBER_LEVEL_MISMATCH);
-        }
+        assertMemberLevel(coupon);
 
         // 昵称只用于展示，查不到不该挡住发券，所以这里失败不抛异常、留空继续
         Map<Long, String> nicknames = fetchMemberNicknames(memberIds);
@@ -260,13 +262,120 @@ public class CouponServiceImpl extends ServiceImpl<CouponDao, CouponEntity> impl
                 break;
             }
 
-            couponHistoryService.save(buildHistory(couponId, memberId, nicknames.get(memberId), now));
+            couponHistoryService.save(buildHistory(couponId, memberId, nicknames.get(memberId), GET_TYPE_GRANT, now));
             granted++;
         }
         return granted;
     }
 
+    /** {@inheritDoc} */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void receive(Long couponId, MemberResponseVo user) {
+        CouponEntity coupon = this.getById(couponId);
+        if (coupon == null) {
+            throw new BaseException(BaseCodeEnum.COUPON_NOT_FOUND);
+        }
+
+        Date now = new Date();
+        assertReceivable(coupon, now);
+        assertMemberLevel(coupon);
+
+        // 顺序不能颠倒：先扣发行量拿到 sms_coupon 这一行的排他锁，同一张券的领取请求才被串行化，
+        // 下面那次限领计数读到的才是稳定值。先数后扣的话，两个并发请求会各自数到旧值、双双放行
+        if (!consumeOne(couponId)) {
+            throw new BaseException(BaseCodeEnum.COUPON_SOLD_OUT);
+        }
+
+        Long memberId = user.getId();
+        int perLimit = coupon.getPerLimit() == null ? 0 : coupon.getPerLimit();
+        if (countMemberReceived(couponId, memberId) >= perLimit) {
+            // 抛异常由事务把上面那次扣减一并回滚，不会白吃掉一个发行额度
+            throw new BaseException(BaseCodeEnum.COUPON_RECEIVE_LIMIT_EXCEEDED);
+        }
+
+        // 昵称直接取网关注入的身份，不必再回查会员服务
+        couponHistoryService.save(buildHistory(couponId, memberId, user.getNickname(), GET_TYPE_RECEIVE, now));
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public List<CouponReceivableVo> listReceivable(Long memberId) {
+        Date now = new Date();
+        List<CouponEntity> coupons = this.list(new LambdaQueryWrapper<CouponEntity>()
+                // 未发布、不在领取窗口内、限会员等级的都不进券中心：领了也过不了领取闸门
+                .eq(CouponEntity::getPublish, 1)
+                .le(CouponEntity::getEnableStartTime, now)
+                .gt(CouponEntity::getEnableEndTime, now)
+                .and(inner -> inner.isNull(CouponEntity::getMemberLevel)
+                        .or()
+                        .eq(CouponEntity::getMemberLevel, 0))
+                // 面额大的排前面：会员进券中心第一眼想看到的是最值钱的那张
+                .orderByDesc(CouponEntity::getAmount));
+        if (coupons.isEmpty()) {
+            return List.of();
+        }
+
+        List<CouponEntity> inStock = coupons.stream()
+                .filter(coupon -> remainCount(coupon) > 0)
+                .toList();
+        if (inStock.isEmpty()) {
+            return List.of();
+        }
+
+        // 会员已领张数按券一次查完再分组：逐张查会变成"券中心有几张券就发几次查询"
+        Map<Long, Long> receivedByCouponId = countMemberReceived(
+                inStock.stream().map(CouponEntity::getId).toList(), memberId);
+
+        return inStock.stream().map(coupon -> {
+            CouponReceivableVo vo = new CouponReceivableVo();
+            vo.setCouponId(coupon.getId());
+            vo.setCouponName(coupon.getCouponName());
+            vo.setAmount(coupon.getAmount());
+            vo.setMinPoint(coupon.getMinPoint());
+            vo.setUseType(coupon.getUseType());
+            vo.setEndTime(coupon.getEndTime());
+            vo.setEnableEndTime(coupon.getEnableEndTime());
+            vo.setRemainCount(remainCount(coupon));
+            vo.setReceivedCount(receivedByCouponId.getOrDefault(coupon.getId(), 0L).intValue());
+            vo.setPerLimit(coupon.getPerLimit());
+            return vo;
+        }).toList();
+    }
+
     /* ═══════════════════ 内部 ═══════════════════ */
+
+    /**
+     * 算一张券还剩多少可领。
+     *
+     * @param coupon 券，不能为 {@code null}
+     * @return 发行总量减已领张数；两个计数为空时按 0 处理，余量不为负
+     */
+    private int remainCount(CouponEntity coupon) {
+        int publishCount = coupon.getPublishCount() == null ? 0 : coupon.getPublishCount();
+        int receiveCount = coupon.getReceiveCount() == null ? 0 : coupon.getReceiveCount();
+
+        return Math.max(0, publishCount - receiveCount);
+    }
+
+    /**
+     * 批量统计某会员对一批券各已领多少张。
+     *
+     * @param couponIds 券模板主键列表，不能为 {@code null}，可以为空集合
+     * @param memberId 会员主键，不能为 {@code null}
+     * @return 券模板主键到已领张数的映射；没领过的券不在映射中
+     */
+    private Map<Long, Long> countMemberReceived(List<Long> couponIds, Long memberId) {
+        // 必须先判空：空集合会让 SQL 拼成 IN ()，MySQL 直接报语法错
+        if (couponIds.isEmpty()) {
+            return Map.of();
+        }
+        return couponHistoryService.list(new LambdaQueryWrapper<CouponHistoryEntity>()
+                        .in(CouponHistoryEntity::getCouponId, couponIds)
+                        .eq(CouponHistoryEntity::getMemberId, memberId))
+                .stream()
+                .collect(Collectors.groupingBy(CouponHistoryEntity::getCouponId, Collectors.counting()));
+    }
 
     /**
      * 为列表回填现算的状态与可执行动作。
@@ -501,9 +610,24 @@ public class CouponServiceImpl extends ServiceImpl<CouponDao, CouponEntity> impl
     }
 
     /**
+     * 校验会员等级满足券的限定。
+     *
+     * <p>限等级的券在等级体系接通前一律拒绝：服务端拿不到会员等级，放行等于把限定范围作废。
+     *
+     * @param coupon 券，不能为 {@code null}
+     * @throws BaseException 券限定了会员等级时抛出
+     */
+    private void assertMemberLevel(CouponEntity coupon) {
+        if (coupon.getMemberLevel() != null && coupon.getMemberLevel() != 0) {
+            throw new BaseException(BaseCodeEnum.COUPON_MEMBER_LEVEL_MISMATCH);
+        }
+    }
+
+    /**
      * 占用一张发行额度。
      *
-     * <p>判断与扣减是同一条 SQL，不存在"查的时候还有、写的时候没了"的窗口。
+     * <p>判断与扣减是同一条 SQL，不存在"查的时候还有、写的时候没了"的窗口；
+     * 同一张券的并发领取请求会在这一行上排队，所以它同时是限领计数的串行化点。
      *
      * @param couponId 优惠券主键，不能为 {@code null}
      * @return {@code true} 表示占用成功；余量已尽返回 {@code false}
@@ -530,21 +654,23 @@ public class CouponServiceImpl extends ServiceImpl<CouponDao, CouponEntity> impl
     }
 
     /**
-     * 组装一条后台赠送的领取记录。
+     * 组装一条领取记录。
      *
      * @param couponId 优惠券主键，不能为 {@code null}
      * @param memberId 会员主键，不能为 {@code null}
      * @param memberNickName 会员昵称，查不到时为 {@code null}
+     * @param getType 领取方式，取值见本类的 {@code GET_TYPE_*} 常量
      * @param now 领取时间，不能为 {@code null}
      * @return 待落库的领取记录
      */
-    private CouponHistoryEntity buildHistory(Long couponId, Long memberId, String memberNickName, Date now) {
+    private CouponHistoryEntity buildHistory(Long couponId, Long memberId, String memberNickName,
+                                             int getType, Date now) {
         CouponHistoryEntity history = new CouponHistoryEntity();
         history.setCouponId(couponId);
         history.setMemberId(memberId);
         history.setMemberNickName(memberNickName);
         // 后台赠送与用户主动领取靠 getType 区分，统计领取率时要分开看
-        history.setGetType(GET_TYPE_GRANT);
+        history.setGetType(getType);
         history.setCreateTime(now);
         history.setUseType(USE_STATUS_UNUSED);
 

@@ -59,7 +59,13 @@ public class CouponEntity implements Serializable {
 	@NotNull(message = "每人限领张数不能为空")
 	@Min(value = 1, message = "每人限领张数至少为 1")
 	private Integer perLimit;
-	/** 使用门槛金额，商品总额达到该值才可用；0 表示无门槛。 */
+	/**
+	 * 使用门槛金额，商品总额达到该值才可用；0 表示无门槛。
+	 *
+	 * <p>比的是<b>适用范围内的商品金额</b>，不是整单金额：全场券的适用范围就是整单，两者一致；
+	 * 指定分类或指定商品的券只累计命中范围内的那几项，否则"满 100 减 20、仅限图书"会在
+	 * 买 1 本书加 200 元电器时也被放行。
+	 */
 	@NotNull(message = "使用门槛不能为空")
 	@DecimalMin(value = "0.00", message = "使用门槛不能为负数")
 	private BigDecimal minPoint;
