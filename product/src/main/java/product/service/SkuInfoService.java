@@ -1,6 +1,7 @@
 package product.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import common.to.SkuScopeVo;
 import common.vo.PageVO;
 import product.entity.SkuInfoEntity;
 import product.vo.SkuItemVo;
@@ -67,5 +68,16 @@ public interface SkuInfoService extends IService<SkuInfoEntity> {
      * @return skuId 到 sku 名称的映射；入参里查不到的 ID 不会出现在结果中
      */
     Map<Long, String> getUserNames(List<Long> spuIds);
+
+    /**
+     * 按 sku ID 批量取它在商品层级里的归属（所属 SPU 与分类）。
+     *
+     * <p>给下游做"指定商品 / 指定分类"的规则匹配用：调用方只拿得到购物车里的 skuId，
+     * 逐条回查商品信息会退化成 N 次远程调用，所以一次批量给出。
+     *
+     * @param skuIds sku ID 列表，不能为 {@code null}，可以为空集合
+     * @return skuId 到归属信息的映射；空入参或查不到的 ID 不会出现在结果中，不返回 {@code null}
+     */
+    Map<Long, SkuScopeVo> getSkuScopes(List<Long> skuIds);
 }
 

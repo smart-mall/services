@@ -3,21 +3,26 @@ package product.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import common.to.SkuScopeVo;
 import common.vo.PageVO;
 import common.utils.R;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import product.dao.SkuInfoDao;
+import product.dao.SpuInfoDao;
 import product.entity.SkuImagesEntity;
 import product.entity.SkuInfoEntity;
 import product.entity.SpuInfoDescEntity;
+import product.entity.SpuInfoEntity;
 import product.feign.SeckillFeignService;
 import product.feign.WareFeignService;
 import product.service.*;
 import product.vo.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -42,6 +47,7 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
     private final WareFeignService wareFeignService;
     private final ThreadPoolExecutor executor;
     private final SkuImagesService skuImagesService;
+    private final SpuInfoDao spuInfoDao;
 
     /**
      * 由容器注入详情页各数据源、两个远程客户端与线程池构造。
@@ -53,8 +59,9 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
      * @param wareFeignService 库存服务客户端，查当前 sku 是否有货
      * @param executor 详情页并行加载各数据块用的线程池
      * @param skuImagesService sku 图片服务，取 sku 图集
+     * @param spuInfoDao spu 主表数据访问，按 spu 批量取所属分类
      */
-    public SkuInfoServiceImpl(SpuInfoDescService spuInfoDescService, AttrGroupService attrGroupService, SkuSaleAttrValueService skuSaleAttrValueService, SeckillFeignService seckillFeignService, WareFeignService wareFeignService, ThreadPoolExecutor executor, SkuImagesService skuImagesService) {
+    public SkuInfoServiceImpl(SpuInfoDescService spuInfoDescService, AttrGroupService attrGroupService, SkuSaleAttrValueService skuSaleAttrValueService, SeckillFeignService seckillFeignService, WareFeignService wareFeignService, ThreadPoolExecutor executor, SkuImagesService skuImagesService, SpuInfoDao spuInfoDao) {
         this.spuInfoDescService = spuInfoDescService;
         this.attrGroupService = attrGroupService;
         this.skuSaleAttrValueService = skuSaleAttrValueService;
@@ -62,6 +69,7 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
         this.wareFeignService = wareFeignService;
         this.executor = executor;
         this.skuImagesService = skuImagesService;
+        this.spuInfoDao = spuInfoDao;
     }
 
     /** {@inheritDoc} */
@@ -213,8 +221,50 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
     /** {@inheritDoc} */
     @Override
     public Map<Long, String> getUserNames(List<Long> list) {
+        // 必须先判空：空集合会拼出 IN ()，MySQL 报语法错，整页接口变成 10000
+        if (list == null || list.isEmpty()) {
+            return Map.of();
+        }
         List<SkuInfoEntity> spuInfoEntities = baseMapper.selectByIds(list);
-        return spuInfoEntities.stream().collect(Collectors.toMap(SkuInfoEntity::getSkuId, SkuInfoEntity::getSkuName));
+        return spuInfoEntities.stream()
+                .filter(item -> item.getSkuName() != null)
+                .collect(Collectors.toMap(SkuInfoEntity::getSkuId, SkuInfoEntity::getSkuName, (first, second) -> first));
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public Map<Long, SkuScopeVo> getSkuScopes(List<Long> skuIds) {
+        if (skuIds == null || skuIds.isEmpty()) {
+            return Map.of();
+        }
+
+        List<SkuInfoEntity> skus = baseMapper.selectByIds(skuIds);
+        if (skus.isEmpty()) {
+            return Map.of();
+        }
+
+        // 两级归属分两次按主键批量查，不做 join：sku 主表给 spu，spu 主表给分类
+        List<Long> spuIds = skus.stream()
+                .map(SkuInfoEntity::getSpuId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        // 注入 dao 而非 SpuInfoService：后者构造器反过来依赖本类，
+        // 两边都用构造器注入会形成循环，容器启动时直接失败
+        Map<Long, Long> catalogBySpuId = spuIds.isEmpty() ? Map.of()
+                : spuInfoDao.selectByIds(spuIds).stream()
+                        .filter(spu -> spu.getCatalogId() != null)
+                        .collect(Collectors.toMap(SpuInfoEntity::getId, SpuInfoEntity::getCatalogId, (first, second) -> first));
+
+        Map<Long, SkuScopeVo> scopes = new HashMap<>();
+        for (SkuInfoEntity sku : skus) {
+            SkuScopeVo scope = new SkuScopeVo();
+            scope.setSkuId(sku.getSkuId());
+            scope.setSpuId(sku.getSpuId());
+            scope.setCatalogId(catalogBySpuId.get(sku.getSpuId()));
+            scopes.put(sku.getSkuId(), scope);
+        }
+        return scopes;
     }
 
     /**

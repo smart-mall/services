@@ -2,6 +2,7 @@ package product.controller;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
+import common.to.SkuScopeVo;
 import common.vo.PageVO;
 import common.utils.R;
 import lombok.extern.slf4j.Slf4j;
@@ -71,6 +72,20 @@ public class SkuInfoController {
         Map<Long, String> map = skuInfoService.getUserNames(spuIds);
 
         return R.ok(map);
+    }
+
+    /**
+     * 按 sku ID 批量取它在商品层级里的归属：所属 SPU 与分类。
+     *
+     * <p>给下游做"指定商品 / 指定分类"的规则匹配用（优惠券的适用范围就是这种规则）。
+     * 入参为空集合时返回空映射而不是报错。
+     *
+     * @param skuIds sku ID 列表
+     * @return skuId 到归属信息的映射；入参里查不到的 ID 不会出现在结果中
+     */
+    @PostMapping(value = "/getSkuScopes")
+    public R<Map<Long, SkuScopeVo>> getSkuScopes(@RequestBody List<Long> skuIds) {
+        return R.ok(skuInfoService.getSkuScopes(skuIds));
     }
 
     /**
