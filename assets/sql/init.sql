@@ -550,11 +550,18 @@ CREATE TABLE IF NOT EXISTS `sms_coupon` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
--- 【注意】已部署的库里 `sms_coupon_history` 只有主键，没有 (coupon_id, member_id) 索引：
+-- 【注意】已部署的库里 `sms_coupon_history` 只有主键，没有下面这几个索引：
 -- `CREATE TABLE IF NOT EXISTS` 对已存在的表整句跳过，不会补索引。手工补一次
 -- （重复执行会报 duplicate key name）：
 --   ALTER TABLE `sms_coupon_history` ADD INDEX `idx_coupon_member` (`coupon_id`, `member_id`);
--- 领取记录按 coupon_id 查、限领判定按 (coupon_id, member_id) 查，两条路径共用这个索引。
+--   ALTER TABLE `sms_coupon_history` ADD INDEX `idx_member_create` (`member_id`, `create_time`);
+--   ALTER TABLE `sms_coupon_history` ADD UNIQUE INDEX `uk_order_sn` (`order_sn`);
+-- idx_coupon_member 供领取记录按 coupon_id 查与限领判定按 (coupon_id, member_id) 查；
+-- idx_member_create 供「我的券」按会员分页排序 —— 前者的前导列是 coupon_id，只按 member_id 查时用不上。
+-- uk_order_sn 是「一张订单最多占一张券」的硬约束：未使用与已退回的行 order_sn 为 NULL，
+-- 而唯一索引允许多个 NULL，不影响同一张券被反复领取。加之前先确认没有重复值，有重复会让
+-- ALTER 直接失败：
+--   SELECT `order_sn`, COUNT(*) FROM `sms_coupon_history` WHERE `order_sn` IS NOT NULL GROUP BY `order_sn` HAVING COUNT(*) > 1;
 -- 【注意】`order_sn` 原为 bigint，与拥有方 `oms_order.order_sn`（char(100) / String）不一致。
 -- 订单号由 `IdWorker` 生成，当前恰好是纯数字，但按数值存会在换成含字母的号段时直接溢出。
 -- 已部署的库需改列类型（值本身不变，可直接转换）：
@@ -571,7 +578,9 @@ CREATE TABLE IF NOT EXISTS `sms_coupon_history` (
   `order_id` bigint DEFAULT NULL COMMENT '占用或核销该券的订单id',
   `order_sn` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '占用或核销该券的订单号',
   PRIMARY KEY (`id`) USING BTREE,
-  KEY `idx_coupon_member` (`coupon_id`, `member_id`) USING BTREE
+  UNIQUE KEY `uk_order_sn` (`order_sn`) USING BTREE,
+  KEY `idx_coupon_member` (`coupon_id`, `member_id`) USING BTREE,
+  KEY `idx_member_create` (`member_id`, `create_time`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='优惠券领取历史记录';
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
