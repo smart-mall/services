@@ -240,6 +240,11 @@ public enum BaseCodeEnum {
      * 不降级成"匹配不到"：那会算出一个偏小的抵扣额，结算页与下单校验的价会分叉。
      */
     COUPON_PRODUCT_UNAVAILABLE(22018, "商品服务暂时不可用，无法判断优惠券适用范围"),
+    /**
+     * 该订单已占用别的优惠券。触发场景：同一个订单号去锁第二张券，被 {@code uk_order_sn}
+     * 唯一索引拦下 —— 一张订单最多占一张券。
+     */
+    COUPON_ORDER_ALREADY_OCCUPIED(22019, "该订单已占用其它优惠券"),
 
     /** 请先登录。触发场景：网关拒绝匿名请求，返回 HTTP 200 + 本码，前端据此清 token。 */
     NOT_LOGIN_EXCEPTION(15004,"请先登录"),

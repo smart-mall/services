@@ -24,6 +24,7 @@ import coupon.service.CouponSpuRelationService;
 import coupon.service.CouponUseService;
 import coupon.vo.CouponHistoryPageQuery;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -183,12 +184,18 @@ public class CouponUseServiceImpl implements CouponUseService {
             throw new BaseException(BaseCodeEnum.COUPON_NOT_IN_USE_PERIOD);
         }
 
-        boolean locked = couponHistoryService.update(new LambdaUpdateWrapper<CouponHistoryEntity>()
-                .set(CouponHistoryEntity::getUseType, CouponUseStatusEnum.OCCUPIED.getCode())
-                .set(CouponHistoryEntity::getOrderId, orderId)
-                .set(CouponHistoryEntity::getOrderSn, orderSn)
-                .eq(CouponHistoryEntity::getId, couponHistoryId)
-                .eq(CouponHistoryEntity::getUseType, CouponUseStatusEnum.UNUSED.getCode()));
+        boolean locked;
+        try {
+            locked = couponHistoryService.update(new LambdaUpdateWrapper<CouponHistoryEntity>()
+                    .set(CouponHistoryEntity::getUseType, CouponUseStatusEnum.OCCUPIED.getCode())
+                    .set(CouponHistoryEntity::getOrderId, orderId)
+                    .set(CouponHistoryEntity::getOrderSn, orderSn)
+                    .eq(CouponHistoryEntity::getId, couponHistoryId)
+                    .eq(CouponHistoryEntity::getUseType, CouponUseStatusEnum.UNUSED.getCode()));
+        } catch (DuplicateKeyException e) {
+            // 唯一索引 uk_order_sn 拦下的：同一订单号已经占了另一张券
+            throw new BaseException(BaseCodeEnum.COUPON_ORDER_ALREADY_OCCUPIED);
+        }
         if (locked) {
             return;
         }
