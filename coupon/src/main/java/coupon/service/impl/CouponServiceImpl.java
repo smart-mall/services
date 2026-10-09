@@ -15,7 +15,9 @@ import coupon.entity.CouponEntity;
 import coupon.entity.CouponHistoryEntity;
 import coupon.entity.CouponSpuCategoryRelationEntity;
 import coupon.entity.CouponSpuRelationEntity;
+import coupon.enums.CouponScopeEnum;
 import coupon.enums.CouponStatusEnum;
+import coupon.enums.CouponUseStatusEnum;
 import coupon.feign.MemberFeignService;
 import coupon.service.CouponHistoryService;
 import coupon.service.CouponService;
@@ -24,6 +26,7 @@ import coupon.service.CouponSpuRelationService;
 import coupon.vo.CouponReceivableVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -38,25 +41,21 @@ import java.util.stream.Collectors;
  *
  * <p>无状态、线程安全。依赖的四个 service 都由构造器注入，不持有连接或线程。
  *
- * <p>三条贯穿全类的规则：一是券的统计计数（{@code publish}、{@code receiveCount}、
+ * <p>四条贯穿全类的规则：一是券的统计计数（{@code publish}、{@code receiveCount}、
  * {@code useCount}）只由服务端维护，管理端提交的值一律丢弃；二是已有会员领取后模板的关键字段
  * 整体锁定，因为领取记录只存 {@code coupon_id}、不存券面权益；三是后台发券与会员主动领取共用
- * 同一套闸门，改判定时必须两条路径一起改。
+ * 同一套闸门，改判定时必须两条路径一起改；四是每人限领的计数必须在拿到券行的排他锁之后读，
+ * 且两个发券方法都跑在 {@code READ_COMMITTED} 下 —— 顺序颠倒或退回默认隔离级别，
+ * 并发请求会各自读到旧值而全部放行。
  */
 @Service("couponService")
 @Slf4j
 public class CouponServiceImpl extends ServiceImpl<CouponDao, CouponEntity> implements CouponService {
 
-    /** 适用范围：指定分类。 */
-    private static final int USE_TYPE_CATEGORY = 1;
-    /** 适用范围：指定商品。 */
-    private static final int USE_TYPE_SPU = 2;
     /** 领取方式：后台赠送。 */
     private static final int GET_TYPE_GRANT = 0;
     /** 领取方式：会员主动领取。 */
     private static final int GET_TYPE_RECEIVE = 1;
-    /** 使用状态：未使用。 */
-    private static final int USE_STATUS_UNUSED = 0;
 
     /** 领取记录，用于删除拦截、限领判定与定向发券写入。 */
     private final CouponHistoryService couponHistoryService;
@@ -230,7 +229,7 @@ public class CouponServiceImpl extends ServiceImpl<CouponDao, CouponEntity> impl
 
     /** {@inheritDoc} */
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional(isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)
     public int grant(Long couponId, List<Long> memberIds) {
         CouponEntity coupon = this.getById(couponId);
         if (coupon == null) {
@@ -253,13 +252,16 @@ public class CouponServiceImpl extends ServiceImpl<CouponDao, CouponEntity> impl
             if (memberId == null) {
                 continue;
             }
-            // 每人限领：先数已领张数。后台发券是低频操作，这里不做更强的并发保护
-            if (countMemberReceived(couponId, memberId) >= perLimit) {
-                continue;
-            }
+            // 先占额度拿到 sms_coupon 这一行的排他锁，再数已领张数：锁之后读的新快照
+            // 才含并发事务刚插进去的记录。先数后占的话两边会各自数到旧值、双双放行
             if (!consumeOne(couponId)) {
                 // 余量已尽，后面的会员也不可能成功
                 break;
+            }
+            if (countMemberReceived(couponId, memberId) >= perLimit) {
+                // 该会员已达上限：退回刚占的额度，本批其余会员继续
+                releaseOne(couponId);
+                continue;
             }
 
             couponHistoryService.save(buildHistory(couponId, memberId, nicknames.get(memberId), GET_TYPE_GRANT, now));
@@ -270,7 +272,7 @@ public class CouponServiceImpl extends ServiceImpl<CouponDao, CouponEntity> impl
 
     /** {@inheritDoc} */
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional(isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)
     public void receive(Long couponId, MemberResponseVo user) {
         CouponEntity coupon = this.getById(couponId);
         if (coupon == null) {
@@ -281,8 +283,8 @@ public class CouponServiceImpl extends ServiceImpl<CouponDao, CouponEntity> impl
         assertReceivable(coupon, now);
         assertMemberLevel(coupon);
 
-        // 顺序不能颠倒：先扣发行量拿到 sms_coupon 这一行的排他锁，同一张券的领取请求才被串行化，
-        // 下面那次限领计数读到的才是稳定值。先数后扣的话，两个并发请求会各自数到旧值、双双放行
+        // 顺序不能颠倒：先扣发行量拿到 sms_coupon 行的排他锁，同券领取请求才被串行化。
+        // 光有锁不够：本方法跑在 READ_COMMITTED 下，锁之后那次计数才读得到已提交的记录
         if (!consumeOne(couponId)) {
             throw new BaseException(BaseCodeEnum.COUPON_SOLD_OUT);
         }
@@ -302,7 +304,7 @@ public class CouponServiceImpl extends ServiceImpl<CouponDao, CouponEntity> impl
     @Override
     public List<CouponReceivableVo> listReceivable(Long memberId) {
         Date now = new Date();
-        List<CouponEntity> coupons = this.list(new LambdaQueryWrapper<CouponEntity>()
+        List<CouponEntity> inStock = this.list(new LambdaQueryWrapper<CouponEntity>()
                 // 未发布、不在领取窗口内、限会员等级的都不进券中心：领了也过不了领取闸门
                 .eq(CouponEntity::getPublish, 1)
                 .le(CouponEntity::getEnableStartTime, now)
@@ -310,15 +312,11 @@ public class CouponServiceImpl extends ServiceImpl<CouponDao, CouponEntity> impl
                 .and(inner -> inner.isNull(CouponEntity::getMemberLevel)
                         .or()
                         .eq(CouponEntity::getMemberLevel, 0))
+                // 已领完的券在 SQL 里就筛掉，不捞回来再在内存里过滤；两个计数列都允许为
+                // NULL，必须 COALESCE，否则 NULL 参与比较恒为假、一张券都出不来
+                .apply("COALESCE(receive_count, 0) < COALESCE(publish_count, 0)")
                 // 面额大的排前面：会员进券中心第一眼想看到的是最值钱的那张
                 .orderByDesc(CouponEntity::getAmount));
-        if (coupons.isEmpty()) {
-            return List.of();
-        }
-
-        List<CouponEntity> inStock = coupons.stream()
-                .filter(coupon -> remainCount(coupon) > 0)
-                .toList();
         if (inStock.isEmpty()) {
             return List.of();
         }
@@ -336,7 +334,9 @@ public class CouponServiceImpl extends ServiceImpl<CouponDao, CouponEntity> impl
             vo.setUseType(coupon.getUseType());
             vo.setEndTime(coupon.getEndTime());
             vo.setEnableEndTime(coupon.getEnableEndTime());
-            vo.setRemainCount(remainCount(coupon));
+            // 余量先算一次再填：同一个值在这里读两遍没有意义
+            int remain = remainCount(coupon);
+            vo.setRemainCount(remain);
             vo.setReceivedCount(receivedByCouponId.getOrDefault(coupon.getId(), 0L).intValue());
             vo.setPerLimit(coupon.getPerLimit());
             return vo;
@@ -397,8 +397,8 @@ public class CouponServiceImpl extends ServiceImpl<CouponDao, CouponEntity> impl
      * @param coupon 券，不能为 {@code null}
      */
     private void fillRelations(CouponEntity coupon) {
-        boolean byCategory = Integer.valueOf(USE_TYPE_CATEGORY).equals(coupon.getUseType());
-        boolean bySpu = Integer.valueOf(USE_TYPE_SPU).equals(coupon.getUseType());
+        boolean byCategory = CouponScopeEnum.CATEGORY.matches(coupon.getUseType());
+        boolean bySpu = CouponScopeEnum.SPU.matches(coupon.getUseType());
 
         coupon.setCategoryRelations(byCategory
                 ? couponSpuCategoryRelationService.list(new LambdaQueryWrapper<CouponSpuCategoryRelationEntity>()
@@ -462,10 +462,10 @@ public class CouponServiceImpl extends ServiceImpl<CouponDao, CouponEntity> impl
         boolean emptyCategories = coupon.getCategoryRelations() == null || coupon.getCategoryRelations().isEmpty();
         boolean emptySpus = coupon.getSpuRelations() == null || coupon.getSpuRelations().isEmpty();
 
-        if (Integer.valueOf(USE_TYPE_CATEGORY).equals(coupon.getUseType()) && emptyCategories) {
+        if (CouponScopeEnum.CATEGORY.matches(coupon.getUseType()) && emptyCategories) {
             throw new BaseException(BaseCodeEnum.COUPON_SCOPE_REQUIRED);
         }
-        if (Integer.valueOf(USE_TYPE_SPU).equals(coupon.getUseType()) && emptySpus) {
+        if (CouponScopeEnum.SPU.matches(coupon.getUseType()) && emptySpus) {
             throw new BaseException(BaseCodeEnum.COUPON_SCOPE_REQUIRED);
         }
     }
@@ -476,14 +476,14 @@ public class CouponServiceImpl extends ServiceImpl<CouponDao, CouponEntity> impl
      * @param coupon 券，其 {@code id} 必须已有值，不能为 {@code null}
      */
     private void saveRelations(CouponEntity coupon) {
-        if (Integer.valueOf(USE_TYPE_CATEGORY).equals(coupon.getUseType())) {
+        if (CouponScopeEnum.CATEGORY.matches(coupon.getUseType())) {
             for (CouponSpuCategoryRelationEntity relation : coupon.getCategoryRelations()) {
                 // 清掉前端回传的主键：那是上一次加载的行，留着会更新到错误的记录上
                 relation.setId(null);
                 relation.setCouponId(coupon.getId());
                 couponSpuCategoryRelationService.save(relation);
             }
-        } else if (Integer.valueOf(USE_TYPE_SPU).equals(coupon.getUseType())) {
+        } else if (CouponScopeEnum.SPU.matches(coupon.getUseType())) {
             for (CouponSpuRelationEntity relation : coupon.getSpuRelations()) {
                 relation.setId(null);
                 relation.setCouponId(coupon.getId());
@@ -527,8 +527,8 @@ public class CouponServiceImpl extends ServiceImpl<CouponDao, CouponEntity> impl
      * @return {@code true} 表示不需要关联明细
      */
     private boolean isAllScope(CouponEntity coupon) {
-        return !Integer.valueOf(USE_TYPE_CATEGORY).equals(coupon.getUseType())
-                && !Integer.valueOf(USE_TYPE_SPU).equals(coupon.getUseType());
+        return !CouponScopeEnum.CATEGORY.matches(coupon.getUseType())
+                && !CouponScopeEnum.SPU.matches(coupon.getUseType());
     }
 
     /**
@@ -641,6 +641,20 @@ public class CouponServiceImpl extends ServiceImpl<CouponDao, CouponEntity> impl
     }
 
     /**
+     * 退回一个刚占用的发行额度。
+     *
+     * <p>只在本事务已持有该券行的排他锁、且确认这次占用不该留下时调用：本方法不做余量
+     * 判断，也无从判断，计数不为负由调用点的前置条件保证。
+     *
+     * @param couponId 优惠券主键，不能为 {@code null}
+     */
+    private void releaseOne(Long couponId) {
+        this.update(new LambdaUpdateWrapper<CouponEntity>()
+                .setSql("receive_count = COALESCE(receive_count, 0) - 1")
+                .eq(CouponEntity::getId, couponId));
+    }
+
+    /**
      * 统计某会员已领取某券的张数。
      *
      * @param couponId 优惠券主键，不能为 {@code null}
@@ -672,7 +686,7 @@ public class CouponServiceImpl extends ServiceImpl<CouponDao, CouponEntity> impl
         // 后台赠送与用户主动领取靠 getType 区分，统计领取率时要分开看
         history.setGetType(getType);
         history.setCreateTime(now);
-        history.setUseType(USE_STATUS_UNUSED);
+        history.setUseType(CouponUseStatusEnum.UNUSED.getCode());
 
         return history;
     }

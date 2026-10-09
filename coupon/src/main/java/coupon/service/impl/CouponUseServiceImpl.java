@@ -15,6 +15,7 @@ import coupon.entity.CouponEntity;
 import coupon.entity.CouponHistoryEntity;
 import coupon.entity.CouponSpuCategoryRelationEntity;
 import coupon.entity.CouponSpuRelationEntity;
+import coupon.enums.CouponScopeEnum;
 import coupon.enums.CouponUseStatusEnum;
 import coupon.feign.ProductFeignService;
 import coupon.service.CouponHistoryService;
@@ -24,6 +25,7 @@ import coupon.service.CouponUseService;
 import coupon.vo.CouponHistoryPageQuery;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -54,13 +56,6 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service("couponUseService")
 public class CouponUseServiceImpl implements CouponUseService {
-
-    /** 适用范围：全场通用，不需要关联明细。 */
-    private static final int SCOPE_ALL = 0;
-    /** 适用范围：指定分类。 */
-    private static final int SCOPE_CATEGORY = 1;
-    /** 适用范围：指定商品。 */
-    private static final int SCOPE_SPU = 2;
 
     /** 过期清理每批处理的条数。 */
     private static final int EXPIRE_BATCH_SIZE = 500;
@@ -172,7 +167,7 @@ public class CouponUseServiceImpl implements CouponUseService {
 
     /** {@inheritDoc} */
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional(isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)
     public void lock(Long couponHistoryId, Long memberId, Long orderId, String orderSn) {
         CouponHistoryEntity history = couponHistoryService.getById(couponHistoryId);
         if (history == null || !Objects.equals(history.getMemberId(), memberId)) {
@@ -198,7 +193,8 @@ public class CouponUseServiceImpl implements CouponUseService {
             return;
         }
 
-        // 条件没命中才回读一次：上面的 history 是加锁前的快照，只用来把失败原因说清楚
+        // 条件没命中才回读一次：本方法跑在 READ_COMMITTED 下，
+        // 这次读得到已提交的最新状态，才能分清"被占走"与"本来就不是未使用"
         CouponHistoryEntity latest = couponHistoryService.getById(couponHistoryId);
         if (latest != null && Objects.equals(latest.getUseType(), CouponUseStatusEnum.OCCUPIED.getCode())) {
             throw new BaseException(BaseCodeEnum.COUPON_ALREADY_OCCUPIED);
@@ -441,15 +437,14 @@ public class CouponUseServiceImpl implements CouponUseService {
      */
     private Scope resolveScope(CouponEntity coupon, List<CouponCartItemVo> items,
                                Map<Long, SkuScopeVo> skuScopes, ScopeIndex scopeIndex) {
-        Integer useType = coupon.getUseType();
-        if (useType == null || useType == SCOPE_ALL) {
+        if (CouponScopeEnum.ALL.matches(coupon.getUseType())) {
             BigDecimal sum = items.stream()
                     .map(CouponCartItemVo::subtotal)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
             return new Scope(sum, items);
         }
 
-        boolean byCategory = useType == SCOPE_CATEGORY;
+        boolean byCategory = CouponScopeEnum.CATEGORY.matches(coupon.getUseType());
         Set<Long> allowed = byCategory
                 ? scopeIndex.categoriesOf(coupon.getId())
                 : scopeIndex.spusOf(coupon.getId());
@@ -500,10 +495,9 @@ public class CouponUseServiceImpl implements CouponUseService {
         List<Long> categoryScoped = new ArrayList<>();
         List<Long> spuScoped = new ArrayList<>();
         for (CouponEntity coupon : coupons) {
-            Integer useType = coupon.getUseType();
-            if (Integer.valueOf(SCOPE_CATEGORY).equals(useType)) {
+            if (CouponScopeEnum.CATEGORY.matches(coupon.getUseType())) {
                 categoryScoped.add(coupon.getId());
-            } else if (Integer.valueOf(SCOPE_SPU).equals(useType)) {
+            } else if (CouponScopeEnum.SPU.matches(coupon.getUseType())) {
                 spuScoped.add(coupon.getId());
             }
         }

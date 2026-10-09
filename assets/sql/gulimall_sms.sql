@@ -49,12 +49,21 @@ CREATE TABLE `sms_coupon`  (
 -- ----------------------------
 -- Table structure for sms_coupon_history
 -- ----------------------------
--- 【注意】已部署的库里 `sms_coupon_history` 只有主键，没有 (coupon_id, member_id) 索引，
--- 且 `order_sn` 是 bigint。建表语句对已存在的表整句跳过，两处都要手工改一次：
+-- 【注意】已部署的库里 `sms_coupon_history` 只有主键，且 `order_sn` 是 bigint。
+-- 建表语句对已存在的表整句跳过，下面四处都要手工改一次：
 --   ALTER TABLE `sms_coupon_history` ADD INDEX `idx_coupon_member` (`coupon_id`, `member_id`);
+--   ALTER TABLE `sms_coupon_history` ADD INDEX `idx_member_create` (`member_id`, `create_time`);
 --   ALTER TABLE `sms_coupon_history` MODIFY COLUMN `order_sn` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '占用或核销该券的订单号';
--- 索引供领取记录查询与每人限领计数使用；order_sn 与拥有方 `oms_order.order_sn`（char(100) / String）
--- 对齐，原先是 bigint，订单号换成含字母的号段会直接溢出。
+--   ALTER TABLE `sms_coupon_history` ADD UNIQUE INDEX `uk_order_sn` (`order_sn`);
+-- 两个普通索引各有分工：idx_coupon_member 供每人限领计数与按券查领取记录使用，
+-- idx_member_create 供"我的券"按会员分页排序使用 —— 前者的前导列是 coupon_id，
+-- 只按 member_id 查时用不上，会退化成全表扫加 filesort。
+-- order_sn 与拥有方 `oms_order.order_sn`（char(100) / String）对齐，原先是 bigint，
+-- 订单号换成含字母的号段会直接溢出。
+-- uk_order_sn 是"一张订单最多占一张券"的硬约束。未使用与已退回的行 order_sn 为 NULL，
+-- 而唯一索引允许多个 NULL，所以不影响同一张券被反复领取。加之前先确认没有重复值，
+-- 有重复会让 ALTER 直接失败：
+--   SELECT `order_sn`, COUNT(*) FROM `sms_coupon_history` WHERE `order_sn` IS NOT NULL GROUP BY `order_sn` HAVING COUNT(*) > 1;
 DROP TABLE IF EXISTS `sms_coupon_history`;
 CREATE TABLE `sms_coupon_history`  (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -68,7 +77,9 @@ CREATE TABLE `sms_coupon_history`  (
   `order_id` bigint(20) NULL DEFAULT NULL COMMENT '占用或核销该券的订单id',
   `order_sn` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '占用或核销该券的订单号',
   PRIMARY KEY (`id`) USING BTREE,
-  KEY `idx_coupon_member` (`coupon_id`, `member_id`) USING BTREE
+  UNIQUE INDEX `uk_order_sn` (`order_sn`) USING BTREE,
+  KEY `idx_coupon_member` (`coupon_id`, `member_id`) USING BTREE,
+  KEY `idx_member_create` (`member_id`, `create_time`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '优惠券领取历史记录' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
