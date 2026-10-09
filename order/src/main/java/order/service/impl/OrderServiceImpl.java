@@ -331,10 +331,13 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
      * <p>确认页与换地址两条路径共用本方法：同一组入参必须算出同一结果，
      * 否则提交时重算出的金额与确认页展示的不一致，会被判成价格变动。
      *
+     * <p>购物项为空时不去问 ware：ware 对空清单返回的是参数校验错误，那种响应解不成运费对象。
+     * 空车本来就允许出现，此时只算商品总额（为 0），运费与优惠都记 0。
+     *
      * <p>优惠两个字段在这里留空，由 {@code applyCoupon} 按选中的券补：本方法只算运费。
      *
      * @param address 收货地址，必须属于当前会员，且带行政区划编码
-     * @param items 已勾选的购物项，不能为 {@code null}
+     * @param items 已勾选的购物项，不能为 {@code null}；为空时不再计费
      * @return 商品总额、运费、应付总额、运费明细，以及为 0 的优惠金额与为空的优惠明细
      * @throws BaseException 地址没有行政区划编码、或 ware 算不出运费时抛出
      */
@@ -345,6 +348,12 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         }
 
         BigDecimal totalAmount = sumItemAmount(items);
+        // 购物车为空时直接给零运费，不问 ware：ware 对空清单返回的是参数校验错误，
+        // 那种响应里的 data 是 {字段名: 提示} 的形状，解不成运费对象
+        if (items.isEmpty()) {
+            return zeroFare(totalAmount);
+        }
+
         WareFareVo wareFare = requestWareFare(address.getAreacode(), items);
 
         FareVo fareVo = new FareVo();
