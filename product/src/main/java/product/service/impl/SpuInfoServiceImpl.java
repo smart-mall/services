@@ -653,8 +653,14 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
     /** {@inheritDoc} */
     @Override
     public Map<Long, String> getUserNames(List<Long> list) {
+        // 必须先判空：空集合会拼出 IN ()，MySQL 报语法错，整页接口变成 10000
+        if (list == null || list.isEmpty()) {
+            return Map.of();
+        }
         List<SpuInfoEntity> spuInfoEntities = baseMapper.selectByIds(list);
-        return spuInfoEntities.stream().collect(Collectors.toMap(SpuInfoEntity::getId, SpuInfoEntity::getSpuName));
+        return spuInfoEntities.stream()
+                .filter(item -> item.getSpuName() != null)
+                .collect(Collectors.toMap(SpuInfoEntity::getId, SpuInfoEntity::getSpuName, (first, second) -> first));
     }
 
     /** {@inheritDoc} */

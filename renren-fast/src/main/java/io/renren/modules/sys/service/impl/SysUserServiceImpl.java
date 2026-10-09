@@ -122,6 +122,10 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserDao, SysUserEntity> i
 
 	@Override
 	public Map<Long, String> getUserNames(List<Long> userIds) {
+		// 必须先判空：空集合会拼出 IN ()，MySQL 报语法错，整页接口变成 10000
+		if (userIds == null || userIds.isEmpty()) {
+			return new HashMap<>();
+		}
 		LambdaQueryWrapper<SysUserEntity> wrapper = new LambdaQueryWrapper<>();
 		wrapper.in(SysUserEntity::getUserId, userIds);
 		List<SysUserEntity> list = this.list(wrapper);
