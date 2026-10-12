@@ -1,10 +1,21 @@
 package order.constant;
 
-/** 订单服务的常量：防重令牌与订单来源。 */
+/** 订单服务的常量：防重令牌、测试支付票据与订单来源。 */
 public class OrderConstant {
 
     /** 防重令牌的 Redis 键前缀，实际键为前缀拼接 memberId。 */
     public static final String USER_ORDER_TOKEN_PREFIX = "order:token";
+
+    /** 测试支付票据的 Redis 键前缀，实际键为前缀拼接订单号。 */
+    public static final String MOCK_PAY_TICKET_PREFIX = "order:mock-pay:ticket:";
+
+    /**
+     * 测试支付票据的有效期（分钟）。
+     *
+     * <p>票据只需覆盖用户从支付页跳到测试收银台并点击确认的时间。订单自身 1 分钟后即被超时关单，
+     * 票据即使更长寿也过不了状态复核，因此放宽到分钟级不产生额外敞口。
+     */
+    public static final int MOCK_PAY_TICKET_TIMEOUT_MINUTES = 5;
 
     /**
      * 防重令牌的有效期（分钟）。

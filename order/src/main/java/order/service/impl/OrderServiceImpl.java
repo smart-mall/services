@@ -59,6 +59,7 @@ import order.vo.WareFareVo;
 import order.vo.WareSkuLockVo;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
@@ -68,6 +69,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -136,6 +138,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
     @Autowired
     private AlipayTemplate alipayTemplate;
+
+    /** 模拟支付平台收银台的对外地址，取 {@code gl.pay.mock.cashier-url}。 */
+    @Value("${gl.pay.mock.cashier-url}")
+    private String mockCashierUrl;
 
     @Autowired
     private ThreadPoolExecutor threadPoolExecutor;
@@ -987,6 +993,11 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
             return result;
         }
 
+        if (PayConstant.MOCK.equals(payType)) {
+            result.setCashierUrl(buildMockCashierUrl(orderSn));
+            return result;
+        }
+
         throw new ValidationException("payType", "不支持的支付方式：" + payType);
     }
 
@@ -1021,6 +1032,35 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         }
 
         return payVo;
+    }
+
+    /**
+     * 签发测试支付的一次性票据，并拼出收银台地址。
+     *
+     * <p>票据覆盖同一订单的上一张：同一订单重复发起支付时，只有最后点开的那张收银台能用。
+     * 地址里带上金额与商品名，两者都只用于收银台展示 —— 商户侧的收款金额始终取库里的应付总额。
+     *
+     * @param orderSn 订单号，不能为 {@code null}
+     * @return 收银台地址，前端在新窗口打开
+     */
+    private String buildMockCashierUrl(String orderSn) {
+        String ticket = UUID.randomUUID().toString().replace("-", "");
+        redisTemplate.opsForValue().set(
+                OrderConstant.MOCK_PAY_TICKET_PREFIX + orderSn,
+                ticket,
+                OrderConstant.MOCK_PAY_TICKET_TIMEOUT_MINUTES,
+                TimeUnit.MINUTES);
+
+        // 复用支付宝那条的参数组装：金额取库里的应付总额、商品名取第一个订单项
+        PayVo payVo = buildPayVo(orderSn);
+        return UriComponentsBuilder.fromUriString(mockCashierUrl)
+                .queryParam("orderSn", payVo.getOut_trade_no())
+                .queryParam("amount", payVo.getTotal_amount())
+                .queryParam("subject", payVo.getSubject())
+                .queryParam("ticket", ticket)
+                .build()
+                .encode()
+                .toUriString();
     }
 
     /** {@inheritDoc} */
@@ -1470,6 +1510,55 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
                 "  <return_code><![CDATA[SUCCESS]]></return_code>\n" +
                 "  <return_msg><![CDATA[OK]]></return_msg>\n" +
                 "</xml>";
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>流水、券核销与订单状态在同一事务内写入，三者必须一起生效。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public void handleMockPayResult(String orderSn, String ticket) {
+
+        // 1. 验票。比较与删除必须是原子的，否则两个并发提交会同时通过；返回 1 表示消费成功
+        String script = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
+        Long consumed = redisTemplate.execute(
+                new DefaultRedisScript<>(script, Long.class),
+                Arrays.asList(OrderConstant.MOCK_PAY_TICKET_PREFIX + orderSn),
+                ticket
+        );
+        if (consumed == null || consumed == 0L) {
+            log.info("测试支付票据验证失败，orderSn={}", orderSn);
+            throw new BaseException(BaseCodeEnum.ORDER_TOKEN_INVALID);
+        }
+
+        // 2. 复核状态。票据有效期内订单仍可能被超时关单，关闭后不能再收款
+        OrderEntity order = getOrderByOrderSn(orderSn);
+        if (order == null || !OrderStatusEnum.CREATE_NEW.getCode().equals(order.getStatus())) {
+            log.info("测试支付时订单状态已变更，orderSn={}", orderSn);
+            throw new BaseException(BaseCodeEnum.ORDER_STATUS_INVALID);
+        }
+
+        // 3. 落交易流水。交易号前缀与支付状态都带 MOCK，与真实渠道回填的取值不会重名
+        PaymentInfoEntity paymentInfo = new PaymentInfoEntity();
+        paymentInfo.setOrderSn(orderSn);
+        paymentInfo.setOrderId(order.getId());
+        paymentInfo.setAlipayTradeNo("MOCK-" + System.currentTimeMillis());
+        paymentInfo.setTotalAmount(order.getPayAmount());
+        paymentInfo.setSubject("测试支付");
+        paymentInfo.setPaymentStatus("MOCK_SUCCESS");
+        paymentInfo.setCreateTime(new Date());
+        paymentInfo.setCallbackTime(new Date());
+        paymentInfoService.save(paymentInfo);
+
+        // 4. 核销券排在改状态之前：核销失败时整个事务回滚（含上面那条流水），重试还能把券补上
+        if (order.getCouponId() != null) {
+            consumeCoupon(orderSn);
+        }
+
+        // 5. 置为已付款
+        updateOrderStatus(orderSn, OrderStatusEnum.PAYED.getCode(), PayConstant.MOCK);
     }
 
 

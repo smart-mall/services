@@ -13,3 +13,15 @@ gl:
   mq:
     outbox:
       enabled: true
+  pay:
+    mock:
+      # 模拟支付平台收银台的对外地址，浏览器要能直接打开，所以是完整的 http 地址、
+      # 走映射到宿主机的那个端口（见 gl-com.yml 的 gl-mock-pay）。
+      cashier-url: http://localhost:53001/
+      # 支付完成后回跳的前端地址。服务端会在它后面拼上订单号与结果标记，所以这里给到路由前缀为止。
+      # 必须与浏览器实际访问前端的地址一致（容器化的用户端是 56732，vite dev server 是 5173），
+      # 换一个就要同步改这里，否则回跳会落到打不开的地址上。
+      return-url: http://localhost:56732/pay
+      # 平台转发回调时带的固定凭证，必须与 mock-pay/nginx.conf 里的值一致。
+      # 它只表达"请求经由平台"，并不是对参数做的签名；商户侧真正的一次性判据仍然是票据。
+      platform-sign: gulimall-mock-pay-platform-sign

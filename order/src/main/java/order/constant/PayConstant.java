@@ -18,4 +18,11 @@ public class PayConstant {
      */
     public static final Integer CASH_ON_DELIVERY = 4;
 
+    /**
+     * 测试支付，对应 {@code pay_type = 9}。
+     *
+     * <p>取值避开库里已声明的 1~4，让 {@code oms_order.pay_type} 一眼能认出这是测试支付。
+     */
+    public static final Integer MOCK = 9;
+
 }

@@ -122,9 +122,10 @@ public interface OrderService extends IService<OrderEntity> {
      *
      * @param user    当前登录会员，不能为 {@code null}
      * @param orderSn 订单号，不能为 {@code null}
-     * @param payType 支付方式，取值见 {@code order.constant.PayConstant}：1 支付宝、2 微信；
+     * @param payType 支付方式，取值见 {@code order.constant.PayConstant}：1 支付宝、2 微信、9 测试支付；
      *                其它值按参数格式校验失败处理
-     * @return 支付宝时 {@code form} 有值，微信时 {@code codeUrl} 有值，两者不会同时为空
+     * @return 支付宝与测试支付把收银台页面写在 {@code form}，微信把二维码内容写在 {@code codeUrl}，
+     *         两者不会同时为空
      * @throws common.exception.BaseException 订单不存在或不属于该会员 {@code ORDER_NOT_FOUND}、
      *         状态不是待付款 {@code ORDER_STATUS_INVALID}；支付渠道调用失败时走兜底码
      */
@@ -193,6 +194,23 @@ public interface OrderService extends IService<OrderEntity> {
      * @return 微信要求的 {@code SUCCESS} 应答 XML，原样回给微信即可
      */
     String asyncNotify(String notifyData);
+
+    /**
+     * 处理测试支付的确认通知：校验一次性票据，并在支付成功时把订单置为已付款。
+     *
+     * <p>面向浏览器而不是支付平台：校验的是发起支付时写入 Redis 的一次性票据，不做验签。票据用掉即失效，
+     * 重复提交同一张票据不会重复落流水。
+     *
+     * <p>订单已不是待付款状态时不改任何数据，只抛出状态错误 —— 超时关单之后到达的确认走的就是这一分支。
+     *
+     * @param orderSn 订单号，不能为 {@code null}
+     * @param ticket 发起支付时下发的一次性票据，不能为 {@code null}
+     * @throws common.exception.BaseException 票据失效 {@code ORDER_TOKEN_INVALID}、
+     *         订单不存在或状态不是待付款 {@code ORDER_STATUS_INVALID}；
+     *         券核销失败时转发券服务的错误码
+     */
+    @Transactional(rollbackFor = Exception.class)
+    void handleMockPayResult(String orderSn, String ticket);
 
     /**
      * 创建秒杀订单：落订单主表与订单项，收货人取该会员的默认地址。
