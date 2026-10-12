@@ -54,5 +54,20 @@
         WHERE order_sn = #{orderSn}
     </update>
 
+    <!-- 发货：1 已付款 -> 2 已发货，两个状态都固化在语句里（取值见 order.enums.OrderStatusEnum）。
+         带 status = 1 条件，判断与写入是同一条 SQL，并发点两次发货只有一个会成功。
+         刻意不动 pay_type 与 payment_time：那条语句只服务于支付流转，拿来做发货会把
+         发货时间写成付款时间、并覆盖真实的支付方式 -->
+    <update id="deliverOrder">
+        UPDATE oms_order
+        SET `status` = 2,
+            delivery_company = #{deliveryCompany},
+            delivery_sn = #{deliverySn},
+            delivery_time = NOW(),
+            modify_time = NOW()
+        WHERE order_sn = #{orderSn}
+          AND `status` = 1
+    </update>
+
 
 </mapper>

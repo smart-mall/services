@@ -9,6 +9,7 @@ import common.mq.MqConstant;
 import common.mq.MqPublisher;
 import common.to.OrderTo;
 import common.to.SkuDeleteBlockerTo;
+import common.to.mq.OrderDeliveredTo;
 import common.to.mq.StockDetailTo;
 import common.to.mq.StockLockedTo;
 import common.vo.PageVO;
@@ -307,6 +308,65 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
                     taskDetailEntity.getId());
         }
 
+    }
+
+    /** {@inheritDoc} */
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public void deductStock(OrderDeliveredTo to) {
+
+        String orderSn = to.getOrderSn();
+        WareOrderTaskEntity orderTaskEntity = wareOrderTaskService.getOrderTaskByOrderSn(orderSn);
+
+        if (orderTaskEntity == null) {
+            // 秒杀单由秒杀侧自己扣库存、不经过 orderLockStock，ware 侧本来就没有工作单，属于正常分支
+            log.info("发货的订单没有库存工作单，无需实扣：orderSn={}", orderSn);
+            return;
+        }
+
+        // 只取锁定状态为 1 的明细：已扣减（3）或已解锁（2）的不再处理，重复投递天然幂等
+        List<WareOrderTaskDetailEntity> list = wareOrderTaskDetailService.list(
+                new LambdaQueryWrapper<WareOrderTaskDetailEntity>()
+                        .eq(WareOrderTaskDetailEntity::getTaskId, orderTaskEntity.getId())
+                        .eq(WareOrderTaskDetailEntity::getLockStatus, 1));
+
+        for (WareOrderTaskDetailEntity taskDetailEntity : list) {
+            deductOne(taskDetailEntity);
+        }
+    }
+
+    /**
+     * 实扣一条库存工作单明细分到的库存，并把该明细置为"已扣减"。
+     *
+     * <p>本方法自身不校验幂等，幂等由调用方按明细的锁定状态保证。</p>
+     *
+     * @param taskDetailEntity 仍为"已锁定"的工作单明细，不能为 {@code null}
+     */
+    private void deductOne(WareOrderTaskDetailEntity taskDetailEntity) {
+
+        Long skuId = taskDetailEntity.getSkuId();
+        Long wareId = taskDetailEntity.getWareId();
+        Integer num = taskDetailEntity.getSkuNum();
+
+        Long affected = wareSkuDao.deductStock(skuId, wareId, num);
+        if (affected == null || affected == 0) {
+            /*
+             * 明细声称锁定 num 件、库存行却不足，属代码逻辑错误而非业务条件：不抛异常也不重投 ——
+             * 重试与死信都不会让对不上的两个数变对。按实际锁定数尽量扣（最多扣到声称的量、绝不为负），
+             * 并记 error 留证据。
+             */
+            wareSkuDao.deductStockUpToLocked(skuId, wareId, num);
+            log.error("库存锁定记录与库存行不一致，已按实际锁定数扣减：工作单明细 id={}，skuId={}，wareId={}，"
+                            + "明细声称锁定 {} 件，但库存行的 stock_locked 不足此数。这是代码逻辑错误，"
+                            + "请检查库存锁定与解锁路径",
+                    taskDetailEntity.getId(), skuId, wareId, num);
+        }
+
+        // 置为"已扣减"（3），与"已解锁"（2）分开：解锁路径只认 1，扣减过的明细不会再被放回库存
+        WareOrderTaskDetailEntity update = new WareOrderTaskDetailEntity();
+        update.setId(taskDetailEntity.getId());
+        update.setLockStatus(3);
+        wareOrderTaskDetailService.updateById(update);
     }
 
     /**

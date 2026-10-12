@@ -48,5 +48,28 @@
           AND ware_id = #{wareId}
     </update>
 
+    <!-- 出库实扣：两个字段减同一个数，可售量（stock - stock_locked）不变。
+         带 stock_locked >= num 条件，扣不成负数；返回 0 表示锁定量不足，调用方走下面的兜底 -->
+    <update id="deductStock">
+        UPDATE wms_ware_sku
+        SET stock = stock - #{num},
+            stock_locked = stock_locked - #{num}
+        WHERE
+            sku_id = #{skuId}
+          AND ware_id = #{wareId}
+          AND stock_locked >= #{num}
+    </update>
+
+    <!-- 兜底：工作单明细声称锁了 num 件、库存行却不足时，按实际锁定数扣，最多扣到 num、绝不扣成负数。
+         LEAST + COALESCE 都放在 SQL 里算，仍是相对增量，不会覆盖并发写的值 -->
+    <update id="deductStockUpToLocked">
+        UPDATE wms_ware_sku
+        SET stock = stock - LEAST(#{num}, COALESCE(stock_locked, 0)),
+            stock_locked = stock_locked - LEAST(#{num}, COALESCE(stock_locked, 0))
+        WHERE
+            sku_id = #{skuId}
+          AND ware_id = #{wareId}
+    </update>
+
 
 </mapper>

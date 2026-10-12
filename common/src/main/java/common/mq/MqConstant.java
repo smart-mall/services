@@ -64,6 +64,9 @@ public final class MqConstant {
         /** {@code order.closed.#} 绑定模式：ware 的 ware.stock-release.queue 靠它收 order 侧的释放消息。 */
         public static final String ORDER_CLOSED_PATTERN = "order.closed.#";
 
+        /** 订单发货完成，由 order 投到 order.exchange；ware 收到后把该单锁定的库存实扣掉。 */
+        public static final String ORDER_DELIVERED = "order.delivered";
+
         /** 秒杀下单成功，绑定 order.seckill-created.queue。 */
         public static final String ORDER_SECKILL_CREATED = "order.seckill-created";
 
@@ -96,6 +99,11 @@ public final class MqConstant {
         public static final String WARE_PRODUCT_DELETED_RETRY = "ware.product.deleted.retry";
         /** ware 死信键：与 {@link Queues#WARE_PRODUCT_DELETED_DLQ} 同值（direct 交换机精确匹配）。 */
         public static final String WARE_PRODUCT_DELETED_DLQ = "ware.product.deleted.dlq";
+
+        /** ware 发货扣减的重试键：ware 业务队列的 DLX 用它把失败消息送进重试队列。 */
+        public static final String WARE_ORDER_DELIVERED_RETRY = "ware.order.delivered.retry";
+        /** ware 发货扣减的死信键：与 {@link Queues#WARE_ORDER_DELIVERED_DLQ} 同值（direct 交换机精确匹配）。 */
+        public static final String WARE_ORDER_DELIVERED_DLQ = "ware.order.delivered.dlq";
 
         /** search 重试键：search 业务队列的 DLX 用它把失败消息送进 search 重试队列。 */
         public static final String SEARCH_PRODUCT_DELISTED_RETRY = "search.product.delisted.retry";
@@ -132,6 +140,17 @@ public final class MqConstant {
          * {@code <键>.queue} 形状即是「扇入队列」的信号，看到就该来读这段注释。</p>
          */
         public static final String WARE_STOCK_RELEASE = "ware.stock-release.queue";
+
+        /**
+         * 发货扣减队列：绑 {@code order.delivered}，收订单发货事件，把该单已锁定的库存实扣掉。
+         *
+         * <p>消费失败 nack 后由 ware.dlx 接走，经重试队列延迟重投，到上限进 {@link #WARE_ORDER_DELIVERED_DLQ}。</p>
+         */
+        public static final String WARE_ORDER_DELIVERED = "ware.order.delivered.queue";
+        /** 发货扣减的重试队列：消息躺 TTL 后死信回 order.exchange，等于延迟重投一次。 */
+        public static final String WARE_ORDER_DELIVERED_RETRY = "ware.order.delivered.retry.queue";
+        /** 发货扣减的死信队列：重试到上限仍失败的消息落这里，无消费者，等人工处理。 */
+        public static final String WARE_ORDER_DELIVERED_DLQ = "ware.order.delivered.dlq";
 
         /** coupon 业务队列：绑 PRODUCT_DELETED，消费失败 nack 后由 coupon.dlx 接走。 */
         public static final String COUPON_PRODUCT_DELETED = "coupon.product.deleted.queue";
@@ -174,5 +193,7 @@ public final class MqConstant {
         public static final int STOCK_LOCK_TIMEOUT = 120_000;
         public static final int PRODUCT_DELETED_RETRY = 60_000;
         public static final int PRODUCT_DELISTED_RETRY = 60_000;
+        /** 发货扣减失败后到下一次重投的等待时长。 */
+        public static final int ORDER_DELIVERED_RETRY = 60_000;
     }
 }

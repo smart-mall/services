@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * ware 侧的 MQ 拓扑：库存释放所需的交换机、队列与绑定，以及删商品后清理零库存行的队列组。
+ * ware 侧的 MQ 拓扑：库存释放与发货实扣所需的交换机、队列与绑定，以及删商品后清理零库存行的队列组。
  *
  * <p>库存释放队列由本服务（消费方）声明，同时绑到 stock 与 order 两个交换机上：
  * {@code stock.released.#} 收延迟 2 分钟到期的释放消息，{@code order.closed.#} 收订单关闭的释放消息。
@@ -116,6 +116,84 @@ public class RabbitMQConfig {
                 MqConstant.Queues.WARE_STOCK_RELEASE,
                 MqConstant.Exchanges.ORDER,
                 MqConstant.RoutingKeys.ORDER_CLOSED_PATTERN);
+    }
+
+    // ── 发货后出库实扣 ──
+
+    /**
+     * 发货扣减业务队列，消费失败 nack 后由自己的 DLX 接走。
+     *
+     * @return 绑定了死信交换机的业务队列
+     */
+    @Bean
+    public Queue wareOrderDeliveredQueue() {
+        return MqBuilder.deadLetterQueue(
+                MqConstant.Queues.WARE_ORDER_DELIVERED,
+                MqConstant.Exchanges.WARE_DLX,
+                MqConstant.RoutingKeys.WARE_ORDER_DELIVERED_RETRY);
+    }
+
+    /**
+     * 把发货扣减队列绑到订单事件交换机上，只接收路由键 {@code order.delivered} 的消息。
+     *
+     * @return 队列与交换机的绑定
+     */
+    @Bean
+    public Binding wareOrderDeliveredBinding() {
+        return MqBuilder.bind(
+                MqConstant.Queues.WARE_ORDER_DELIVERED,
+                MqConstant.Exchanges.ORDER,
+                MqConstant.RoutingKeys.ORDER_DELIVERED);
+    }
+
+    /**
+     * 发货扣减的重试队列，消息在此滞留 1 分钟后死信回订单事件交换机，等价于延迟重投。
+     *
+     * @return 带 TTL 与死信参数的持久化队列
+     */
+    @Bean
+    public Queue wareOrderDeliveredRetryQueue() {
+        return MqBuilder.ttlQueue(
+                MqConstant.Queues.WARE_ORDER_DELIVERED_RETRY,
+                MqConstant.Exchanges.ORDER,
+                MqConstant.RoutingKeys.ORDER_DELIVERED,
+                MqConstant.TtlMillis.ORDER_DELIVERED_RETRY);
+    }
+
+    /**
+     * 把发货扣减的重试队列绑到 DLX 上，路由键与重试队列同名。
+     *
+     * @return 重试队列与 DLX 的绑定
+     */
+    @Bean
+    public Binding wareOrderDeliveredRetryBinding() {
+        return MqBuilder.bind(
+                MqConstant.Queues.WARE_ORDER_DELIVERED_RETRY,
+                MqConstant.Exchanges.WARE_DLX,
+                MqConstant.RoutingKeys.WARE_ORDER_DELIVERED_RETRY);
+    }
+
+    /**
+     * 发货扣减的死信队列，重试到上限仍失败的消息放这里等人工看，没有任何消费者。
+     *
+     * @return 持久化死信队列
+     */
+    @Bean
+    public Queue wareOrderDeliveredDlq() {
+        return MqBuilder.durableQueue(MqConstant.Queues.WARE_ORDER_DELIVERED_DLQ);
+    }
+
+    /**
+     * 把发货扣减的死信队列绑到 DLX 上，路由键与队列名同值。
+     *
+     * @return 死信队列与 DLX 的绑定
+     */
+    @Bean
+    public Binding wareOrderDeliveredDlqBinding() {
+        return MqBuilder.bind(
+                MqConstant.Queues.WARE_ORDER_DELIVERED_DLQ,
+                MqConstant.Exchanges.WARE_DLX,
+                MqConstant.RoutingKeys.WARE_ORDER_DELIVERED_DLQ);
     }
 
     // ── 商品删除后清掉已删 sku 的零库存行 ──

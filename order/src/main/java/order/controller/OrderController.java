@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import common.vo.PageVO;
 import common.utils.R;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import order.entity.OrderEntity;
 import order.service.OrderService;
@@ -11,13 +12,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
+import java.util.List;
 
 
 
+import order.vo.DeliverVo;
+import order.vo.DeliveryCompanyVo;
 import order.vo.OrderStatusVo;
 import common.query.PageQuery;
 /**
- * 订单（{@code oms_order} 表）的后台管理接口：分页列表、详情、新增、修改、删除。
+ * 订单（{@code oms_order} 表）的后台管理接口：分页列表、详情、新增、修改、删除与发货。
  *
  * <p>路径不在 {@code /front} 下，经网关访问时按管理端接口鉴权；另有 ware 释放库存前调用的状态查询，
  * 见 {@link #status(String)}。会员侧接口在 {@code order.web.OrderFrontController}。
@@ -116,6 +120,42 @@ public class OrderController {
 		orderService.removeByIds(Arrays.asList(ids));
 
         return R.ok();
+    }
+
+    /**
+     * 发货：把已付款的订单置为已发货，写入物流公司与物流单号。
+     *
+     * <p>只允许已付款的订单发货，重复发货与对未付款订单发货都会返回
+     * {@code ORDER_STATUS_INVALID}；物流公司不在支持的清单内时返回参数校验错误。</p>
+     *
+     * <p>物流单号由服务端生成：项目未对接快递接口，该字段不由调用方传入。</p>
+     *
+     * <p>出库实扣由 order 落本地消息表后异步通知 ware：本接口返回成功只表示订单状态已流转，
+     * <b>不表示库存已经扣完</b>。这是有意的 —— 扣减不会因为缺货失败（可售量在扣减前后不变），
+     * 属于可重试的清理动作，异步做才不会出现"货已扣、单还没发货"的跨服务不一致。</p>
+     *
+     * @param vo 发货参数，含订单号与物流公司，均不能为空
+     * @return 统一成功响应，不含业务数据
+     */
+    @PostMapping("/deliver")
+    public R<Void> deliver(@Valid @RequestBody DeliverVo vo){
+        log.info("订单发货: {}", JSON.toJSONString(vo, SerializerFeature.PrettyFormat));
+        orderService.deliverOrder(vo);
+
+        return R.ok();
+    }
+
+    /**
+     * 查询支持的物流公司，供发货弹窗的下拉框使用。
+     *
+     * <p>清单由服务端下发而不是前端写死：写死等于同一份清单存在两处，加一家公司要改两个仓库，
+     * 漏掉哪边都不会报错。</p>
+     *
+     * @return 物流公司选项；{@code code} 用于发货回传，{@code name} 用于展示
+     */
+    @GetMapping("/delivery-companies")
+    public R<List<DeliveryCompanyVo>> deliveryCompanies(){
+        return R.ok(orderService.listDeliveryCompanies());
     }
 
 }

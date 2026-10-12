@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * {@code wms_ware_sku} 表的 MyBatis-Plus Mapper，映射 SKU 在各仓库的库存 {@link WareSkuEntity}。
  *
- * <p>入库、锁定与解锁都声明了自定义 SQL：增量在数据库侧完成，先查后算会丢失并发更新。
+ * <p>入库、锁定、解锁与出库扣减都声明了自定义 SQL：增量在数据库侧完成，先查后算会丢失并发更新。
  */
 @Mapper
 public interface WareSkuDao extends BaseMapper<WareSkuEntity> {
@@ -61,6 +61,36 @@ public interface WareSkuDao extends BaseMapper<WareSkuEntity> {
      * @param num 释放数量，必须大于 0
      */
     void unLockStock(Long skuId, Long wareId, Integer num);
+
+    /**
+     * 出库实扣：把某个 SKU 在某个仓库已锁定的库存转成实际出库，同时减掉总数与锁定量。
+     *
+     * <p>{@code stock} 与 {@code stock_locked} 减掉同一个数，因此<b>可售量（{@code stock - stock_locked}）
+     * 扣减前后完全不变</b>：锁定那一步已经把可售量减掉了，本方法只是把"预定"转成"已发出"的账。</p>
+     *
+     * <p>增量在 SQL 里完成，并带 {@code stock_locked >= num} 条件，扣不成负数；返回 0 表示
+     * 库存行的锁定量不足，由调用方走 {@link #deductStockUpToLocked} 兜底。</p>
+     *
+     * @param skuId SKU ID，不能为 {@code null}
+     * @param wareId 仓库 ID，不能为 {@code null}
+     * @param num 扣减数量，必须大于 0
+     * @return 受影响行数，1 表示扣减成功，0 表示锁定量不足或没有库存行
+     */
+    Long deductStock(@Param("skuId") Long skuId, @Param("wareId") Long wareId, @Param("num") Integer num);
+
+    /**
+     * 出库实扣的兜底：按库存行当前实际锁定的数量扣，最多扣到调用方声称的数量，绝不为负。
+     *
+     * <p>只有 {@link #deductStock} 因锁定量不足返回 0 时才调用，即工作单明细与库存行已经对不上的情况。
+     * 用 {@code LEAST} 在数据库侧取小值，仍是相对增量，不会丢并发更新；两个字段减掉同一个数，
+     * 可售量依旧不变。</p>
+     *
+     * @param skuId SKU ID，不能为 {@code null}
+     * @param wareId 仓库 ID，不能为 {@code null}
+     * @param num 明细声称锁定的数量，必须大于 0，作为本次扣减的上限
+     * @return 受影响行数；没有库存行时返回 0
+     */
+    Long deductStockUpToLocked(@Param("skuId") Long skuId, @Param("wareId") Long wareId, @Param("num") Integer num);
 
     /**
      * 查询还有可用库存的仓库 ID。

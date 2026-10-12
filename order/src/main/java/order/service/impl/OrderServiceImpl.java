@@ -15,6 +15,7 @@ import common.mq.outbox.ReliableMqPublisher;
 import common.to.CouponCartItemVo;
 import common.to.CouponUsableVo;
 import common.to.OrderTo;
+import common.to.mq.OrderDeliveredTo;
 import common.to.mq.SeckillOrderTo;
 import common.vo.PageVO;
 import common.utils.R;
@@ -27,6 +28,7 @@ import order.dao.OrderDao;
 import order.entity.OrderEntity;
 import order.entity.OrderItemEntity;
 import order.entity.PaymentInfoEntity;
+import order.enums.DeliveryCompanyEnum;
 import order.enums.OrderStatusEnum;
 import order.feign.CartFeignService;
 import order.feign.CouponFeignService;
@@ -38,6 +40,8 @@ import order.service.OrderService;
 import order.service.PaymentInfoService;
 import order.to.OrderCreateTo;
 import order.vo.CouponDiscountItemVo;
+import order.vo.DeliverVo;
+import order.vo.DeliveryCompanyVo;
 import order.vo.FareItemVo;
 import order.vo.FareVo;
 import order.vo.MemberAddressVo;
@@ -95,7 +99,7 @@ import static com.lly835.bestpay.enums.BestPayTypeEnum.WXPAY_NATIVE;
 import static common.constant.CartConstant.CART_PREFIX;
 
 /**
- * 订单服务实现：负责结算页组装、下单、发起支付、关单与秒杀单落库。
+ * 订单服务实现：负责结算页组装、下单、发起支付、发货、关单与秒杀单落库。
  *
  * <p>本类无状态、线程安全；订单号由 {@code IdWorker} 生成，会员、购物车、商品与库存数据经 Feign 获取。
  *
@@ -1559,6 +1563,42 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
         // 5. 置为已付款
         updateOrderStatus(orderSn, OrderStatusEnum.PAYED.getCode(), PayConstant.MOCK);
+    }
+
+
+    /** {@inheritDoc} */
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public void deliverOrder(DeliverVo vo) {
+
+        // 这个编码会写进订单并被会员看到，不能由调用方随便给：不在枚举内就是参数问题，不是状态问题
+        if (!DeliveryCompanyEnum.isValid(vo.getDeliveryCompany())) {
+            throw new ValidationException("deliveryCompany", "不是支持的物流公司");
+        }
+
+        // 真实场景下单号来自承运商出库接口，项目未对接，故由本系统按订单号同一个生成器给出
+        String deliverySn = vo.getDeliveryCompany() + IdWorker.getTimeId();
+
+        // 带状态条件的 UPDATE：判断"是不是已付款"与写入"置为已发货"是同一条 SQL。
+        // 并发点两次发货、或对已发货/已取消的单再点一次，都只有第一个能成功
+        int affected = this.baseMapper.deliverOrder(vo.getOrderSn(), vo.getDeliveryCompany(), deliverySn);
+        if (affected == 0) {
+            log.info("发货失败，订单不存在或不是已付款状态：orderSn={}", vo.getOrderSn());
+            throw new BaseException(BaseCodeEnum.ORDER_STATUS_INVALID);
+        }
+
+        // 出库实扣交给 ware 异步做：消息记录与上面的状态变更同一事务落库，提交后才投出去。
+        // 不吞异常 —— 消息记录写不进去就整体回滚，宁可不发货，也不能发了货却不扣库存
+        OrderDeliveredTo deliveredTo = new OrderDeliveredTo(vo.getOrderSn());
+        reliableMqPublisher.publish(MqConstant.Exchanges.ORDER, MqConstant.RoutingKeys.ORDER_DELIVERED, deliveredTo);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public List<DeliveryCompanyVo> listDeliveryCompanies() {
+        return DeliveryCompanyEnum.listAll().stream()
+                .map(company -> new DeliveryCompanyVo(company.getCode(), company.getName()))
+                .toList();
     }
 
 

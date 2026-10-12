@@ -8,11 +8,13 @@ import order.entity.OrderEntity;
 import order.vo.*;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 
 import common.query.PageQuery;
 import order.vo.OrderPageQuery;
 /**
- * 订单服务：结算页组装、提交下单、订单查询与支付结果处理。
+ * 订单服务：结算页组装、提交下单、订单查询、支付结果处理与发货。
  *
  * <p>订单与收货地址的归属校验（是不是当前会员的）由实现负责，调用方传入登录会员即可。
  */
@@ -211,6 +213,35 @@ public interface OrderService extends IService<OrderEntity> {
      */
     @Transactional(rollbackFor = Exception.class)
     void handleMockPayResult(String orderSn, String ticket);
+
+    /**
+     * 发货：把已付款的订单置为已发货，写入物流信息，并通知仓库实扣库存。
+     *
+     * <p>只允许 {@code status} 为已付款的订单发货，靠带状态条件的 UPDATE 保证：判断与写入是同一条 SQL，
+     * 并发点两次发货只有一个会成功，其余落到 {@code ORDER_STATUS_INVALID}。</p>
+     *
+     * <p>物流单号由本方法生成，项目未对接承运商。</p>
+     *
+     * <p>出库实扣走本地消息表异步执行：扣减把 {@code stock} 与 {@code stock_locked} 一起减掉同一个数，
+     * 可售量（{@code stock - stock_locked}）在扣减前后完全不变，因此它不会因为缺货失败，属于可以晚一点、
+     * 可以重试的清理动作。消息记录与状态变更在同一事务落库，提交后才投出去。</p>
+     *
+     * @param vo 发货参数，不能为 {@code null}；{@code orderSn} 与 {@code deliveryCompany} 不能为空，
+     *           且 {@code deliveryCompany} 必须是 {@link order.enums.DeliveryCompanyEnum} 里的编码
+     * @throws common.exception.BaseException 订单不存在或不是已付款状态时抛 {@code ORDER_STATUS_INVALID}
+     * @throws common.exception.ValidationException 物流公司编码不在枚举内时抛出
+     */
+    @Transactional(rollbackFor = Exception.class)
+    void deliverOrder(DeliverVo vo);
+
+    /**
+     * 查询支持的物流公司，供管理端发货弹窗的下拉框使用。
+     *
+     * <p>只读，不查库：取值就是 {@link order.enums.DeliveryCompanyEnum} 本身。</p>
+     *
+     * @return 物流公司选项，顺序与枚举声明一致；至少有一项
+     */
+    List<DeliveryCompanyVo> listDeliveryCompanies();
 
     /**
      * 创建秒杀订单：落订单主表与订单项，收货人取该会员的默认地址。

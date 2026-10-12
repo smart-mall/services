@@ -3,6 +3,7 @@ package ware.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import common.to.OrderTo;
 import common.to.SkuDeleteBlockerTo;
+import common.to.mq.OrderDeliveredTo;
 import common.to.mq.StockLockedTo;
 import common.vo.PageVO;
 import ware.entity.WareSkuEntity;
@@ -13,10 +14,10 @@ import java.util.List;
 
 import ware.vo.WareSkuPageQuery;
 /**
- * 商品库存服务：库存增加、可售库存查询、订单锁定与解锁，以及商品删除前的仓库侧守卫。
+ * 商品库存服务：库存增加、可售库存查询、订单锁定与解锁、发货出库实扣，以及商品删除前的仓库侧守卫。
  *
- * <p>库存行按 {@code skuId} 与 {@code wareId} 定位，{@code stock} 只由采购完成增加，
- * {@code stock_locked} 只由订单锁定与解锁增减。
+ * <p>库存行按 {@code skuId} 与 {@code wareId} 定位：{@code stock} 由采购完成增加、由出库实扣减少；
+ * {@code stock_locked} 由订单锁定增加，由解锁与出库实扣减少。
  */
 public interface WareSkuService extends IService<WareSkuEntity> {
 
@@ -79,6 +80,23 @@ public interface WareSkuService extends IService<WareSkuEntity> {
      * @param orderTo 订单事件，只读取其中的订单号，不能为 {@code null}
      */
     void unlockStock(OrderTo orderTo);
+
+    /**
+     * 按订单发货事件实扣库存：把该订单锁定的库存从 {@code stock} 与 {@code stock_locked} 里一起减掉。
+     *
+     * <p><b>可售量在扣减前后完全不变</b>（{@code stock - stock_locked} 两边同时减同一个数）——
+     * 锁定那一步已经把可售量减掉了，本方法只是把"预定"转成"已发出"的账。因此它不会因为缺货失败，
+     * 可以放心异步执行。</p>
+     *
+     * <p>以工作单明细的锁定状态做幂等：只处理仍为"已锁定"的明细，处理后置为"已扣减"，
+     * 重复投递不会重复扣减，也不会再被解锁路径处理。</p>
+     *
+     * <p>订单没有库存工作单时直接返回：秒杀单由秒杀侧自己扣库存、不走 {@code orderLockStock}，
+     * 属于正常分支而不是异常。</p>
+     *
+     * @param to 订单发货事件，只读取其中的订单号，不能为 {@code null}
+     */
+    void deductStock(OrderDeliveredTo to);
 
     /**
      * 判断这些 SKU 在仓库侧还有没有删不掉的东西：有量的库存行、没走完的采购需求。
