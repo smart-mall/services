@@ -69,7 +69,9 @@ $modules = @(
     'auth',
     'cart',
     'seckill',
-    'renren-fast'
+    'renren-fast',
+    # not a Maven module: nginx config plus a static page, no build stage in its Dockerfile
+    'mock-pay'
 )
 
 $stateFile = Join-Path $root ".build-images.state.json"
@@ -183,9 +185,18 @@ foreach ($module in $modules) {
     $tags = @($fullTag)
     if ($Registry) { $tags += "$Registry/$fullTag" }
 
-    # common is a real dependency of every service except renren-fast
+    # common is a real dependency of every service except renren-fast.
+    # mock-pay has no pom.xml/src at all: its sources are nginx.conf and html/**, which must be
+    # added here too -- otherwise editing the page leaves the fingerprint unchanged and the
+    # image gets skipped as "already built".
     $extra = @()
-    if ($module -ne 'renren-fast') {
+    if ($module -eq 'mock-pay') {
+        $extra = @(
+            (Join-Path $root "mock-pay\nginx.conf")
+            (Join-Path $root "mock-pay\html")
+        )
+    }
+    elseif ($module -ne 'renren-fast') {
         $extra = @(
             (Join-Path $root "common\pom.xml")
             (Join-Path $root "common\src")

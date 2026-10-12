@@ -70,6 +70,21 @@ services:
     depends_on:
       - gl-gateway
 
+  # 模拟第三方支付平台：收银台静态页 + 把 /notify 转发给订单服务的回调地址。
+  # 镜像由本仓库的 build-images.ps1 构建（目录 mock-pay，不是 Maven 模块，镜像里没有 JVM）。
+  #
+  # 它刻意**映射端口**：真实支付平台在公网可达，浏览器必须能直接打开它的收银台页。
+  # 这与"业务服务一律不映射端口"不冲突 —— 它不是我们的业务服务，是模拟出来的外部平台。
+  gl-mock-pay:
+    image: gl-mock-pay:latest
+    container_name: gl-mock-pay
+    ports:
+      - "53001:80"
+    networks:
+      - GrainMall-network
+    depends_on:
+      - gl-gateway
+
   gl-nacos:
     image: nacos/nacos-server:latest
     container_name: gl-nacos

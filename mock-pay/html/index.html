@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- 地址栏里带着一次性票据，禁止携带 Referer，避免它随跳转泄露给第三方 -->
+<meta name="referrer" content="no-referrer">
+<title>模拟支付 · 收银台</title>
+<style>
+  :root {
+    --pay-accent: #1f6feb;
+    --pay-accent-dark: #1a5fd0;
+    --pay-bg: #f4f6fa;
+    --pay-surface: #ffffff;
+    --pay-border: #e6e9f0;
+    --pay-text: #1b1f27;
+    --pay-text-soft: #646b7a;
+    --pay-text-weak: #9aa1b1;
+    --pay-radius: 14px;
+    --pay-font: system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+      'Microsoft YaHei', sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--pay-bg);
+    color: var(--pay-text);
+    font: 14px/1.6 var(--pay-font);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ==================== 顶部品牌条 ==================== */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 56px;
+    padding: 0 24px;
+    background: var(--pay-surface);
+    border-bottom: 1px solid var(--pay-border);
+  }
+
+  .topbar__brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .topbar__mark {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: var(--pay-accent);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .topbar__env {
+    margin-left: auto;
+    padding: 3px 10px;
+    border: 1px solid #ffe0a3;
+    border-radius: 999px;
+    background: #fff8e8;
+    color: #9a6b00;
+    font-size: 12px;
+  }
+
+  /* ==================== 主体 ==================== */
+  .shell {
+    display: flex;
+    justify-content: center;
+    padding: 48px 16px 64px;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 460px;
+    padding: 32px;
+    background: var(--pay-surface);
+    border: 1px solid var(--pay-border);
+    border-radius: var(--pay-radius);
+    box-shadow: 0 6px 24px rgba(27, 31, 39, 0.06);
+  }
+
+  .card__title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+  }
+
+  .card__sub {
+    margin: 4px 0 0;
+    color: var(--pay-text-soft);
+    font-size: 13px;
+  }
+
+  /* ==================== 订单信息 ==================== */
+  .info {
+    margin: 24px 0 0;
+    padding: 16px 18px;
+    background: #fafbfd;
+    border: 1px solid var(--pay-border);
+    border-radius: 10px;
+  }
+
+  .info__row {
+    display: flex;
+    gap: 16px;
+    padding: 5px 0;
+  }
+
+  .info__row dt {
+    flex: none;
+    width: 56px;
+    color: var(--pay-text-weak);
+    font-size: 13px;
+  }
+
+  .info__row dd {
+    margin: 0;
+    min-width: 0;
+    flex: 1;
+    color: var(--pay-text);
+    font-size: 13px;
+    /* 订单号很长，不能把卡片撑破 */
+    overflow-wrap: anywhere;
+  }
+
+  /* ==================== 金额 ==================== */
+  .amount {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px dashed var(--pay-border);
+  }
+
+  .amount__label {
+    color: var(--pay-text-soft);
+    font-size: 13px;
+  }
+
+  .amount__value {
+    color: var(--pay-accent);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .amount__value i {
+    font-size: 16px;
+    font-style: normal;
+    font-weight: 500;
+  }
+
+  .amount__value b {
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+
+  /* ==================== 操作 ==================== */
+  .actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 24px;
+  }
+
+  .btn {
+    padding: 11px 20px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    font: inherit;
+    font-size: 15px;
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s;
+  }
+
+  .btn--primary {
+    background: var(--pay-accent);
+    color: #fff;
+    font-weight: 600;
+  }
+
+  .btn--primary:hover:not(:disabled) { background: var(--pay-accent-dark); }
+
+  .btn--primary:disabled {
+    background: #a8c4f2;
+    cursor: default;
+  }
+
+  .btn--ghost {
+    background: transparent;
+    border-color: var(--pay-border);
+    color: var(--pay-text-soft);
+  }
+
+  .btn--ghost:hover { border-color: var(--pay-text-weak); }
+
+  .hint {
+    margin: 20px 0 0;
+    color: var(--pay-text-weak);
+    font-size: 12px;
+    line-height: 1.7;
+  }
+
+  /* ==================== 参数缺失时的说明卡 ==================== */
+  .card--broken { text-align: center; }
+
+  .card--broken .card__sub { margin-top: 12px; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <span class="topbar__brand">
+    <span class="topbar__mark">M</span>
+    模拟支付平台
+  </span>
+  <span class="topbar__env">沙箱环境 · 不产生真实扣款</span>
+</header>
+
+<main class="shell">
+
+  <!-- 正常进入时的收银台。字段值由下面的脚本从 query 里读出来填，服务端不渲染 -->
+  <section class="card" id="cashier" hidden>
+    <h1 class="card__title">收银台</h1>
+    <p class="card__sub">请核对订单信息后完成支付</p>
+
+    <dl class="info">
+      <div class="info__row">
+        <dt>订单号</dt>
+        <dd id="orderSnText"></dd>
+      </div>
+      <div class="info__row">
+        <dt>商品</dt>
+        <dd id="subjectText"></dd>
+      </div>
+      <div class="info__row">
+        <dt>收款方</dt>
+        <dd>谷粒商城（模拟商户）</dd>
+      </div>
+    </dl>
+
+    <div class="amount">
+      <span class="amount__label">应付金额</span>
+      <span class="amount__value"><i>¥</i><b id="amountText">0.00</b></span>
+    </div>
+
+    <!--
+      只回传订单号与票据：金额与商品一律以商户库里的数据为准，收银台传回去的金额不作数。
+      action 是相对路径，提交到本容器自己的 /notify，由 nginx 转发给商户的回调地址。
+    -->
+    <form class="actions" id="payForm" method="post" action="/notify">
+      <input type="hidden" name="orderSn" id="orderSnField">
+      <input type="hidden" name="ticket" id="ticketField">
+      <button class="btn btn--primary" id="payBtn" type="submit">确认支付</button>
+      <button class="btn btn--ghost" id="cancelBtn" type="button">取消并返回</button>
+    </form>
+
+    <p class="hint">
+      订单超时未支付会被商户自动关闭。<br>
+      确认后本窗口不会停留，会直接跳回商户的订单页。
+    </p>
+  </section>
+
+  <!-- 链接不完整（少了订单号或票据）时显示，避免页面停在空白表单上让人乱点 -->
+  <section class="card card--broken" id="broken" hidden>
+    <h1 class="card__title">收银台打不开</h1>
+    <p class="card__sub" id="brokenReason"></p>
+    <p class="hint">请回到商城的支付页重新发起支付。</p>
+  </section>
+
+</main>
+
+<script>
+  const params = new URLSearchParams(window.location.search)
+  const orderSn = params.get('orderSn') || ''
+  const ticket = params.get('ticket') || ''
+  const amount = params.get('amount') || ''
+  const subject = params.get('subject') || ''
+
+  /** 金额只用于展示，解析不出来时给个占位符而不是 NaN */
+  function formatAmount(raw) {
+    const value = Number(raw)
+    return Number.isFinite(value) ? value.toFixed(2) : '--'
+  }
+
+  const missing = []
+  if (!orderSn) { missing.push('订单号') }
+  if (!ticket) { missing.push('支付票据') }
+
+  if (missing.length > 0) {
+    document.getElementById('brokenReason').textContent =
+      '链接缺少' + missing.join('和') + '，可能是直接打开了这个地址。'
+    document.getElementById('broken').hidden = false
+  } else {
+    // 一律用 textContent 填值：商品名来自商户，当成文本插入，不给它当作 HTML 执行的机会
+    document.getElementById('orderSnText').textContent = orderSn
+    document.getElementById('subjectText').textContent = subject || '—'
+    document.getElementById('amountText').textContent = formatAmount(amount)
+    document.getElementById('orderSnField').value = orderSn
+    document.getElementById('ticketField').value = ticket
+    document.getElementById('cashier').hidden = false
+  }
+
+  document.getElementById('payForm').addEventListener('submit', function () {
+    // 提交后页面就开始导航，不禁用的话用户会在等待期间反复点击
+    const payBtn = document.getElementById('payBtn')
+    payBtn.disabled = true
+    payBtn.textContent = '正在处理…'
+  })
+
+  document.getElementById('cancelBtn').addEventListener('click', function () {
+    // 收银台是脚本开出来的窗口，能直接关；关不掉（被当成普通标签页打开）就退回上一页
+    window.close()
+    history.back()
+  })
+</script>
+
+</body>
+</html>
