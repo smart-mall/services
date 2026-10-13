@@ -193,6 +193,7 @@ CREATE TABLE IF NOT EXISTS `pms_sku_sale_attr_value` (
 --   ALTER TABLE `pms_spu_comment` ADD COLUMN `member_id` bigint DEFAULT NULL COMMENT '提交评价的会员ID，指向 ums_member.id；会员归属以本列为准，昵称只是展示';
 --   ALTER TABLE `pms_spu_comment` ADD UNIQUE INDEX `uk_order_item` (`order_item_id`);
 --   ALTER TABLE `pms_spu_comment` ADD INDEX `idx_member_create` (`member_id`, `create_time`);
+--   ALTER TABLE `pms_spu_comment` ADD INDEX `idx_spu_create` (`spu_id`, `create_time`);
 -- 老数据的 `member_id` 可按下式回填：评价在 pms、订单在 oms，应用里跨库 join 不了，
 -- 但两个库在同一个 MySQL 实例里，运维 SQL 可以：
 --   UPDATE `gulimall_pms`.`pms_spu_comment` c JOIN `gulimall_oms`.`oms_order_item` i ON i.id = c.order_item_id
@@ -219,7 +220,8 @@ CREATE TABLE IF NOT EXISTS `pms_spu_comment` (
   `comment_type` tinyint DEFAULT NULL COMMENT '评论类型[0 - 对商品的直接评论，1 - 对评论的回复]',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE KEY `uk_order_item` (`order_item_id`) USING BTREE,
-  KEY `idx_member_create` (`member_id`, `create_time`) USING BTREE
+  KEY `idx_member_create` (`member_id`, `create_time`) USING BTREE,
+  KEY `idx_spu_create` (`spu_id`, `create_time`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='商品评价';
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;

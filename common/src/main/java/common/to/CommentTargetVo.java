@@ -8,8 +8,8 @@ import lombok.Data;
  * <p>放在 {@code common/to} 是它是 product 与 order 之间的契约：两个服务各存一份副本时，一边加字段、
  * 另一边没加不会编译报错，Jackson 只会把缺的字段读成 {@code null}，联调也看不出来。
  *
- * <p>只带写评价需要的字段。归属（这项是不是该会员的）与状态（订单是否已完成）两个判据由 order 在
- * 生成它之前判完，不通过直接抛业务异常，因此本对象里没有可被调用方二次解读的 {@code status} 之类字段。
+ * <p>只带写评价需要的字段。归属（这项是不是该会员的）与状态（订单是否已完成）两个判据由 order
+ * 先判完，不通过直接抛业务异常，因此本对象里没有可被调用方二次解读的 {@code status} 之类字段。
  */
 @Data
 public class CommentTargetVo {

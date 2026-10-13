@@ -81,7 +81,7 @@ public class CommentFrontController {
      * 删除我的一条评价。
      *
      * <p>归属校验在服务端：评价不存在或不是当前会员写的都返回 {@code 11205}。
-     * 删除后这一项可以重新评价 —— 唯一索引不再被占用。</p>
+     * 删除后这一项可以重新评价 —— 唯一索引随之释放。</p>
      *
      * @param request 当前请求，用于取出登录会员
      * @param commentId 评价主键

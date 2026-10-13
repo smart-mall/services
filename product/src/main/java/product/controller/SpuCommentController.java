@@ -14,10 +14,13 @@ import java.util.List;
 
 import common.query.PageQuery;
 /**
- * 商品评价的后台管理接口：分页列表、详情、新增、修改、删除。
+ * 商品评价的后台管理接口：分页列表、详情、新增、修改、删除，以及一条供订单服务调用的服务间接口。
  *
  * <p>路径不在 {@code /front} 下，经网关访问时按管理端接口鉴权；评价下的回复关系走
  * {@link CommentReplayController}。
+ *
+ * <p>{@link #commentedItems(List)} 是给 order 用的：由 {@code order/feign/ProductFeignService}
+ * 直连调用、不经网关，返回"订单项到评价摘要"的映射，供会员订单列表决定显示「评价」还是「查看评论」。
  */
 @RestController
 @RequestMapping("product/spucomment")

@@ -1810,7 +1810,8 @@ CREATE TABLE `pms_spu_comment`  (
   `comment_type` tinyint(4) NULL DEFAULT NULL COMMENT '评论类型[0 - 对商品的直接评论，1 - 对评论的回复]',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE KEY `uk_order_item` (`order_item_id`) USING BTREE,
-  KEY `idx_member_create` (`member_id`, `create_time`) USING BTREE
+  KEY `idx_member_create` (`member_id`, `create_time`) USING BTREE,
+  KEY `idx_spu_create` (`spu_id`, `create_time`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '商品评价' ROW_FORMAT = Dynamic;
 
 -- ----------------------------

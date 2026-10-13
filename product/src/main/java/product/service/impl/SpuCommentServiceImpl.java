@@ -1,6 +1,7 @@
 package product.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.exception.BaseCodeEnum;
@@ -17,17 +18,28 @@ import product.entity.SpuCommentEntity;
 import product.feign.OrderFeignService;
 import product.service.SpuCommentService;
 import product.vo.CommentSubmitVo;
+import product.vo.CommentSummaryVo;
+import product.vo.SpuCommentVo;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import common.query.PageQuery;
 /**
  * 商品评价服务的默认实现，基于 MyBatis-Plus 的 {@code ServiceImpl} 读写 {@code pms_spu_comment}。
  *
- * <p>会员端的三件事都在本类：{@link #submitComment} 先核对来源再落库，{@link #queryMyComments} 与
- * {@link #deleteComment} 按评价行的 {@code member_id} 判归属。分页查询与继承来的增删改供后台使用，
- * 不做业务校验。
+ * <p>会员端：{@link #submitComment} 先向订单服务核对来源再落库，{@link #queryMyComments} 与
+ * {@link #deleteComment} 按评价行的 {@code member_id} 判归属。
+ *
+ * <p>公开接口：{@link #querySpuComments} 与 {@link #summaryOfSpu} 按 SPU 聚合，共同过滤
+ * {@code show_status = 1} 与 {@code comment_type = 0}，对外只给 {@link product.vo.SpuCommentVo}
+ * 这一份投影（{@link #maskNickName} 打码昵称，会员 ID 与 IP 不出本类）。
+ *
+ * <p>后台的分页查询与继承来的增删改不做业务校验。
  */
 @Slf4j
 @Service("spuCommentService")
@@ -35,6 +47,9 @@ public class SpuCommentServiceImpl extends ServiceImpl<SpuCommentDao, SpuComment
 
     /** 直接评价的 {@code comment_type} 取值；1 是对评论的回复，不由本类写入。 */
     private static final int COMMENT_TYPE_DIRECT = 0;
+
+    /** 可见的 {@code show_status} 取值；0 是后台下架，公开接口一律不列。 */
+    private static final int SHOW_STATUS_VISIBLE = 1;
 
     private final OrderFeignService orderFeignService;
 
@@ -124,7 +139,7 @@ public class SpuCommentServiceImpl extends ServiceImpl<SpuCommentDao, SpuComment
     @Override
     public void deleteComment(Long commentId, Long memberId) {
         // 先读一次是为了拿 orderItemId：评价行里没有订单号，撤回订单时间只能按订单项定位。
-        // 归属不靠这次读来保证 —— 真正的闸门是下面 DELETE 语句里的 member_id
+        // 归属不靠这里读到的内容来保证 —— 真正的闸门是下面 DELETE 语句里的 member_id
         SpuCommentEntity existing = this.getById(commentId);
         if (existing == null || !memberId.equals(existing.getMemberId())) {
             throw new BaseException(BaseCodeEnum.COMMENT_NOT_FOUND);
@@ -165,6 +180,98 @@ public class SpuCommentServiceImpl extends ServiceImpl<SpuCommentDao, SpuComment
                     return vo;
                 })
                 .toList();
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public PageVO<SpuCommentVo> querySpuComments(Long spuId, PageQuery query) {
+        IPage<SpuCommentEntity> page = this.page(query.toPage(), new LambdaQueryWrapper<SpuCommentEntity>()
+                .eq(SpuCommentEntity::getSpuId, spuId)
+                // 只列可见的直接评价：show_status 为 0 是后台下架的，comment_type 为 1 是对评价的回复
+                .eq(SpuCommentEntity::getShowStatus, SHOW_STATUS_VISIBLE)
+                .eq(SpuCommentEntity::getCommentType, COMMENT_TYPE_DIRECT)
+                // 星级为空的行不进公开区：会员端提交时强制 1~5，这类行只可能来自后台脚手架，
+                // 放进来会让统计的总数与星级分布之和不等
+                .isNotNull(SpuCommentEntity::getStar)
+                .orderByDesc(SpuCommentEntity::getCreateTime));
+
+        List<SpuCommentVo> rows = page.getRecords().stream().map(this::toPublicVo).toList();
+        return new PageVO<>(page.getTotal(), rows);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public CommentSummaryVo summaryOfSpu(Long spuId) {
+        // 一次按星级分组把总数、分布与平均分都算出来，省掉单独发一条 count 查询；
+        // 聚合要写列名，用 QueryWrapper 而不是 LambdaQueryWrapper，条件与列表那条保持一致。
+        // star 必须显式 CAST：它是 tinyint(1)，Connector/J 默认把该类型读成 Boolean，
+        // 走 selectMaps 拿到的是 Boolean 而不是数字，直接强转 Number 会抛 ClassCastException
+        List<Map<String, Object>> grouped = this.baseMapper.selectMaps(new QueryWrapper<SpuCommentEntity>()
+                .select("CAST(star AS SIGNED) AS star", "COUNT(*) AS cnt")
+                .eq("spu_id", spuId)
+                .eq("show_status", SHOW_STATUS_VISIBLE)
+                .eq("comment_type", COMMENT_TYPE_DIRECT)
+                .isNotNull("star")
+                .groupBy("star"));
+
+        Map<Integer, Integer> starCounts = new LinkedHashMap<>();
+        long total = 0;
+        long starSum = 0;
+        for (Map<String, Object> row : grouped) {
+            Number star = (Number) row.get("star");
+            Number count = (Number) row.get("cnt");
+            if (star == null || count == null) {
+                continue;
+            }
+            starCounts.put(star.intValue(), count.intValue());
+            total += count.longValue();
+            starSum += star.longValue() * count.longValue();
+        }
+
+        CommentSummaryVo summary = new CommentSummaryVo();
+        summary.setTotal(total);
+        // 没有评价时平均分给 0 而不是 null：前端不必为"暂无评价"再写一个空值分支
+        summary.setAverageStar(total == 0 ? BigDecimal.ZERO
+                : BigDecimal.valueOf(starSum).divide(BigDecimal.valueOf(total), 1, RoundingMode.HALF_UP));
+        summary.setStarCounts(starCounts);
+        return summary;
+    }
+
+    /**
+     * 把评价行转成公开投影。
+     *
+     * @param comment 评价行，不能为 {@code null}
+     * @return 只含公开字段的投影，昵称已打码
+     */
+    private SpuCommentVo toPublicVo(SpuCommentEntity comment) {
+        SpuCommentVo vo = new SpuCommentVo();
+        vo.setId(comment.getId());
+        vo.setStar(comment.getStar());
+        vo.setContent(comment.getContent());
+        vo.setMemberNickName(maskNickName(comment.getMemberNickName()));
+        vo.setSpuAttributes(comment.getSpuAttributes());
+        vo.setCreateTime(comment.getCreateTime());
+        return vo;
+    }
+
+    /**
+     * 给公开接口用的昵称打码。
+     *
+     * <p>评论区的昵称就是会员名，公开页原样展示等于把用户名摊开。只保留前三个字符（不足三个就只留第一个），
+     * 其余用 {@code ***} 顶掉。</p>
+     *
+     * <p>放在服务端做：昵称一旦原文发出去，前端哪个位置漏处理就等于泄露，出口只有这一处才管得住。</p>
+     *
+     * @param nickName 原始昵称，允许为 {@code null} 或空白
+     * @return 打码后的昵称；没有昵称时返回"匿名会员"
+     */
+    private static String maskNickName(String nickName) {
+        if (nickName == null || nickName.isBlank()) {
+            return "匿名会员";
+        }
+
+        String trimmed = nickName.trim();
+        return trimmed.length() <= 2 ? trimmed.charAt(0) + "***" : trimmed.substring(0, 3) + "***";
     }
 
 }

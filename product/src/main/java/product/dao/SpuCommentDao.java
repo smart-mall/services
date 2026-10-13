@@ -19,7 +19,7 @@ public interface SpuCommentDao extends BaseMapper<SpuCommentEntity> {
      * <p>SQL 见 {@code mapper/product/SpuCommentDao.xml}：{@code WHERE} 带 {@code member_id}，
      * 归属校验与删除是同一条 SQL，删别人的或删不存在的评价都只会影响 0 行。</p>
      *
-     * <p>物理删除：删掉之后该项不再占用 {@code uk_order_item} 唯一索引，同一订单项可以重新评价。</p>
+     * <p>物理删除：删掉之后该项的 {@code uk_order_item} 唯一索引随之释放，同一订单项可以重新评价。</p>
      *
      * @param id 评价主键，不能为 {@code null}
      * @param memberId 当前登录会员 ID，不能为 {@code null}
