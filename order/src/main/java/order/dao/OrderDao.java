@@ -7,23 +7,26 @@ import org.apache.ibatis.annotations.Mapper;
 /**
  * {@code oms_order} 表的 MyBatis-Plus Mapper，映射订单主表 {@link OrderEntity}。
  *
- * <p>自定义 SQL 只有两条状态流转：{@link #updateOrderStatus} 服务于支付，{@link #deliverOrder}
- * 服务于发货；其余使用 {@link BaseMapper} 提供的通用增删改查。
+ * <p>自定义 SQL 有三条状态流转：{@link #updateOrderStatus} 服务于支付，{@link #deliverOrder}
+ * 服务于发货，{@link #closeOrder} 服务于关单与取消；其余使用 {@link BaseMapper} 提供的通用增删改查。
  */
 @Mapper
 public interface OrderDao extends BaseMapper<OrderEntity> {
 
     /**
-     * 按订单号更新订单状态、支付方式与支付时间。
+     * 支付：把订单从"待付款"改成已付款，并写入支付方式与支付时间。
      *
-     * <p>SQL 见 {@code mapper/order/OrderDao.xml}：{@code modify_time} 与 {@code payment_time}
-     * 总是被置为当前时间，与传入的 {@code code} 无关，因此只适用于支付相关的状态流转。
+     * <p>SQL 见 {@code mapper/order/OrderDao.xml}：{@code WHERE} 带 {@code status = 0}，
+     * 判断与写入是同一条 SQL，因此重复回调、或已被关单的订单只会更新 0 行。
+     * {@code modify_time} 与 {@code payment_time} 总是被置为当前时间，与传入的 {@code code} 无关，
+     * 因此只适用于支付相关的状态流转。
      *
      * @param orderSn 订单号，业务主键，不能为 {@code null}
      * @param code 目标状态码，取值见 {@link order.enums.OrderStatusEnum}
      * @param payType 支付方式，取值见 {@code PayConstant}
+     * @return 受影响行数，1 表示本次流转生效，0 表示订单不存在或已不是待付款状态
      */
-    void updateOrderStatus(String orderSn, Integer code, Integer payType);
+    int updateOrderStatus(String orderSn, Integer code, Integer payType);
 
     /**
      * 发货：把订单从"已付款"改成"已发货"，并写入物流公司与物流单号。
@@ -32,7 +35,7 @@ public interface OrderDao extends BaseMapper<OrderEntity> {
      * {@code WHERE} 带 {@code status = 1}，判断与写入是同一条 SQL，因此并发点两次发货只有一个会成功。</p>
      *
      * <p><b>刻意不写 {@code payment_time} 也不写 {@code pay_type}</b>，与 {@link #updateOrderStatus}
-     * 分开：那条语句无条件把两个支付字段置为当前值，拿来做发货会把发货时间写成付款时间、
+     * 分开：那条语句总把两个支付字段置为当前值，拿来做发货会把发货时间写成付款时间、
      * 并覆盖掉真实的支付方式。</p>
      *
      * @param orderSn 订单号，业务主键，不能为 {@code null}
@@ -41,4 +44,15 @@ public interface OrderDao extends BaseMapper<OrderEntity> {
      * @return 受影响行数，1 表示发货成功，0 表示订单不存在或不是已付款状态
      */
     int deliverOrder(String orderSn, String deliveryCompany, String deliverySn);
+
+    /**
+     * 关单：把订单从"待付款"改成已取消。
+     *
+     * <p>SQL 见 {@code mapper/order/OrderDao.xml}：{@code WHERE} 带 {@code status = 0}，
+     * 判断与写入是同一条 SQL，因此与支付回调并发时只有一个会成功。
+     *
+     * @param orderSn 订单号，业务主键，不能为 {@code null}
+     * @return 受影响行数，1 表示关单生效，0 表示订单不存在或已不是待付款状态
+     */
+    int closeOrder(String orderSn);
 }

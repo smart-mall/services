@@ -157,12 +157,13 @@ public interface OrderService extends IService<OrderEntity> {
     /**
      * 取消当前会员未支付的订单，并通知仓库释放已锁定的库存。
      *
-     * <p>副作用：订单状态置为已取消，并发送库存释放消息；消息发送失败只记日志，不回滚状态。
+     * <p>副作用：订单状态置为已取消，并以消息记录的形式通知仓库释放库存；消息记录与状态变更在同一事务，
+     * 写不进去就整体回滚。订单在并发中被支付成功时本次取消不生效。
      *
      * @param user    当前登录会员，不能为 {@code null}
      * @param orderSn 订单号，不能为 {@code null}
      * @throws common.exception.BaseException 订单不存在或不属于该会员 {@code ORDER_NOT_FOUND}、
-     *         状态不是待付款 {@code ORDER_STATUS_INVALID}
+     *         状态不是待付款、或并发中被支付成功 {@code ORDER_STATUS_INVALID}
      */
     void cancelOrder(MemberResponseVo user, String orderSn);
 
@@ -179,7 +180,10 @@ public interface OrderService extends IService<OrderEntity> {
     /**
      * 处理支付宝的异步支付通知：落一条交易流水，并在支付成功时把订单置为已付款。
      *
-     * <p>非支付成功状态只落流水，不改订单状态。
+     * <p>非支付成功状态只落流水，不改订单状态。同一个交易号的流水只落一条，重复通知不再落流水。
+     *
+     * <p>幂等：只有待付款的订单会被推进到已付款。重复通知、订单查不到、以及订单已被取消或关单，
+     * 都只记日志并照常回 {@code success}，避免支付宝持续重发；已取消的订单不会被改回已付款。
      *
      * @param asyncVo 支付宝通知参数，不能为 {@code null}；{@code out_trade_no} 为商户订单号
      * @return 固定返回字面量 {@code success}，支付宝收到该应答后停止重发通知
@@ -190,7 +194,8 @@ public interface OrderService extends IService<OrderEntity> {
     /**
      * 处理微信的异步支付通知：验签、校验订单状态，并把订单置为已付款。
      *
-     * <p>订单查不到、或订单已付款或已取消时直接抛异常，微信会按失败重发通知。
+     * <p>订单查不到时抛异常，微信会按失败重发通知。订单已付款或已取消时不改任何数据，
+     * 但照常返回 {@code SUCCESS} 应答 —— 这两种情况下重发通知不会有新的结果。
      *
      * @param notifyData 微信通知的原始报文，不能为 {@code null}
      * @return 微信要求的 {@code SUCCESS} 应答 XML，原样回给微信即可

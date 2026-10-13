@@ -59,7 +59,7 @@ public class OrderPayedController {
      * 处理支付宝异步通知：验签通过后写入交易流水，并把订单置为已付款。
      *
      * <p>验签用 {@code alipay} 前缀下的公钥、编码与签名算法对原始表单参数做签名校验，未通过直接返回
-     * {@code error}。本方法不做幂等去重，支付宝重复通知会再次写入一条 {@code oms_payment_info}。
+     * {@code error}。幂等由服务层保证：同一个交易号只落一条流水，订单只在待付款时被推进。
      *
      * @param asyncVo 表单绑定的通知参数，含 out_trade_no、trade_no 与 trade_status
      * @param request 原始请求，验签需要完整参数表
@@ -97,8 +97,8 @@ public class OrderPayedController {
     /**
      * 处理微信异步通知：交给 {@code OrderService#asyncNotify} 验签、校验订单状态并置为已付款。
      *
-     * <p>入参是微信 POST 的原始报文，返回值必须是微信约定的应答 XML；已支付或已取消的订单会抛异常，
-     * 因此重复通知不会被再次入账。
+     * <p>入参是微信 POST 的原始报文，返回值必须是微信约定的应答 XML；已支付或已取消的订单
+     * 不改任何数据，但仍回 {@code SUCCESS}，因此重复通知不会被再次入账。
      *
      * @param notifyData 微信回调的原始报文，验签在 BestPay SDK 内完成
      * @return 微信要求的应答 XML，{@code return_code} 为 {@code SUCCESS}
