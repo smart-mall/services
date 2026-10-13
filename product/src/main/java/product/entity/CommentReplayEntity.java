@@ -9,6 +9,9 @@ import java.io.Serializable;
 
 /**
  * 商品评价的回复关系，对应 {@code pms_comment_replay} 表：记录一条回复对应的是哪条评论。
+ *
+ * <p>回复的内容、回复人与时间不在本表，而是 {@code pms_spu_comment} 里 {@code commentType = 1}
+ * 的那一行，{@link #replyId} 指向它。回复只挂一层，不嵌套。</p>
  */
 @Data
 @TableName("pms_comment_replay")

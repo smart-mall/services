@@ -13,8 +13,12 @@ import java.util.Date;
  *
  * <p>评价与回复共用本表，靠 {@code commentType} 区分；回复挂在哪条评论下由 {@link CommentReplayEntity} 记录。
  *
- * <p>会员端提交的直接评价带来源订单项 {@link #orderItemId}，它是"一件商品在一张订单里只能评价一次"
- * 的判据来源；会员归属记在 {@link #memberId}，昵称只是展示快照。回复行两者都不带，保持 {@code null}。
+ * <p>直接评价带来源订单项 {@link #orderItemId}，它是"一件商品在一张订单里只能评价一次"
+ * 的判据来源；回复行不带它（留 {@code null}，唯一索引允许多个空值）。两种行的会员归属都记在
+ * {@link #memberId}，昵称只是展示快照。
+ *
+ * <p>回复行不带 {@link #star}，商品字段只复制 {@link #spuId}。按 {@link #memberId} 查"我的评价"
+ * 时必须同时限定 {@link #commentType} 为 0，否则自己发的回复会混进评论中心。
  */
 @Data
 @TableName("pms_spu_comment")

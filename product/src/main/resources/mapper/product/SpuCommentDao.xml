@@ -27,11 +27,38 @@
 
     <!-- 删除会员自己的一条评价：member_id 写在 WHERE 里，归属校验与删除是同一条 SQL，
          删别人的或删不存在的都只会影响 0 行；调用方按受影响行数抛 COMMENT_NOT_FOUND。
-         回复行不需要额外条件挡住：它们的 member_id 为空，本来就匹配不上 -->
+         comment_type = 0 挡住回复行：回复的 member_id 也是本人，少了这个条件这里就成了
+         "删除我的回复"的入口，而那条链路还要清关系行、回退回复数，本方法不做这些 -->
     <delete id="deleteOwn">
         DELETE FROM pms_spu_comment
         WHERE id = #{id}
           AND member_id = #{memberId}
+          AND comment_type = 0
+    </delete>
+
+    <!-- 点赞与取消点赞共用，评价与回复都可点：可见性条件写在 WHERE 里，
+         读与写之间被后台下架的评论改不动，调用方按受影响行数抛 COMMENT_NOT_FOUND。
+         GREATEST 兜住取消点赞把计数减成负数 -->
+    <update id="updateLikesCount">
+        UPDATE pms_spu_comment
+        SET likes_count = GREATEST(COALESCE(likes_count, 0) + #{delta}, 0)
+        WHERE id = #{id}
+          AND comment_type IN (0, 1)
+          AND show_status = 1
+    </update>
+
+    <update id="increaseReplyCount">
+        UPDATE pms_spu_comment
+        SET reply_count = COALESCE(reply_count, 0) + 1
+        WHERE id = #{commentId}
+    </update>
+
+    <!-- 先按关系表找到这条评价下的回复，再删内容行；关系行必须先留着，它是定位回复的唯一线索 -->
+    <delete id="deleteReplies">
+        DELETE c
+        FROM pms_spu_comment c
+        INNER JOIN pms_comment_replay r ON r.reply_id = c.id
+        WHERE r.comment_id = #{commentId}
     </delete>
 
 

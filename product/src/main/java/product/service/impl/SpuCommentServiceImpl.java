@@ -13,16 +13,23 @@ import common.vo.PageVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import product.dao.CommentReplayDao;
 import product.dao.SpuCommentDao;
+import product.entity.CommentReplayEntity;
 import product.entity.SpuCommentEntity;
 import product.feign.OrderFeignService;
 import product.service.SpuCommentService;
+import product.vo.CommentReplySubmitVo;
+import product.vo.CommentReplyVo;
 import product.vo.CommentSubmitVo;
 import product.vo.CommentSummaryVo;
+import product.vo.MyCommentVo;
 import product.vo.SpuCommentVo;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -30,14 +37,18 @@ import java.util.Map;
 
 import common.query.PageQuery;
 /**
- * 商品评价服务的默认实现，基于 MyBatis-Plus 的 {@code ServiceImpl} 读写 {@code pms_spu_comment}。
+ * 商品评价服务的默认实现：评价与回复内容读写 {@code pms_spu_comment}，回复关系读写 {@code pms_comment_replay}。
  *
- * <p>会员端：{@link #submitComment} 先向订单服务核对来源再落库，{@link #queryMyComments} 与
- * {@link #deleteComment} 按评价行的 {@code member_id} 判归属。
+ * <p>会员端：{@link #submitComment} 先向订单服务核对来源再落库；{@link #queryMyComments}、
+ * {@link #deleteComment} 按评价行的 {@code member_id} 判归属；{@link #replyComment} 与
+ * {@link #likeComment}/{@link #unlikeComment} 面向评论区的公开内容（评价与回复），同样要求登录。
  *
  * <p>公开接口：{@link #querySpuComments} 与 {@link #summaryOfSpu} 按 SPU 聚合，共同过滤
- * {@code show_status = 1} 与 {@code comment_type = 0}，对外只给 {@link product.vo.SpuCommentVo}
- * 这一份投影（{@link #maskNickName} 打码昵称，会员 ID 与 IP 不出本类）。
+ * {@code show_status = 1} 与 {@code comment_type = 0}，对外只给公开投影
+ * （{@link #maskNickName} 打码昵称，会员 ID 与 IP 不出本类）。
+ *
+ * <p>回复与直接评价同表，靠 {@code comment_type} 区分：回复行不带星级与订单项，商品字段只复制
+ * {@code spu_id}，挂在哪条评价下记在 {@code pms_comment_replay}，只挂一层。
  *
  * <p>后台的分页查询与继承来的增删改不做业务校验。
  */
@@ -45,21 +56,34 @@ import common.query.PageQuery;
 @Service("spuCommentService")
 public class SpuCommentServiceImpl extends ServiceImpl<SpuCommentDao, SpuCommentEntity> implements SpuCommentService {
 
-    /** 直接评价的 {@code comment_type} 取值；1 是对评论的回复，不由本类写入。 */
+    /** 直接评价的 {@code comment_type} 取值。 */
     private static final int COMMENT_TYPE_DIRECT = 0;
+
+    /** 对评价的回复的 {@code comment_type} 取值。 */
+    private static final int COMMENT_TYPE_REPLY = 1;
 
     /** 可见的 {@code show_status} 取值；0 是后台下架，公开接口一律不列。 */
     private static final int SHOW_STATUS_VISIBLE = 1;
 
+    /** 点赞时的计数增量。 */
+    private static final int LIKE_DELTA_ADD = 1;
+
+    /** 取消点赞时的计数增量。 */
+    private static final int LIKE_DELTA_REMOVE = -1;
+
     private final OrderFeignService orderFeignService;
 
+    private final CommentReplayDao commentReplayDao;
+
     /**
-     * 由 Spring 注入订单服务的 Feign 客户端，创建后即可直接调用。
+     * 由 Spring 注入订单服务客户端与回复关系 Mapper，创建后即可直接调用。
      *
      * @param orderFeignService 订单服务客户端
+     * @param commentReplayDao 回复关系 Mapper
      */
-    public SpuCommentServiceImpl(OrderFeignService orderFeignService) {
+    public SpuCommentServiceImpl(OrderFeignService orderFeignService, CommentReplayDao commentReplayDao) {
         this.orderFeignService = orderFeignService;
+        this.commentReplayDao = commentReplayDao;
     }
 
     /** {@inheritDoc} */
@@ -72,12 +96,20 @@ public class SpuCommentServiceImpl extends ServiceImpl<SpuCommentDao, SpuComment
 
     /** {@inheritDoc} */
     @Override
-    public PageVO<SpuCommentEntity> queryMyComments(Long memberId, PageQuery query) {
+    public PageVO<MyCommentVo> queryMyComments(Long memberId, PageQuery query) {
         IPage<SpuCommentEntity> page = this.page(query.toPage(), new LambdaQueryWrapper<SpuCommentEntity>()
                 .eq(SpuCommentEntity::getMemberId, memberId)
+                // 只看直接评价：回复行的 member_id 也是本人，不过滤会把"我回复别人的"当成"我的评价"
+                .eq(SpuCommentEntity::getCommentType, COMMENT_TYPE_DIRECT)
                 .orderByDesc(SpuCommentEntity::getCreateTime));
 
-        return new PageVO<>(page.getTotal(), page.getRecords());
+        Map<Long, List<CommentReplyVo>> repliesByComment = queryRepliesByCommentIds(
+                page.getRecords().stream().map(SpuCommentEntity::getId).toList());
+        List<MyCommentVo> rows = page.getRecords().stream()
+                .map(comment -> toMyCommentVo(comment, repliesByComment))
+                .toList();
+
+        return new PageVO<>(page.getTotal(), rows);
     }
 
     /** {@inheritDoc} */
@@ -115,7 +147,7 @@ public class SpuCommentServiceImpl extends ServiceImpl<SpuCommentDao, SpuComment
         comment.setCreateTime(new Date());
         comment.setCommentType(COMMENT_TYPE_DIRECT);
         // 新评价默认可见；下架某条评价是后台的审核动作，本链路不做
-        comment.setShowStatus(1);
+        comment.setShowStatus(SHOW_STATUS_VISIBLE);
         // 点赞数与回复数是计数，写 0 而不是留 NULL，前端不必为它们多一种空值分支
         comment.setLikesCount(0);
         comment.setReplyCount(0);
@@ -136,6 +168,7 @@ public class SpuCommentServiceImpl extends ServiceImpl<SpuCommentDao, SpuComment
     }
 
     /** {@inheritDoc} */
+    @Transactional
     @Override
     public void deleteComment(Long commentId, Long memberId) {
         // 先读一次是为了拿 orderItemId：评价行里没有订单号，撤回订单时间只能按订单项定位。
@@ -146,9 +179,13 @@ public class SpuCommentServiceImpl extends ServiceImpl<SpuCommentDao, SpuComment
         }
 
         if (this.baseMapper.deleteOwn(commentId, memberId) == 0) {
-            // 读到之后被别人删掉了：并发删除只有一个生效，另一个落到这里
+            // 读到之后被别人删掉了，或这一行是回复（回复没有删除入口）：两种都按"评论不存在"处理
             throw new BaseException(BaseCodeEnum.COMMENT_NOT_FOUND);
         }
+
+        // 级联清掉挂在这条评价下的回复，顺序不能反：回复内容行要靠关系行定位，先删关系行就找不到它们了
+        this.baseMapper.deleteReplies(commentId);
+        commentReplayDao.deleteByCommentId(commentId);
 
         // 撤回订单上的评价时间。失败只记日志：评价已经删掉，那列是展示用，
         // 让它拦住删除会把"删不掉自己的评价"变成用户可见的故障
@@ -157,6 +194,54 @@ public class SpuCommentServiceImpl extends ServiceImpl<SpuCommentDao, SpuComment
         } catch (Exception e) {
             log.error("撤回订单评价时间失败，orderItemId={}", existing.getOrderItemId(), e);
         }
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public Integer likeComment(Long commentId, Long memberId) {
+        return changeLikesCount(commentId, memberId, LIKE_DELTA_ADD);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public Integer unlikeComment(Long commentId, Long memberId) {
+        return changeLikesCount(commentId, memberId, LIKE_DELTA_REMOVE);
+    }
+
+    /** {@inheritDoc} */
+    @Transactional
+    @Override
+    public CommentReplyVo replyComment(Long commentId, Long memberId, String memberNickName, CommentReplySubmitVo vo) {
+        // 1. 目标必须是一条可见的直接评价：对回复再回复会让层级失控，一律拒绝
+        SpuCommentEntity root = this.getById(commentId);
+        if (!isVisibleDirectComment(root)) {
+            throw new BaseException(BaseCodeEnum.COMMENT_NOT_FOUND);
+        }
+
+        // 2. 回复与直接评价同表，靠 comment_type 区分。商品字段只复制 spu_id：
+        //    展示只用到内容、昵称与时间，其余快照留在根评价那一行，复制过来只会两处不一致
+        SpuCommentEntity reply = new SpuCommentEntity();
+        reply.setSpuId(root.getSpuId());
+        reply.setMemberId(memberId);
+        reply.setMemberNickName(memberNickName);
+        reply.setContent(vo.getContent());
+        reply.setCreateTime(new Date());
+        reply.setCommentType(COMMENT_TYPE_REPLY);
+        reply.setShowStatus(SHOW_STATUS_VISIBLE);
+        reply.setLikesCount(0);
+        reply.setReplyCount(0);
+        this.save(reply);
+
+        // 3. 关系行是"回复挂在哪条评价下"的唯一线索，级联删除也靠它定位
+        CommentReplayEntity relation = new CommentReplayEntity();
+        relation.setCommentId(commentId);
+        relation.setReplyId(reply.getId());
+        commentReplayDao.insert(relation);
+
+        // 4. 根评价的回复数加一。与上面两步同一事务：计数写不进去，列表里的回复数就对不上
+        this.baseMapper.increaseReplyCount(commentId);
+
+        return toReplyVo(reply);
     }
 
     /** {@inheritDoc} */
@@ -195,7 +280,12 @@ public class SpuCommentServiceImpl extends ServiceImpl<SpuCommentDao, SpuComment
                 .isNotNull(SpuCommentEntity::getStar)
                 .orderByDesc(SpuCommentEntity::getCreateTime));
 
-        List<SpuCommentVo> rows = page.getRecords().stream().map(this::toPublicVo).toList();
+        Map<Long, List<CommentReplyVo>> repliesByComment = queryRepliesByCommentIds(
+                page.getRecords().stream().map(SpuCommentEntity::getId).toList());
+        List<SpuCommentVo> rows = page.getRecords().stream()
+                .map(comment -> toPublicVo(comment, repliesByComment))
+                .toList();
+
         return new PageVO<>(page.getTotal(), rows);
     }
 
@@ -238,12 +328,117 @@ public class SpuCommentServiceImpl extends ServiceImpl<SpuCommentDao, SpuComment
     }
 
     /**
-     * 把评价行转成公开投影。
+     * 点赞与取消点赞共用的实现：校验 → 按增量改计数 → 回读。
+     *
+     * @param commentId 评价或回复主键，不能为 {@code null}
+     * @param memberId 当前登录会员 ID，不能为 {@code null}
+     * @param delta 计数增量，点赞为 1、取消点赞为 -1
+     * @return 更新后的获赞数，不会小于 0
+     * @throws BaseException 这一行不可见或不是评价/回复时抛 {@code COMMENT_NOT_FOUND}；
+     *         作者是当前会员时抛 {@code COMMENT_LIKE_SELF}
+     */
+    private Integer changeLikesCount(Long commentId, Long memberId, int delta) {
+        SpuCommentEntity existing = this.getById(commentId);
+        if (!isVisibleComment(existing)) {
+            throw new BaseException(BaseCodeEnum.COMMENT_NOT_FOUND);
+        }
+
+        // 点赞与取消都要过这道闸：自己写的评价或回复谈不上点赞，取消也不该由自己按下
+        if (memberId.equals(existing.getMemberId())) {
+            throw new BaseException(BaseCodeEnum.COMMENT_LIKE_SELF);
+        }
+
+        if (this.baseMapper.updateLikesCount(commentId, delta) == 0) {
+            // 读与写之间被后台下架：可见性条件写在 UPDATE 里，这里按"不可见"拒绝
+            throw new BaseException(BaseCodeEnum.COMMENT_NOT_FOUND);
+        }
+
+        // 回读而不是在本地加减：别人可能同时也在点，本地算出的数会与库里的值越差越多
+        SpuCommentEntity updated = this.getById(commentId);
+        return updated == null ? 0 : nullToZero(updated.getLikesCount());
+    }
+
+    /**
+     * 批量查这些评价下的回复，按评价 ID 分组。
+     *
+     * <p>分两次查而不是一条 join：回复挂在哪条评价下记在关系表，内容在评价表，
+     * 先按评价 ID 取关系行、再按回复 ID 取内容行，各查各的表。</p>
+     *
+     * @param commentIds 根评价 ID 列表，允许为空；为空时返回空 Map
+     * @return 评价 ID → 回复列表，按回复时间正序；没有回复的评价不在返回里
+     */
+    private Map<Long, List<CommentReplyVo>> queryRepliesByCommentIds(List<Long> commentIds) {
+        // 空集合直接返回：拼出 IN () 是非法 SQL，这个坑在项目里出现过不止一次
+        if (commentIds.isEmpty()) {
+            return Map.of();
+        }
+
+        List<CommentReplayEntity> relations = commentReplayDao.selectList(new LambdaQueryWrapper<CommentReplayEntity>()
+                .in(CommentReplayEntity::getCommentId, commentIds));
+        if (relations.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<Long, Long> commentIdByReplyId = new LinkedHashMap<>();
+        for (CommentReplayEntity relation : relations) {
+            commentIdByReplyId.put(relation.getReplyId(), relation.getCommentId());
+        }
+
+        // 只给可见的回复：被后台下架的那些既不下发，也不该出现在计数之外的任何地方
+        List<SpuCommentEntity> replies = this.list(new LambdaQueryWrapper<SpuCommentEntity>()
+                .in(SpuCommentEntity::getId, commentIdByReplyId.keySet())
+                .eq(SpuCommentEntity::getCommentType, COMMENT_TYPE_REPLY)
+                .eq(SpuCommentEntity::getShowStatus, SHOW_STATUS_VISIBLE)
+                .orderByAsc(SpuCommentEntity::getCreateTime));
+
+        Map<Long, List<CommentReplyVo>> grouped = new LinkedHashMap<>();
+        for (SpuCommentEntity reply : replies) {
+            grouped.computeIfAbsent(commentIdByReplyId.get(reply.getId()), key -> new ArrayList<>()).add(toReplyVo(reply));
+        }
+        return grouped;
+    }
+
+    /**
+     * 判断一行是不是公开区里能看到的内容：有星级的可见直接评价，或可见的回复。
+     *
+     * <p>点赞以它为前提 —— 列表里看不到的行不该能点赞。直接评价要不要星级，口径与
+     * {@link #querySpuComments} 的过滤条件一致；回复没有星级，但本来就是公开区的一部分。</p>
+     *
+     * @param comment 评价或回复行，允许为 {@code null}
+     * @return {@code true} 表示这一行公开可见
+     */
+    private static boolean isVisibleComment(SpuCommentEntity comment) {
+        if (comment == null || !Integer.valueOf(SHOW_STATUS_VISIBLE).equals(comment.getShowStatus())) {
+            return false;
+        }
+
+        if (Integer.valueOf(COMMENT_TYPE_DIRECT).equals(comment.getCommentType())) {
+            // 星级为空的行不进公开区：会员端提交时强制 1~5，这类行只可能来自后台脚手架
+            return comment.getStar() != null;
+        }
+        return Integer.valueOf(COMMENT_TYPE_REPLY).equals(comment.getCommentType());
+    }
+
+    /**
+     * 判断一条评价是不是公开区里能看到的那种：有星级的可见直接评价。
+     *
+     * <p>回复以它为前提：只允许对评价回复，不允许对回复再回复，层级才守得住一层。</p>
+     *
+     * @param comment 评价行，允许为 {@code null}
+     * @return {@code true} 表示可见的直接评价
+     */
+    private static boolean isVisibleDirectComment(SpuCommentEntity comment) {
+        return isVisibleComment(comment) && Integer.valueOf(COMMENT_TYPE_DIRECT).equals(comment.getCommentType());
+    }
+
+    /**
+     * 把评价行转成公开投影，并挂上它的回复。
      *
      * @param comment 评价行，不能为 {@code null}
+     * @param repliesByComment 评价 ID → 回复列表，见 {@link #queryRepliesByCommentIds}
      * @return 只含公开字段的投影，昵称已打码
      */
-    private SpuCommentVo toPublicVo(SpuCommentEntity comment) {
+    private SpuCommentVo toPublicVo(SpuCommentEntity comment, Map<Long, List<CommentReplyVo>> repliesByComment) {
         SpuCommentVo vo = new SpuCommentVo();
         vo.setId(comment.getId());
         vo.setStar(comment.getStar());
@@ -251,7 +446,59 @@ public class SpuCommentServiceImpl extends ServiceImpl<SpuCommentDao, SpuComment
         vo.setMemberNickName(maskNickName(comment.getMemberNickName()));
         vo.setSpuAttributes(comment.getSpuAttributes());
         vo.setCreateTime(comment.getCreateTime());
+        vo.setLikesCount(nullToZero(comment.getLikesCount()));
+        vo.setReplyCount(nullToZero(comment.getReplyCount()));
+        vo.setReplies(repliesByComment.getOrDefault(comment.getId(), List.of()));
         return vo;
+    }
+
+    /**
+     * 把评价行转成评论中心的投影，并挂上它的回复。
+     *
+     * @param comment 评价行，不能为 {@code null}
+     * @param repliesByComment 评价 ID → 回复列表，见 {@link #queryRepliesByCommentIds}
+     * @return 给评价人自己看的投影，含获赞数与回复
+     */
+    private MyCommentVo toMyCommentVo(SpuCommentEntity comment, Map<Long, List<CommentReplyVo>> repliesByComment) {
+        MyCommentVo vo = new MyCommentVo();
+        vo.setId(comment.getId());
+        vo.setOrderItemId(comment.getOrderItemId());
+        vo.setSkuId(comment.getSkuId());
+        vo.setSpuName(comment.getSpuName());
+        vo.setSpuAttributes(comment.getSpuAttributes());
+        vo.setStar(comment.getStar());
+        vo.setContent(comment.getContent());
+        vo.setCreateTime(comment.getCreateTime());
+        vo.setLikesCount(nullToZero(comment.getLikesCount()));
+        vo.setReplyCount(nullToZero(comment.getReplyCount()));
+        vo.setReplies(repliesByComment.getOrDefault(comment.getId(), List.of()));
+        return vo;
+    }
+
+    /**
+     * 把回复行转成公开投影。
+     *
+     * @param reply 回复行，不能为 {@code null}
+     * @return 只含回复自身字段的投影，昵称已打码
+     */
+    private CommentReplyVo toReplyVo(SpuCommentEntity reply) {
+        CommentReplyVo vo = new CommentReplyVo();
+        vo.setId(reply.getId());
+        vo.setMemberNickName(maskNickName(reply.getMemberNickName()));
+        vo.setContent(reply.getContent());
+        vo.setCreateTime(reply.getCreateTime());
+        vo.setLikesCount(nullToZero(reply.getLikesCount()));
+        return vo;
+    }
+
+    /**
+     * 把计数列的 {@code null} 归一成 0。
+     *
+     * @param value 计数列的值，允许为 {@code null}
+     * @return 非空计数，{@code null} 时为 0
+     */
+    private static int nullToZero(Integer value) {
+        return value == null ? 0 : value;
     }
 
     /**

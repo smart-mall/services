@@ -10,5 +10,10 @@
         <result property="replyId" column="reply_id"/>
     </resultMap>
 
+    <delete id="deleteByCommentId">
+        DELETE FROM pms_comment_replay
+        WHERE comment_id = #{commentId}
+    </delete>
+
 
 </mapper>
