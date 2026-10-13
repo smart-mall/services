@@ -1527,12 +1527,36 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         PaymentInfoEntity paymentInfo = new PaymentInfoEntity();
         paymentInfo.setOrderSn(asyncVo.getOut_trade_no());
         paymentInfo.setAlipayTradeNo(tradeNo);
-        paymentInfo.setTotalAmount(new BigDecimal(asyncVo.getBuyer_pay_amount()));
+        paymentInfo.setTotalAmount(parseAmount(asyncVo.getBuyer_pay_amount()));
         paymentInfo.setSubject(asyncVo.getBody());
         paymentInfo.setPaymentStatus(asyncVo.getTrade_status());
         paymentInfo.setCreateTime(new Date());
         paymentInfo.setCallbackTime(asyncVo.getNotify_time());
         this.paymentInfoService.save(paymentInfo);
+    }
+
+
+    /**
+     * 把支付宝通知里的金额字符串转成金额。
+     *
+     * <p>通知字段都是字符串，且并非每条通知都带 {@code buyer_pay_amount}（如 {@code TRADE_CLOSED}）。
+     * 解析失败时返回 {@code null}，让这条通知的其余字段照常入库。
+     *
+     * @param amount 金额字符串，可为 {@code null} 或空白
+     * @return 解析出的金额；{@code amount} 为空或不是合法数字时返回 {@code null}
+     */
+    private BigDecimal parseAmount(String amount) {
+
+        if (!StringUtils.hasText(amount)) {
+            return null;
+        }
+        try {
+            return new BigDecimal(amount);
+        } catch (NumberFormatException e) {
+            // 金额缺失不该让整条回调回滚：平台收到失败应答会一直重投
+            log.warn("支付回调的金额无法解析，按空值记录：amount={}", amount);
+            return null;
+        }
     }
 
 
