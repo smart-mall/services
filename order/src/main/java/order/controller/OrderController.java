@@ -88,14 +88,14 @@ public class OrderController {
     }
 
     /**
-     * 查询订单详情，附带订单项与状态文案，供后台的详情弹窗使用。
+     * 查询订单详情，附带订单项、操作流水、支付流水与状态文案，供后台的详情弹窗使用。
      *
-     * <p>与 {@link #info(Long)} 的区别是按业务主键查询并带上订单项：后台看单要知道买了什么，
-     * 而订单项不在 {@code oms_order} 表里。</p>
+     * <p>与 {@link #info(Long)} 的区别是按业务主键查询并带上关联数据：后台看单要知道买了什么、
+     * 走过哪些状态、付过几次款，这些都不在 {@code oms_order} 表里。</p>
      *
      * @param orderSn 订单号
-     * @return 订单详情，{@code orderItemEntityList} 与 {@code statusText} 已填好；
-     *         订单不存在时返回 {@code ORDER_NOT_FOUND}
+     * @return 订单详情，{@code orderItemEntityList}、{@code operateHistoryList}、{@code paymentInfoList}
+     *         与 {@code statusText} 已填好；订单不存在时返回 {@code ORDER_NOT_FOUND}
      */
     @GetMapping("/detail/{orderSn}")
     public R<OrderEntity> detail(@PathVariable("orderSn") String orderSn){

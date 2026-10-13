@@ -982,7 +982,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         if (order == null) {
             throw new BaseException(BaseCodeEnum.ORDER_NOT_FOUND);
         }
-        return fillDetail(order);
+        fillDetail(order);
+        order.setOperateHistoryList(listOperateHistory(order.getId()));
+        order.setPaymentInfoList(listPaymentInfo(orderSn));
+        return order;
     }
 
     /**
@@ -998,6 +1001,40 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
                 new LambdaQueryWrapper<OrderItemEntity>().eq(OrderItemEntity::getOrderSn, order.getOrderSn())));
         order.setStatusText(statusText(order.getStatus()));
         return order;
+    }
+
+    /**
+     * 查一笔订单的操作流水，按操作时间升序，同一时刻的按主键升序。
+     *
+     * <p>状态文案随行填好：与订单列表、订单详情的文案出自同一处映射。</p>
+     *
+     * @param orderId 订单 ID，不能为 {@code null}
+     * @return 操作流水；没有记录时为空列表
+     */
+    private List<OrderOperateHistoryEntity> listOperateHistory(Long orderId) {
+        List<OrderOperateHistoryEntity> records = orderOperateHistoryService.list(
+                new LambdaQueryWrapper<OrderOperateHistoryEntity>()
+                        .eq(OrderOperateHistoryEntity::getOrderId, orderId)
+                        .orderByAsc(OrderOperateHistoryEntity::getCreateTime)
+                        .orderByAsc(OrderOperateHistoryEntity::getId));
+        for (OrderOperateHistoryEntity record : records) {
+            record.setStatusText(statusText(record.getOrderStatus()));
+        }
+        return records;
+    }
+
+    /**
+     * 查一笔订单的支付流水，按写入顺序升序。
+     *
+     * <p>一笔订单可能有多条：重复的回调各写一条，所以返回列表而不是单条。</p>
+     *
+     * @param orderSn 订单号，不能为 {@code null}
+     * @return 支付流水；没有记录时为空列表
+     */
+    private List<PaymentInfoEntity> listPaymentInfo(String orderSn) {
+        return paymentInfoService.list(new LambdaQueryWrapper<PaymentInfoEntity>()
+                .eq(PaymentInfoEntity::getOrderSn, orderSn)
+                .orderByAsc(PaymentInfoEntity::getId));
     }
 
     /** {@inheritDoc} */

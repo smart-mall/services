@@ -113,10 +113,12 @@ public interface OrderService extends IService<OrderEntity> {
     /**
      * 查询订单详情，供后台查看，不做会员归属校验。
      *
-     * <p>与查自己订单的详情只差归属校验：后台看的是全部会员的订单。</p>
+     * <p>与查自己订单的详情只差归属校验与装配内容：后台还要看操作流水与支付流水，
+     * 会员端不看，因此这两项只出现在本方法的返回值里。</p>
      *
      * @param orderSn 订单号，不能为 {@code null}
-     * @return 订单详情，{@code orderItemEntityList} 与 {@code statusText} 已填好
+     * @return 订单详情，{@code orderItemEntityList}、{@code statusText}、{@code operateHistoryList}
+     *         与 {@code paymentInfoList} 已填好
      * @throws common.exception.BaseException 订单不存在时抛 {@code ORDER_NOT_FOUND}
      */
     OrderEntity getOrderDetailForAdmin(String orderSn);

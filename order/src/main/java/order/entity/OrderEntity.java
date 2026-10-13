@@ -15,7 +15,8 @@ import java.util.List;
  * 订单主表 {@code oms_order} 的记录，一笔订单对应一行。
  *
  * <p>{@code status} 的取值由 {@link order.enums.OrderStatusEnum} 定义；
- * {@code orderItemEntityList} 与 {@code statusText} 不落库，由查询侧组装。
+ * {@code orderItemEntityList}、{@code operateHistoryList}、{@code paymentInfoList} 与 {@code statusText}
+ * 不落库，由查询侧组装。
  */
 @Data
 @TableName("oms_order")
@@ -115,6 +116,14 @@ public class OrderEntity implements Serializable {
 	/** 订单包含的订单项，查询时组装，不落库。 */
 	@TableField(exist = false)
 	private List<OrderItemEntity> orderItemEntityList;
+
+	/** 订单的操作流水，按操作时间升序；后台详情组装，不落库。 */
+	@TableField(exist = false)
+	private List<OrderOperateHistoryEntity> operateHistoryList;
+
+	/** 订单的支付流水，按写入顺序升序；后台详情组装，不落库。 */
+	@TableField(exist = false)
+	private List<PaymentInfoEntity> paymentInfoList;
 
 	/**
 	 * 状态文案，给前端直接显示。
