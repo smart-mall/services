@@ -194,21 +194,6 @@ CREATE TABLE `oms_order_return_reason`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '退货原因' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
--- Table structure for oms_order_setting
--- ----------------------------
-DROP TABLE IF EXISTS `oms_order_setting`;
-CREATE TABLE `oms_order_setting`  (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `flash_order_overtime` int(11) NULL DEFAULT NULL COMMENT '秒杀订单超时关闭时间(分)',
-  `normal_order_overtime` int(11) NULL DEFAULT NULL COMMENT '正常订单超时时间(分)',
-  `confirm_overtime` int(11) NULL DEFAULT NULL COMMENT '发货后自动确认收货时间（天）',
-  `finish_overtime` int(11) NULL DEFAULT NULL COMMENT '自动完成交易时间，不能申请退货（天）',
-  `comment_overtime` int(11) NULL DEFAULT NULL COMMENT '订单完成后自动好评时间（天）',
-  `member_level` tinyint(2) NULL DEFAULT NULL COMMENT '会员等级【0-不限会员等级，全部通用；其他-对应的其他会员等级】',
-  PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '订单配置信息' ROW_FORMAT = Dynamic;
-
--- ----------------------------
 -- Table structure for oms_payment_info
 -- ----------------------------
 DROP TABLE IF EXISTS `oms_payment_info`;

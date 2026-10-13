@@ -456,16 +456,12 @@ CREATE TABLE IF NOT EXISTS `oms_order_return_reason` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE IF NOT EXISTS `oms_order_setting` (
-  `id` bigint NOT NULL AUTO_INCREMENT,
-  `flash_order_overtime` int DEFAULT NULL COMMENT '秒杀订单超时关闭时间(分)',
-  `normal_order_overtime` int DEFAULT NULL COMMENT '正常订单超时时间(分)',
-  `confirm_overtime` int DEFAULT NULL COMMENT '发货后自动确认收货时间（天）',
-  `finish_overtime` int DEFAULT NULL COMMENT '自动完成交易时间，不能申请退货（天）',
-  `comment_overtime` int DEFAULT NULL COMMENT '订单完成后自动好评时间（天）',
-  `member_level` tinyint DEFAULT NULL COMMENT '会员等级【0-不限会员等级，全部通用；其他-对应的其他会员等级】',
-  PRIMARY KEY (`id`) USING BTREE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='订单配置信息';
+-- 【已删除】`oms_order_setting`（订单配置信息）。整表连同它的脚手架 CRUD、后台「等级规则」页与
+-- 菜单行 (58, 44, 'order/settings') 一起移除，判据是"没有任何业务代码读它"：订单超时关单走
+-- MQ 延迟队列的 TTL（`MqConstant.TtlMillis.ORDER_TIMEOUT`），自动确认收货走 `oms_order.auto_confirm_day`，
+-- 令牌与模拟支付超时走 `OrderConstant`；这张表线上 0 行，留着只会让人以为配置在生效。
+-- 已建库的实例手工执行一次（表已不存在时会报 unknown table，属正常，可忽略）：
+--   DROP TABLE `oms_order_setting`;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
