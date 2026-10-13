@@ -27,7 +27,10 @@ import order.constant.PayConstant;
 import order.dao.OrderDao;
 import order.entity.OrderEntity;
 import order.entity.OrderItemEntity;
+import order.entity.OrderOperateHistoryEntity;
+import order.entity.OrderReturnApplyEntity;
 import order.entity.PaymentInfoEntity;
+import order.entity.RefundInfoEntity;
 import order.enums.DeliveryCompanyEnum;
 import order.enums.OrderStatusEnum;
 import order.feign.CartFeignService;
@@ -36,8 +39,11 @@ import order.feign.MemberFeignService;
 import order.feign.ProductFeignService;
 import order.feign.WmsFeignService;
 import order.service.OrderItemService;
+import order.service.OrderOperateHistoryService;
+import order.service.OrderReturnApplyService;
 import order.service.OrderService;
 import order.service.PaymentInfoService;
+import order.service.RefundInfoService;
 import order.to.OrderCreateTo;
 import order.vo.CouponDiscountItemVo;
 import order.vo.DeliverVo;
@@ -100,7 +106,7 @@ import static com.lly835.bestpay.enums.BestPayTypeEnum.WXPAY_NATIVE;
 import static common.constant.CartConstant.CART_PREFIX;
 
 /**
- * 订单服务实现：负责结算页组装、下单、发起支付、发货、关单与秒杀单落库。
+ * 订单服务实现：负责结算页组装、下单、发起支付、发货、关单、收货确认、订单删除与秒杀单落库。
  *
  * <p>本类无状态、线程安全；订单号由 {@code IdWorker} 生成，会员、购物车、商品与库存数据经 Feign 获取。
  *
@@ -109,6 +115,12 @@ import static common.constant.CartConstant.CART_PREFIX;
 @Slf4j
 @Service("orderService")
 public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> implements OrderService {
+
+    /** 订单的"已删除"标记，对应 {@code oms_order.delete_status}。 */
+    private static final Integer DELETED_STATUS = 1;
+
+    /** 操作史说明文字的长度上限，与 {@code oms_order_operate_history.note} 列一致。 */
+    private static final int NOTE_MAX_LENGTH = 500;
 
     @Autowired
     private MemberFeignService memberFeignService;
@@ -137,6 +149,15 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
     @Autowired
     private PaymentInfoService paymentInfoService;
+
+    @Autowired
+    private OrderReturnApplyService orderReturnApplyService;
+
+    @Autowired
+    private RefundInfoService refundInfoService;
+
+    @Autowired
+    private OrderOperateHistoryService orderOperateHistoryService;
 
     @Autowired
     private BestPayService bestPayService;
@@ -188,6 +209,12 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         String endTime = query.getEndTime();
         if (endTime != null && !endTime.isBlank()) {
             wrapper.le(OrderEntity::getCreateTime, endTime);
+        }
+
+        // 后台不按删除状态过滤：会员删掉的订单仍要能查到，否则无法审单、也无法硬删
+        String deleteStatus = query.getDeleteStatus();
+        if (deleteStatus != null && !deleteStatus.isBlank()) {
+            wrapper.eq(OrderEntity::getDeleteStatus, deleteStatus);
         }
 
         // 同一秒下的单按主键兜底，否则翻页可能重复或漏单
@@ -1166,7 +1193,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
             throw new BaseException(BaseCodeEnum.ORDER_STATUS_INVALID);
         }
         // 并发下订单可能在两次判断之间被支付成功，此时取消不生效，必须让调用方知道
-        if (!doClose(order)) {
+        if (!doClose(order, user.getUsername(), "会员取消订单")) {
             throw new BaseException(BaseCodeEnum.ORDER_STATUS_INVALID);
         }
     }
@@ -1190,14 +1217,14 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         }
 
         if (OrderStatusEnum.CREATE_NEW.getCode().equals(orderInfo.getStatus())) {
-            doClose(orderInfo);
+            doClose(orderInfo, "系统", "超时未支付，系统自动关闭");
         }
     }
 
     /** {@inheritDoc} */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void closeOrderByAdmin(String orderSn) {
+    public void closeOrderByAdmin(String orderSn, String operator) {
         OrderEntity order = getOrderByOrderSn(orderSn);
         if (order == null) {
             throw new BaseException(BaseCodeEnum.ORDER_NOT_FOUND);
@@ -1205,32 +1232,134 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
         // 关单不生效只可能是订单已被支付或已关闭：doClose 带 status = 0 条件，
         // 没生效就没写过任何数据，报状态错误是安全的
-        if (!doClose(order)) {
+        if (!doClose(order, operator, "后台关闭订单")) {
             throw new BaseException(BaseCodeEnum.ORDER_STATUS_INVALID);
         }
     }
 
     /** {@inheritDoc} */
     @Override
-    public void updateNote(String orderSn, String note) {
+    public void updateNote(String orderSn, String note, String operator) {
+        // 先取订单：操作史要订单 ID，而更新语句只认订单号
+        OrderEntity order = getOrderByOrderSn(orderSn);
+        if (order == null) {
+            throw new BaseException(BaseCodeEnum.ORDER_NOT_FOUND);
+        }
+
         if (this.baseMapper.updateNote(orderSn, note) == 0) {
             throw new BaseException(BaseCodeEnum.ORDER_NOT_FOUND);
         }
+
+        saveOperateHistory(order.getId(), order.getStatus(), operator,
+                note == null ? "修改订单备注：清空" : "修改订单备注：" + note);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void deleteOrder(MemberResponseVo user, String orderSn) {
+        // 先按归属取单：不属于自己的按"不存在"报，与其它会员接口一致
+        OrderEntity order = requireOwnOrder(user, orderSn);
+
+        // 状态与"未删除"的判断写进 UPDATE 的 WHERE：并发重复删除只有一个会生效
+        if (this.baseMapper.markDeleted(orderSn, user.getId()) == 0) {
+            throw new BaseException(BaseCodeEnum.ORDER_STATUS_INVALID);
+        }
+
+        saveOperateHistory(order.getId(), order.getStatus(), user.getUsername(), "会员删除订单（仅从会员列表隐藏）");
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void hardDeleteOrder(String orderSn, String operator) {
+        OrderEntity order = getOrderByOrderSn(orderSn);
+        if (order == null || !DELETED_STATUS.equals(order.getDeleteStatus())) {
+            // 只删被会员标记过的订单：没标记过的单不提供物理删除的入口
+            throw new BaseException(BaseCodeEnum.ORDER_NOT_FOUND);
+        }
+
+        // 先删仓库侧的工作单：那边在一个事务里校验"没有锁定中的明细"再删，被拒时本地一行都没动。
+        // 反过来先删本地，远程失败会留下指向已删订单的工单，而订单已经查不到、无从重试
+        R<Void> workOrder = wmsFeignService.deleteWorkOrderByOrderSn(orderSn);
+        if (workOrder.getCode() != 0) {
+            throw new BaseException(workOrder.getCode(), workOrder.getMsg());
+        }
+
+        orderItemService.remove(new LambdaQueryWrapper<OrderItemEntity>().eq(OrderItemEntity::getOrderSn, orderSn));
+        paymentInfoService.remove(new LambdaQueryWrapper<PaymentInfoEntity>()
+                .eq(PaymentInfoEntity::getOrderSn, orderSn));
+        deleteReturnRecords(orderSn);
+        // 该订单的操作流水一并删掉：订单都没了，留着指向不存在订单的记录只是垃圾
+        orderOperateHistoryService.remove(new LambdaQueryWrapper<OrderOperateHistoryEntity>()
+                .eq(OrderOperateHistoryEntity::getOrderId, order.getId()));
+
+        // 准入条件再落一次到 SQL：没被标记过的单在这里也删不掉
+        if (this.baseMapper.deleteMarked(orderSn) == 0) {
+            throw new BaseException(BaseCodeEnum.ORDER_NOT_FOUND);
+        }
+
+        log.warn("后台硬删订单：orderSn={}, status={}, memberId={}, 操作人={}",
+                orderSn, order.getStatus(), order.getMemberId(), operator);
+    }
+
+    /**
+     * 写一条订单操作历史。
+     *
+     * <p>只在业务变更确实生效后调用：调用方一律用同一条 UPDATE 返回的受影响行数判断，
+     * 重复回调、重复点击这类没改到任何行的请求不留记录。</p>
+     *
+     * <p>说明文字按 {@code note} 列上限截断：超长备注会让整条记录写失败，操作就留不下痕迹。</p>
+     *
+     * @param orderId 订单 ID，不能为 {@code null}
+     * @param status 操作之后订单处于的状态，取值见 {@link OrderStatusEnum}
+     * @param operateMan 操作人：会员或管理员的用户名；系统动作用"系统"
+     * @param note 操作说明，不能为 {@code null}
+     */
+    private void saveOperateHistory(Long orderId, Integer status, String operateMan, String note) {
+        OrderOperateHistoryEntity history = new OrderOperateHistoryEntity();
+        history.setOrderId(orderId);
+        history.setOperateMan(operateMan);
+        history.setCreateTime(new Date());
+        history.setOrderStatus(status);
+        history.setNote(note.length() > NOTE_MAX_LENGTH ? note.substring(0, NOTE_MAX_LENGTH) : note);
+        orderOperateHistoryService.save(history);
+    }
+
+    /**
+     * 删除订单的售后记录：退货申请与它对应的退款流水。
+     *
+     * <p>退款流水只按退货申请 ID 关联，所以先查出申请的 ID 再删流水，两步顺序不能颠倒。</p>
+     *
+     * @param orderSn 订单号，不能为 {@code null}
+     */
+    private void deleteReturnRecords(String orderSn) {
+        List<OrderReturnApplyEntity> applies = orderReturnApplyService.list(
+                new LambdaQueryWrapper<OrderReturnApplyEntity>().eq(OrderReturnApplyEntity::getOrderSn, orderSn));
+        if (applies.isEmpty()) {
+            return;
+        }
+
+        List<Long> applyIds = applies.stream().map(OrderReturnApplyEntity::getId).toList();
+        refundInfoService.remove(new LambdaQueryWrapper<RefundInfoEntity>()
+                .in(RefundInfoEntity::getOrderReturnId, applyIds));
+        orderReturnApplyService.removeByIds(applyIds);
     }
 
     /**
      * 关单：置为已取消，通知仓库释放库存，并退回优惠券。
      *
-     * <p>超时关单（MQ）与用户主动取消共用这一段。本方法自己不承担事务边界 —— 它是私有方法，
-     * 注解在此不生效；边界由两个调用者 {@code cancelOrder} 与 {@code closeOrder} 承担，
-     * 保证"置为已取消""释放库存的消息记录"与"退回优惠券"一起生效。
+     * <p>超时关单（MQ）、用户主动取消与后台关单共用这一段。本方法自己不承担事务边界 —— 它是私有方法，
+     * 注解在此不生效；边界由三个调用者 {@code cancelOrder}、{@code closeOrder} 与
+     * {@code closeOrderByAdmin} 承担，保证"置为已取消""释放库存的消息记录"与"退回优惠券"一起生效。
      *
      * <p>并发：关单与支付回调谁先到谁赢。订单已被支付时关单不生效，此时不释放库存也不退券。
      *
      * @param orderInfo 待关闭的订单
+     * @param operateMan 操作人：会员或管理员的用户名；超时关单用"系统"
+     * @param note 写进操作史的说明
      * @return {@code true} 表示确实关掉了；{@code false} 表示订单状态已被并发变更，未做任何变更
      */
-    private boolean doClose(OrderEntity orderInfo) {
+    private boolean doClose(OrderEntity orderInfo, String operateMan, String note) {
 
         // 判断与写入是同一条 SQL：与支付回调并发时谁先到谁赢
         int affected = this.baseMapper.closeOrder(orderInfo.getOrderSn());
@@ -1239,6 +1368,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
             log.warn("关单未生效，订单状态已被并发变更（可能是刚支付成功）：orderSn={}", orderInfo.getOrderSn());
             return false;
         }
+
+        saveOperateHistory(orderInfo.getId(), OrderStatusEnum.CANCLED.getCode(), operateMan, note);
 
         OrderTo orderTo = new OrderTo();
         BeanUtils.copyProperties(orderInfo, orderTo);
@@ -1266,6 +1397,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         order.setModifyTime(new Date());
         order.setCreateTime(new Date());
         this.baseMapper.insert(order);
+        // 订单已落库，自增主键此时才回填，操作史要用到它
+        saveOperateHistory(order.getId(), order.getStatus(), order.getMemberUsername(), "提交订单");
 
         List<OrderItemEntity> orderItems = orderCreateTo.getOrderItems();
         // 订单项要记 order_id，而自增主键要等订单落库之后才回填，所以在这里补
@@ -1567,7 +1700,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
             consumeCoupon(orderSn);
         }
 
-        int affected = this.updateOrderStatus(orderSn, OrderStatusEnum.PAYED.getCode(), PayConstant.ALIPAY);
+        int affected = this.updateOrderStatus(orderSn, OrderStatusEnum.PAYED.getCode(), PayConstant.ALIPAY,
+                "支付宝支付成功");
         if (affected == 0) {
             // 查询与更新之间订单被并发改走，条件更新拦住了覆盖
             log.error("支付回调的状态更新未生效，订单状态已被并发变更：orderSn={}", orderSn);
@@ -1679,16 +1813,26 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
 
     /**
-     * 更新订单的支付状态与支付方式。
+     * 更新订单的支付状态与支付方式，并写一条支付操作史。
+     *
+     * <p>操作史只在状态确实被推进时写：重复回调只会更新 0 行，不留记录。</p>
      *
      * @param orderSn 订单号
      * @param code 目标状态码，取自 {@link OrderStatusEnum}
      * @param payType 支付方式，取自 {@code PayConstant}
+     * @param note 写进操作史的说明，按支付渠道区分
      * @return 受影响行数；1 表示更新生效，0 表示订单不存在或已不是待付款状态
      */
-    private int updateOrderStatus(String orderSn, Integer code,Integer payType) {
-
-        return this.baseMapper.updateOrderStatus(orderSn,code,payType);
+    private int updateOrderStatus(String orderSn, Integer code, Integer payType, String note) {
+        int affected = this.baseMapper.updateOrderStatus(orderSn, code, payType);
+        if (affected > 0) {
+            // 只有真的推进了状态才留痕：重复回调改到 0 行，不留记录
+            OrderEntity paid = getOrderByOrderSn(orderSn);
+            if (paid != null) {
+                saveOperateHistory(paid.getId(), code, "系统", note);
+            }
+        }
+        return affected;
     }
 
     /** {@inheritDoc} */
@@ -1728,7 +1872,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         }
 
         // 5. 修改订单支付状态
-        this.updateOrderStatus(orderSn,OrderStatusEnum.PAYED.getCode(),PayConstant.WXPAY);
+        this.updateOrderStatus(orderSn, OrderStatusEnum.PAYED.getCode(), PayConstant.WXPAY, "微信支付成功");
 
         // 6. 应答 SUCCESS，微信收到后即停止重发通知
         return WX_SUCCESS_RESPONSE;
@@ -1780,14 +1924,14 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         }
 
         // 5. 置为已付款
-        updateOrderStatus(orderSn, OrderStatusEnum.PAYED.getCode(), PayConstant.MOCK);
+        updateOrderStatus(orderSn, OrderStatusEnum.PAYED.getCode(), PayConstant.MOCK, "测试支付成功");
     }
 
 
     /** {@inheritDoc} */
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public void deliverOrder(DeliverVo vo) {
+    public void deliverOrder(DeliverVo vo, String operator) {
 
         // 这个编码会写进订单并被会员看到，不能由调用方随便给：不在枚举内就是参数问题，不是状态问题
         if (!DeliveryCompanyEnum.isValid(vo.getDeliveryCompany())) {
@@ -1805,6 +1949,13 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
             throw new BaseException(BaseCodeEnum.ORDER_STATUS_INVALID);
         }
 
+        // 操作史要订单 ID：这里只有订单号，补一次查询
+        OrderEntity delivered = getOrderByOrderSn(vo.getOrderSn());
+        if (delivered != null) {
+            saveOperateHistory(delivered.getId(), OrderStatusEnum.SENDED.getCode(), operator,
+                    "发货：" + vo.getDeliveryCompany() + " " + deliverySn);
+        }
+
         // 出库实扣交给 ware 异步做：消息记录与上面的状态变更同一事务落库，提交后才投出去。
         // 不吞异常 —— 消息记录写不进去就整体回滚，宁可不发货，也不能发了货却不扣库存
         OrderDeliveredTo deliveredTo = new OrderDeliveredTo(vo.getOrderSn());
@@ -1814,7 +1965,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     /** {@inheritDoc} */
     @Override
     public void confirmReceive(MemberResponseVo user, String orderSn) {
-        requireOwnOrder(user, orderSn);
+        OrderEntity order = requireOwnOrder(user, orderSn);
 
         // 带状态条件的 UPDATE：判断"是不是已发货"与写入"置为已完成"是同一条 SQL。
         // 与自动确认任务撞上时只有一个会成功，另一个落到下面的状态错误
@@ -1822,6 +1973,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
             log.info("确认收货未生效，订单不是已发货状态：orderSn={}", orderSn);
             throw new BaseException(BaseCodeEnum.ORDER_STATUS_INVALID);
         }
+
+        saveOperateHistory(order.getId(), OrderStatusEnum.RECIEVED.getCode(), user.getUsername(), "会员确认收货");
     }
 
     /** {@inheritDoc} */
@@ -1832,6 +1985,13 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         for (String orderSn : this.baseMapper.selectAutoConfirmable(limit)) {
             if (this.baseMapper.confirmReceive(orderSn) > 0) {
                 confirmed++;
+                // 操作史要订单 ID：选出来的是订单号，确认成功后再补一次查询。
+                // 本方法不承担事务边界，状态更新与历史各自提交，历史写失败只影响这一条记录
+                OrderEntity order = getOrderByOrderSn(orderSn);
+                if (order != null) {
+                    saveOperateHistory(order.getId(), OrderStatusEnum.RECIEVED.getCode(), "系统",
+                            "发货已满自动确认天数，系统确认收货");
+                }
             }
         }
         return confirmed;
@@ -1904,6 +2064,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         orderEntity.setReceiverPostCode(addressVo.getPostCode());
 
         this.save(orderEntity);
+        // 秒杀消息里没有用户名，只有会员 ID，操作人按系统动作记
+        saveOperateHistory(orderEntity.getId(), orderEntity.getStatus(), "系统（秒杀）", "秒杀下单");
 
         OrderItemEntity orderItem = new OrderItemEntity();
         // 订单已落库，自增主键此时才回填

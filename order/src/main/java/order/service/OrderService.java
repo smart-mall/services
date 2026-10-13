@@ -13,7 +13,7 @@ import java.util.List;
 
 import order.vo.OrderPageQuery;
 /**
- * 订单服务：结算页组装、提交下单、订单查询、支付结果处理与发货。
+ * 订单服务：结算页组装、提交下单、订单查询、支付结果处理、发货、关单、收货、删除与操作史留痕。
  *
  * <p>订单与收货地址的归属校验（是不是当前会员的）由实现负责，调用方传入登录会员即可。
  */
@@ -182,6 +182,22 @@ public interface OrderService extends IService<OrderEntity> {
     void cancelOrder(MemberResponseVo user, String orderSn);
 
     /**
+     * 删除会员自己的订单：把订单标记为已删除，会员端列表按标记过滤掉这类订单，数据本身保留。
+     *
+     * <p>只允许删除已完成与已取消的订单：进行中的订单还要继续走支付、发货与售后，从会员视图里
+     * 消失会让会员找不到这些入口。订单项、支付流水与库存工作单都不动，后台仍能查到，
+     * 物理删除由 {@link #hardDeleteOrder} 在确认无人需要之后再做。</p>
+     *
+     * <p>重复删除同一订单会落到 {@code ORDER_STATUS_INVALID}，不会重复生效。</p>
+     *
+     * @param user 当前登录会员，不能为 {@code null}
+     * @param orderSn 订单号，不能为 {@code null}
+     * @throws common.exception.BaseException 订单不存在或不属于该会员 {@code ORDER_NOT_FOUND}、
+     *         状态不是已完成或已取消、或已被删除 {@code ORDER_STATUS_INVALID}
+     */
+    void deleteOrder(MemberResponseVo user, String orderSn);
+
+    /**
      * 关闭超时未支付的订单，由 MQ 延迟消息触发。
      *
      * <p>幂等：订单不存在或已不是待付款状态时直接返回，不报错；消费失败的消息会重投，
@@ -201,10 +217,11 @@ public interface OrderService extends IService<OrderEntity> {
      * 写不进去就整体回滚。订单在并发中被支付成功时，关单不生效。</p>
      *
      * @param orderSn 订单号，不能为 {@code null}
+     * @param operator 操作人（后台管理员用户名），取自网关注入的 {@code X-Admin} 头，写进操作史
      * @throws common.exception.BaseException 订单不存在 {@code ORDER_NOT_FOUND}、
      *         状态不是待付款或并发中被支付成功 {@code ORDER_STATUS_INVALID}
      */
-    void closeOrderByAdmin(String orderSn);
+    void closeOrderByAdmin(String orderSn, String operator);
 
     /**
      * 修改订单备注。
@@ -212,11 +229,38 @@ public interface OrderService extends IService<OrderEntity> {
      * <p>备注是给运营看的说明，不参与状态流转，因此任何状态的订单都能改；可写的字段只有备注一个，
      * 金额、收货信息与状态都不在可改范围内。</p>
      *
+     * <p>改备注不改状态，但同样记一条操作史：事后要能回答"谁在什么时候把备注改了"。</p>
+     *
      * @param orderSn 订单号，不能为 {@code null}
      * @param note 订单备注，长度不超过 500；传 {@code null} 或空串表示清空
+     * @param operator 操作人（后台管理员用户名），取自网关注入的 {@code X-Admin} 头
      * @throws common.exception.BaseException 订单不存在时抛 {@code ORDER_NOT_FOUND}
      */
-    void updateNote(String orderSn, String note);
+    void updateNote(String orderSn, String note, String operator);
+
+    /**
+     * 后台硬删订单：把订单及其订单项、支付流水、售后记录与库存工作单一并删除。
+     *
+     * <p>只允许删除被会员标记过删除的订单，准入条件写在 SQL 里。远程侧先由 ware 校验该订单的库存
+     * 工作单没有仍处于"已锁定"的明细：那种情况说明订单的解锁还没跑完，删掉工单会让这批库存永远
+     * 解不开，此时拒绝并转发 {@code STOCK_STILL_LOCKED}。</p>
+     *
+     * <p><b>刻意不动券记录</b>：会员的限领额度是按 {@code sms_coupon_history} 的条数算的，
+     * 删掉已核销的记录等于把额度退还给会员，可以"领券 → 下单 → 删单"反复领取同一张券。</p>
+     *
+     * <p>远程侧（ware 的工单）排在本地删除之前，不做分布式事务：本地事务回滚时工单已经删掉，
+     * 而订单仍在、状态只可能是已完成或已取消，重试一次即可收敛；反过来先删本地，远程失败会留下
+     * 一条指向已删订单的工单，且订单查不到、没有重试的入口。</p>
+     *
+     * <p>物理删除不可逆：成功时记一条带操作人的 warn 日志；订单的操作流水随订单一起删掉，
+     * 订单侧不留指向已删订单的记录。</p>
+     *
+     * @param orderSn 订单号，不能为 {@code null}
+     * @param operator 操作人（后台管理员用户名），取自网关注入的 {@code X-Admin} 头，不能为 {@code null}
+     * @throws common.exception.BaseException 订单不存在或没被标记过 {@code ORDER_NOT_FOUND}；
+     *         库存工作单仍有已锁定明细时转发 ware 的 {@code STOCK_STILL_LOCKED}
+     */
+    void hardDeleteOrder(String orderSn, String operator);
 
     /**
      * 处理支付宝的异步支付通知：落一条交易流水，并在支付成功时把订单置为已付款。
@@ -277,11 +321,12 @@ public interface OrderService extends IService<OrderEntity> {
      *
      * @param vo 发货参数，不能为 {@code null}；{@code orderSn} 与 {@code deliveryCompany} 不能为空，
      *           且 {@code deliveryCompany} 必须是 {@link order.enums.DeliveryCompanyEnum} 里的编码
+     * @param operator 操作人（后台管理员用户名），取自网关注入的 {@code X-Admin} 头，写进操作史
      * @throws common.exception.BaseException 订单不存在或不是已付款状态时抛 {@code ORDER_STATUS_INVALID}
      * @throws common.exception.ValidationException 物流公司编码不在枚举内时抛出
      */
     @Transactional(rollbackFor = Exception.class)
-    void deliverOrder(DeliverVo vo);
+    void deliverOrder(DeliverVo vo, String operator);
 
     /**
      * 确认收货：把已发货的订单置为已完成，并写入确认状态与确认收货时间。

@@ -263,6 +263,11 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
         if (taskDetailInfo != null) {
             Long id = to.getId();
             WareOrderTaskEntity orderTaskInfo = wareOrderTaskService.getById(id);
+            if (orderTaskInfo == null) {
+                // 工作单已不存在：订单被删除时连工单一起删了，没有可释放的库存
+                log.info("解锁时找不到库存工作单，跳过：taskId={}", id);
+                return;
+            }
             String orderSn = orderTaskInfo.getOrderSn();
             R<OrderVo> orderData = orderFeignService.getOrderStatus(orderSn);
             if (orderData.getCode() == 0) {
@@ -287,7 +292,8 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
     /**
      * {@inheritDoc}
      *
-     * <p>只取锁定状态为 1 的明细，已经解过锁的不再处理。
+     * <p>只处理锁定状态为 1 的明细，已解过锁的跳过；工作单不存在时直接返回 —— 秒杀单不经过
+     * orderLockStock，后台删除订单也会连工单一起删，两种情况下都没有可释放的库存。
      */
     @Transactional(rollbackFor = Exception.class)
     @Override
@@ -295,6 +301,12 @@ public class WareSkuServiceImpl extends ServiceImpl<WareSkuDao, WareSkuEntity> i
 
         String orderSn = orderTo.getOrderSn();
         WareOrderTaskEntity orderTaskEntity = wareOrderTaskService.getOrderTaskByOrderSn(orderSn);
+        if (orderTaskEntity == null) {
+            // 工作单已不存在：秒杀单不经过 orderLockStock，后台删订单也会连工单一起删，
+            // 两种情况下都没有可释放的库存
+            log.info("解锁时找不到库存工作单，跳过：orderSn={}", orderSn);
+            return;
+        }
 
         // 只取锁定状态为 1 的明细：已经解过锁的再处理一次会重复扣减 stock_locked
         Long id = orderTaskEntity.getId();

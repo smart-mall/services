@@ -3,9 +3,12 @@ package ware.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import common.exception.BaseCodeEnum;
+import common.exception.BaseException;
 import common.query.KeyPageQuery;
 import common.vo.PageVO;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ware.dao.WareOrderTaskDao;
 import ware.entity.WareInfoEntity;
 import ware.entity.WareOrderTaskDetailEntity;
@@ -66,6 +69,30 @@ public class WareOrderTaskServiceImpl extends ServiceImpl<WareOrderTaskDao, Ware
 
         return this.baseMapper.selectOne(
                 new LambdaQueryWrapper<WareOrderTaskEntity>().eq(WareOrderTaskEntity::getOrderSn, orderSn));
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteByOrderSn(String orderSn) {
+        WareOrderTaskEntity task = getOrderTaskByOrderSn(orderSn);
+        if (task == null) {
+            // 没有工作单：秒杀单本来就不过 orderLockStock，或者上一次删除已经删掉了，
+            // 两种情况都没有可删的东西，按成功返回让调用方重试
+            return;
+        }
+
+        // 已锁定的明细是这批库存唯一的解锁线索，删掉它库存会静默地永远占着，所以先拦下来
+        long lockedCount = wareOrderTaskDetailService.count(new LambdaQueryWrapper<WareOrderTaskDetailEntity>()
+                .eq(WareOrderTaskDetailEntity::getTaskId, task.getId())
+                .eq(WareOrderTaskDetailEntity::getLockStatus, 1));
+        if (lockedCount > 0) {
+            throw new BaseException(BaseCodeEnum.STOCK_STILL_LOCKED);
+        }
+
+        wareOrderTaskDetailService.remove(new LambdaQueryWrapper<WareOrderTaskDetailEntity>()
+                .eq(WareOrderTaskDetailEntity::getTaskId, task.getId()));
+        this.removeById(task.getId());
     }
 
     /**

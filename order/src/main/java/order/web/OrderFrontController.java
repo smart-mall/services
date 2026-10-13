@@ -178,4 +178,19 @@ public class OrderFrontController {
         orderService.confirmReceive(LoginUserUtils.requireCurrentUser(request), orderSn);
         return R.ok();
     }
+
+    /**
+     * 删除自己的订单：把订单标记为已删除，会员端列表按标记过滤掉这类订单。
+     *
+     * <p>只允许删除已完成与已取消的订单；订单数据本身保留，后台仍可查询。</p>
+     *
+     * @param request 当前请求，用于取出登录用户
+     * @param orderSn 订单号，必须是当前用户自己的已完成或已取消订单
+     * @return 成功响应，无数据
+     */
+    @PutMapping("/delete/{orderSn}")
+    public R<Void> delete(HttpServletRequest request, @PathVariable("orderSn") String orderSn) {
+        orderService.deleteOrder(LoginUserUtils.requireCurrentUser(request), orderSn);
+        return R.ok();
+    }
 }

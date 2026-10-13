@@ -103,6 +103,29 @@
         WHERE order_sn = #{orderSn}
     </update>
 
+    <!-- 会员删除自己的订单：只置 delete_status = 1，订单及其订单项、支付流水都不动。
+         member_id、状态、delete_status = 0 三个条件都写在 WHERE 里：归属校验、状态校验与"未删除"
+         校验跟写入是同一条 SQL，越权、状态不允许、重复删除都只会更新 0 行。
+         只放开 3 已完成与 4 已取消（取值见 order.enums.OrderStatusEnum）：进行中的订单还要走支付、
+         发货与售后，从会员视图里消失会让会员找不到入口 -->
+    <update id="markDeleted">
+        UPDATE oms_order
+        SET delete_status = 1,modify_time = NOW()
+        WHERE order_sn = #{orderSn}
+          AND member_id = #{memberId}
+          AND `status` IN (3, 4)
+          AND delete_status = 0
+    </update>
+
+    <!-- 后台硬删订单：只删被会员标记过的单（delete_status = 1）。准入条件写在 WHERE 里而不是只在
+         服务层判断：物理删除不可逆，判断与写入必须是同一条 SQL。订单项、支付流水与库存工作单
+         由服务层级联清理 -->
+    <delete id="deleteMarked">
+        DELETE FROM oms_order
+        WHERE order_sn = #{orderSn}
+          AND delete_status = 1
+    </delete>
+
     <!-- 自动确认任务扫描到期订单：期限 = 发货时间 + auto_confirm_day 天，比较全在库里做（DB 跑 UTC）。
          auto_confirm_day 为空的行不会被选出 —— 秒杀单在补齐这两个字段之前建出的行就是空的 -->
     <select id="selectAutoConfirmable" resultType="java.lang.String">

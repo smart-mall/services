@@ -32,5 +32,19 @@ public interface WareOrderTaskService extends IService<WareOrderTaskEntity> {
      * @return 该订单号对应的工作单；查不到时返回 {@code null}
      */
     WareOrderTaskEntity getOrderTaskByOrderSn(String orderSn);
+
+    /**
+     * 删除某张订单的库存工作单及其明细，供后台删除订单时级联清理。
+     *
+     * <p>实现方必须保证：仍有 {@code lockStatus} 为"已锁定"的明细时拒绝删除并抛
+     * {@code STOCK_STILL_LOCKED} —— 这类明细一旦被删，那批库存就再也解不开，而且不会有任何报错。
+     * 工作单不存在时按成功处理，调用方可以安全重试。</p>
+     *
+     * <p>工作单与明细必须在同一事务内删除，不允许只删掉其中一半。</p>
+     *
+     * @param orderSn 订单号，不能为 {@code null}
+     * @throws common.exception.BaseException 仍有已锁定的明细时抛 {@code STOCK_STILL_LOCKED}
+     */
+    void deleteByOrderSn(String orderSn);
 }
 

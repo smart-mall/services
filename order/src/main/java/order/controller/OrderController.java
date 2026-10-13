@@ -2,8 +2,10 @@ package order.controller;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
+import common.utils.LoginUserUtils;
 import common.vo.PageVO;
 import common.utils.R;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import order.entity.OrderEntity;
@@ -21,10 +23,11 @@ import order.vo.OrderPageQuery;
 import order.vo.OrderStatusOptionVo;
 import order.vo.OrderStatusVo;
 /**
- * 订单（{@code oms_order} 表）的后台管理接口：分页列表、详情、发货、关闭、改备注与状态选项查询。
+ * 订单（{@code oms_order} 表）的后台管理接口：分页列表、详情、发货、关闭、改备注、状态选项查询与删除。
  *
- * <p>不提供按主键改任意字段与按主键删除的接口：订单是财务与售后的凭据，物理删除会留下孤儿订单项，
- * 而自由更新能绕过状态流转；需要作废走 {@link #close(String)}，它带状态前置条件并会释放库存。
+ * <p>不提供"按主键改任意字段"的接口：自由更新能绕过状态流转。删除只删被会员标记过删除的订单
+ * （{@link #delete}），它连带清掉订单项、支付流水与库存工作单，没被标记过的订单删不掉；
+ * 需要作废这类订单走 {@link #close}，它带状态前置条件并会释放库存。
  *
  * <p>路径不在 {@code /front} 下，经网关访问时按管理端接口鉴权；另有 ware 释放库存前调用的状态查询，
  * 见 {@link #status(String)}。会员侧接口在 {@code order.web.OrderFrontController}。
@@ -113,13 +116,17 @@ public class OrderController {
      * <b>不表示库存已经扣完</b>。这是有意的 —— 扣减不会因为缺货失败（可售量在扣减前后不变），
      * 属于可重试的清理动作，异步做才不会出现"货已扣、单还没发货"的跨服务不一致。</p>
      *
+     * <p>操作人从网关注入的 {@code X-Admin} 头取，与发货动作一起写进订单操作史。</p>
+     *
+     * @param request 当前请求，用于取出登录管理员
      * @param vo 发货参数，含订单号与物流公司，均不能为空
      * @return 统一成功响应，不含业务数据
      */
     @PostMapping("/deliver")
-    public R<Void> deliver(@Valid @RequestBody DeliverVo vo){
-        log.info("订单发货: {}", JSON.toJSONString(vo, SerializerFeature.PrettyFormat));
-        orderService.deliverOrder(vo);
+    public R<Void> deliver(HttpServletRequest request, @Valid @RequestBody DeliverVo vo){
+        String operator = LoginUserUtils.requireCurrentAdmin(request).getUsername();
+        log.info("订单发货: {} 操作人={}", JSON.toJSONString(vo, SerializerFeature.PrettyFormat), operator);
+        orderService.deliverOrder(vo, operator);
 
         return R.ok();
     }
@@ -143,13 +150,15 @@ public class OrderController {
      * <p>只允许待付款的订单关闭：对已付款或已发货的订单调用返回 {@code ORDER_STATUS_INVALID}，
      * 且不写任何数据。后台作废订单只有这一个入口，直接改状态会漏掉库存释放与退券。</p>
      *
+     * @param request 当前请求，用于取出登录管理员
      * @param orderSn 订单号
      * @return 统一成功响应，不含业务数据
      */
     @PostMapping("/close/{orderSn}")
-    public R<Void> close(@PathVariable("orderSn") String orderSn){
-        log.info("关闭订单: {}", orderSn);
-        orderService.closeOrderByAdmin(orderSn);
+    public R<Void> close(HttpServletRequest request, @PathVariable("orderSn") String orderSn){
+        String operator = LoginUserUtils.requireCurrentAdmin(request).getUsername();
+        log.info("关闭订单: {} 操作人={}", orderSn, operator);
+        orderService.closeOrderByAdmin(orderSn, operator);
 
         return R.ok();
     }
@@ -157,13 +166,15 @@ public class OrderController {
     /**
      * 修改订单备注。
      *
+     * @param request 当前请求，用于取出登录管理员
      * @param vo 备注参数，{@code orderSn} 不能为空，{@code note} 传空表示清空备注
      * @return 统一成功响应，不含业务数据
      */
     @PostMapping("/note")
-    public R<Void> note(@Valid @RequestBody OrderNoteVo vo){
-        log.info("修改订单备注: {}", JSON.toJSONString(vo, SerializerFeature.PrettyFormat));
-        orderService.updateNote(vo.getOrderSn(), vo.getNote());
+    public R<Void> note(HttpServletRequest request, @Valid @RequestBody OrderNoteVo vo){
+        String operator = LoginUserUtils.requireCurrentAdmin(request).getUsername();
+        log.info("修改订单备注: {} 操作人={}", JSON.toJSONString(vo, SerializerFeature.PrettyFormat), operator);
+        orderService.updateNote(vo.getOrderSn(), vo.getNote(), operator);
 
         return R.ok();
     }
@@ -179,6 +190,32 @@ public class OrderController {
     @GetMapping("/status-options")
     public R<List<OrderStatusOptionVo>> statusOptions(){
         return R.ok(orderService.listStatusOptions());
+    }
+
+    /**
+     * 硬删订单：把订单及其订单项、支付流水、售后记录与库存工作单一并删除。
+     *
+     * <p>券记录刻意保留：会员的限领额度按领取记录的条数算，删掉已核销的记录等于把额度退还给会员。</p>
+     *
+     * <p>只允许删除被会员标记过删除的订单，未被标记的订单返回 {@code ORDER_NOT_FOUND}；
+     * 库存工作单仍有"已锁定"的明细时返回 {@code STOCK_STILL_LOCKED}，那说明解锁还没跑完。</p>
+     *
+     * <p>操作人取自网关注入的 {@code X-Admin} 头而不是请求参数：调用方传的"操作人"和它传的订单号
+     * 一样不可信，拿它跟自己比对等于自己跟自己比。</p>
+     *
+     * <p>物理删除不可逆，接口本身不做二次确认，由调用方负责。</p>
+     *
+     * @param request 当前请求，用于取出登录管理员
+     * @param orderSn 订单号
+     * @return 统一成功响应，不含业务数据
+     */
+    @PostMapping("/delete/{orderSn}")
+    public R<Void> delete(HttpServletRequest request, @PathVariable("orderSn") String orderSn){
+        String operator = LoginUserUtils.requireCurrentAdmin(request).getUsername();
+        log.info("删除订单: {} 操作人={}", orderSn, operator);
+        orderService.hardDeleteOrder(orderSn, operator);
+
+        return R.ok();
     }
 
 }

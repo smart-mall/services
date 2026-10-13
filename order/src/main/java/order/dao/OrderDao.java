@@ -12,7 +12,8 @@ import java.util.List;
  *
  * <p>自定义 SQL 有四条状态流转：{@link #updateOrderStatus} 服务于支付，{@link #deliverOrder}
  * 服务于发货，{@link #confirmReceive} 服务于确认收货，{@link #closeOrder} 服务于关单与取消；
- * 另有 {@link #updateNote} 服务于后台改备注、{@link #selectAutoConfirmable} 供自动确认任务扫描到期订单，
+ * 另有 {@link #updateNote} 服务于后台改备注、{@link #markDeleted} 服务于会员软删、
+ * {@link #deleteMarked} 服务于后台硬删、{@link #selectAutoConfirmable} 供自动确认任务扫描到期订单，
  * 其余使用 {@link BaseMapper} 提供的通用增删改查。
  */
 @Mapper
@@ -71,6 +72,32 @@ public interface OrderDao extends BaseMapper<OrderEntity> {
      * @return 受影响行数，1 表示确认生效，0 表示订单不存在或已不是已发货状态
      */
     int confirmReceive(String orderSn);
+
+    /**
+     * 会员删除自己的订单：把订单标记为已删除。
+     *
+     * <p>SQL 见 {@code mapper/order/OrderDao.xml}：{@code WHERE} 带 {@code member_id}、状态与
+     * {@code delete_status = 0}，归属、状态与"未删除"三个判断和写入是同一条 SQL，
+     * 删别人的单、删进行中的单、重复删除都只会更新 0 行。</p>
+     *
+     * @param orderSn 订单号，业务主键，不能为 {@code null}
+     * @param memberId 当前登录会员 ID，不能为 {@code null}
+     * @return 受影响行数，1 表示删除生效，0 表示订单不存在、不属于该会员、状态不允许或已删除
+     */
+    int markDeleted(String orderSn, Long memberId);
+
+    /**
+     * 后台硬删订单：从库里删掉订单主表的一行。
+     *
+     * <p>SQL 见 {@code mapper/order/OrderDao.xml}：{@code WHERE} 带 {@code delete_status = 1}，
+     * 没被会员标记过的订单删不掉。物理删除不可逆，准入条件由 SQL 说了算而不是只在服务层判断。</p>
+     *
+     * <p>本方法只删订单主表：订单项、支付流水与库存工作单由调用方级联清理。</p>
+     *
+     * @param orderSn 订单号，业务主键，不能为 {@code null}
+     * @return 受影响行数，1 表示已删除，0 表示订单不存在或没被标记过
+     */
+    int deleteMarked(String orderSn);
 
     /**
      * 修改订单备注。
