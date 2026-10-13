@@ -138,5 +138,20 @@
         LIMIT #{limit}
     </select>
 
+    <!-- 评价后登记评价时间：带 member_id、status = 3 已完成（取值见 order.enums.OrderStatusEnum）与
+         comment_time IS NULL 三个条件，归属校验、"已完成才能评"与幂等都写在 WHERE 里，
+         越权、状态不符、重复登记都只会更新 0 行。
+         刻意不动 status：评价不是状态流转，评价行落在 product 的 pms_spu_comment 里，
+         这里只补订单自己的展示时间列 -->
+    <update id="markCommented">
+        UPDATE oms_order
+        SET comment_time = NOW(),
+            modify_time = NOW()
+        WHERE order_sn = #{orderSn}
+          AND member_id = #{memberId}
+          AND `status` = 3
+          AND comment_time IS NULL
+    </update>
+
 
 </mapper>

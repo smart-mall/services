@@ -13,7 +13,8 @@ import java.util.List;
  * <p>自定义 SQL 有四条状态流转：{@link #updateOrderStatus} 服务于支付，{@link #deliverOrder}
  * 服务于发货，{@link #confirmReceive} 服务于确认收货，{@link #closeOrder} 服务于关单与取消；
  * 另有 {@link #updateNote} 服务于后台改备注、{@link #markDeleted} 服务于会员软删、
- * {@link #deleteMarked} 服务于后台硬删、{@link #selectAutoConfirmable} 供自动确认任务扫描到期订单，
+ * {@link #deleteMarked} 服务于后台硬删、{@link #markCommented} 服务于评价后登记评价时间、
+ * {@link #selectAutoConfirmable} 供自动确认任务扫描到期订单，
  * 其余使用 {@link BaseMapper} 提供的通用增删改查。
  */
 @Mapper
@@ -121,4 +122,20 @@ public interface OrderDao extends BaseMapper<OrderEntity> {
      * @return 到期可自动确认的订单号；没有到期订单时返回空列表
      */
     List<String> selectAutoConfirmable(int limit);
+
+    /**
+     * 登记订单的评价时间。
+     *
+     * <p>SQL 见 {@code mapper/order/OrderDao.xml}：{@code WHERE} 带 {@code member_id}、{@code status = 3}
+     * 与 {@code comment_time IS NULL}，归属、状态与"还没登记过"三个判断和写入是同一条 SQL，
+     * 越权登记、对未完成的订单登记、重复登记都只会更新 0 行。</p>
+     *
+     * <p>与几条状态流转分开：它不碰 {@code status}，只补 {@code comment_time} 与 {@code modify_time}。
+     * 评价本身落在 product 侧，本条语句只登记订单自己的展示时间。</p>
+     *
+     * @param orderSn 订单号，业务主键，不能为 {@code null}
+     * @param memberId 当前登录会员 ID，不能为 {@code null}
+     * @return 受影响行数，1 表示登记生效，0 表示订单不存在、不属于该会员、不是已完成状态或已登记过
+     */
+    int markCommented(String orderSn, Long memberId);
 }

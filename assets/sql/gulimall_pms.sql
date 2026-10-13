@@ -1793,6 +1793,7 @@ CREATE TABLE `pms_spu_comment`  (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `sku_id` bigint(20) NULL DEFAULT NULL,
   `spu_id` bigint(20) NULL DEFAULT NULL,
+  `order_item_id` bigint(20) NULL DEFAULT NULL COMMENT '来源订单项ID，指向 oms_order_item.id；一件商品在一张订单里最多评价一次',
   `spu_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '商品名字',
   `member_nick_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '会员昵称',
   `star` tinyint(1) NULL DEFAULT NULL COMMENT '星级',
@@ -1806,7 +1807,8 @@ CREATE TABLE `pms_spu_comment`  (
   `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '内容',
   `member_icon` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '用户头像',
   `comment_type` tinyint(4) NULL DEFAULT NULL COMMENT '评论类型[0 - 对商品的直接评论，1 - 对评论的回复]',
-  PRIMARY KEY (`id`) USING BTREE
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE KEY `uk_order_item` (`order_item_id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '商品评价' ROW_FORMAT = Dynamic;
 
 -- ----------------------------

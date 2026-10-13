@@ -12,6 +12,9 @@ import java.util.Date;
  * 商品评价，对应 {@code pms_spu_comment} 表：保存会员对商品的评价内容与回复内容。
  *
  * <p>评价与回复共用本表，靠 {@code commentType} 区分；回复挂在哪条评论下由 {@link CommentReplayEntity} 记录。
+ *
+ * <p>会员端提交的直接评价带来源订单项 {@link #orderItemId}，它是"一件商品在一张订单里只能评价一次"
+ * 的判据来源；回复行不带来源订单项，保持 {@code null}。
  */
 @Data
 @TableName("pms_spu_comment")
@@ -29,6 +32,13 @@ public class SpuCommentEntity implements Serializable {
 	 * 被评价的 SPU ID，指向 {@code pms_spu_info.id}。
 	 */
 	private Long spuId;
+	/**
+	 * 来源订单项 ID，指向 {@code oms_order_item.id}。
+	 *
+	 * <p>会员端的直接评价必须带它：同一张订单里的同一件商品只能评价一次，靠本列的唯一索引
+	 * {@code uk_order_item} 兜底（唯一索引允许多个 {@code null}，所以回复行不受影响）。
+	 */
+	private Long orderItemId;
 	/** 商品名快照。 */
 	private String spuName;
 	/** 会员昵称。 */

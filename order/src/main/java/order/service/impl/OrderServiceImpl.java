@@ -12,6 +12,7 @@ import common.exception.BaseException;
 import common.exception.ValidationException;
 import common.mq.MqConstant;
 import common.mq.outbox.ReliableMqPublisher;
+import common.to.CommentTargetVo;
 import common.to.CouponCartItemVo;
 import common.to.CouponUsableVo;
 import common.to.OrderTo;
@@ -2136,5 +2137,52 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         orderItemService.save(orderItem);
     }
 
+    /** {@inheritDoc} */
+    @Override
+    public CommentTargetVo getCommentTarget(Long orderItemId, Long memberId) {
+        OrderItemEntity item = orderItemService.getById(orderItemId);
+        if (item == null) {
+            throw new BaseException(BaseCodeEnum.COMMENT_ORDER_ITEM_NOT_FOUND);
+        }
+
+        OrderEntity order = getOrderByOrderSn(item.getOrderSn());
+        // 订单查不到与"不属于该会员"合并成同一个码：分开等于给出一个"订单项存在但不属于你"的枚举点
+        if (order == null || !memberId.equals(order.getMemberId())) {
+            throw new BaseException(BaseCodeEnum.COMMENT_ORDER_ITEM_NOT_FOUND);
+        }
+        if (!OrderStatusEnum.RECIEVED.getCode().equals(order.getStatus())) {
+            throw new BaseException(BaseCodeEnum.COMMENT_ORDER_NOT_FINISHED);
+        }
+
+        CommentTargetVo vo = new CommentTargetVo();
+        vo.setOrderSn(order.getOrderSn());
+        vo.setOrderItemId(item.getId());
+        vo.setSkuId(item.getSkuId());
+        vo.setSpuId(item.getSpuId());
+        vo.setSpuName(item.getSpuName());
+        // 销售属性在下单时快照进订单项，评价行沿用同一份，不回头查商品
+        vo.setSpuAttributes(item.getSkuAttrsVals());
+        vo.setMemberUsername(order.getMemberUsername());
+        return vo;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void markCommented(String orderSn, Long memberId) {
+        if (this.baseMapper.markCommented(orderSn, memberId) == 0) {
+            // 不抛异常：评价的事实已经在 product 侧落定，这里只补展示时间列与一条操作史，
+            // 重复登记、越权或状态不符都不该让调用方重试
+            log.info("评价时间未登记，订单不存在、不属于该会员、不是已完成状态或已登记过：orderSn={}", orderSn);
+            return;
+        }
+
+        OrderEntity order = getOrderByOrderSn(orderSn);
+        if (order != null) {
+            // 秒杀单的 member_username 为空，用会员 ID 兜底：操作人留空就看不出这条记录是谁做的
+            String operateMan = order.getMemberUsername() != null
+                    ? order.getMemberUsername() : "会员#" + memberId;
+            saveOperateHistory(order.getId(), order.getStatus(), operateMan, "会员评价");
+        }
+    }
 
 }

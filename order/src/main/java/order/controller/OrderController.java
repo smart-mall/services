@@ -2,6 +2,7 @@ package order.controller;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
+import common.to.CommentTargetVo;
 import common.utils.LoginUserUtils;
 import common.vo.PageVO;
 import common.utils.R;
@@ -23,14 +24,17 @@ import order.vo.OrderPageQuery;
 import order.vo.OrderStatusOptionVo;
 import order.vo.OrderStatusVo;
 /**
- * 订单（{@code oms_order} 表）的后台管理接口：分页列表、详情、发货、关闭、改备注、状态选项查询与删除。
+ * 订单（{@code oms_order} 表）的后台管理接口：分页列表、详情、发货、关闭、改备注、状态选项查询与删除，
+ * 以及两条给下游直连调用的服务间接口（评价来源核对与评价时间登记）。
  *
  * <p>不提供"按主键改任意字段"的接口：自由更新能绕过状态流转。删除只删被会员标记过删除的订单
  * （{@link #delete}），它连带清掉订单项、支付流水与库存工作单，没被标记过的订单删不掉；
  * 需要作废这类订单走 {@link #close}，它带状态前置条件并会释放库存。
  *
- * <p>路径不在 {@code /front} 下，经网关访问时按管理端接口鉴权；另有 ware 释放库存前调用的状态查询，
- * 见 {@link #status(String)}。会员侧接口在 {@code order.web.OrderFrontController}。
+ * <p>路径不在 {@code /front} 下，经网关访问时按管理端接口鉴权；另有服务间接口给下游直连调用：
+ * ware 释放库存前的状态查询见 {@link #status(String)}，product 提交评价前的来源核对见
+ * {@link #commentTarget(Long, Long)}、评价落库后的时间登记见 {@link #commentMarked(String, Long)}。
+ * 会员侧接口在 {@code order.web.OrderFrontController}。
  */
 @RestController
 @RequestMapping("order/order")
@@ -214,6 +218,44 @@ public class OrderController {
         String operator = LoginUserUtils.requireCurrentAdmin(request).getUsername();
         log.info("删除订单: {} 操作人={}", orderSn, operator);
         orderService.hardDeleteOrder(orderSn, operator);
+
+        return R.ok();
+    }
+
+    /**
+     * 查询某个订单项能否评价，并下发写评价所需的商品快照，供 product 提交评价前调用。
+     *
+     * <p>Feign 直连不经网关，没有会员凭证可带，因此会员身份由调用方从凭证里取出后显式传入 ——
+     * 与 ware 调 {@link #status(String)} 同一套约定。"是不是这个会员的、订单是不是已完成"两个判据
+     * 留在订单这一侧算，调用方只拿结论，不自己拼 {@code oms_order} 的查询条件。</p>
+     *
+     * <p>订单项不存在与"不属于该会员"合并返回 {@code COMMENT_ORDER_ITEM_NOT_FOUND}：分开会变成
+     * 一个"订单项存在但不属于你"的枚举点；订单不是已完成状态返回 {@code COMMENT_ORDER_NOT_FINISHED}。</p>
+     *
+     * @param orderItemId 订单项主键
+     * @param memberId 当前登录会员 ID，由调用方显式传入
+     * @return 评价来源快照，含订单号、订单项、SKU/SPU、购买时属性与下单会员名
+     */
+    @GetMapping("/comment-target/{orderItemId}")
+    public R<CommentTargetVo> commentTarget(@PathVariable("orderItemId") Long orderItemId,
+                                            @RequestParam("memberId") Long memberId){
+        return R.ok(orderService.getCommentTarget(orderItemId, memberId));
+    }
+
+    /**
+     * 登记订单的评价时间，供 product 在评价落库成功后调用。
+     *
+     * <p>幂等：登记成功后 {@code comment_time} 非空，重复调用只更新 0 行且不报错。只允许已完成的、
+     * 属于该会员的订单登记，三个条件都写在 SQL 的 {@code WHERE} 里。</p>
+     *
+     * @param orderSn 订单号
+     * @param memberId 当前登录会员 ID，由调用方显式传入
+     * @return 统一成功响应，不含业务数据
+     */
+    @PostMapping("/comment-marked")
+    public R<Void> commentMarked(@RequestParam("orderSn") String orderSn,
+                                 @RequestParam("memberId") Long memberId){
+        orderService.markCommented(orderSn, memberId);
 
         return R.ok();
     }

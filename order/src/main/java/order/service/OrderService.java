@@ -1,6 +1,7 @@
 package order.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import common.to.CommentTargetVo;
 import common.to.mq.SeckillOrderTo;
 import common.vo.PageVO;
 import common.vo.MemberResponseVo;
@@ -386,4 +387,36 @@ public interface OrderService extends IService<OrderEntity> {
      *                {@code skuId}、{@code seckillPrice}、{@code num} 均不能为空
      */
     void createSeckillOrder(SeckillOrderTo orderTo);
+
+    /**
+     * 查询某个订单项能否评价，并下发写评价所需的商品快照。
+     *
+     * <p>供 product 提交评价前调用（{@code product/feign/OrderFeignService}）。Feign 直连不经网关，
+     * 没有会员凭证可带，所以会员身份由调用方显式传参 —— 与 ware 查订单状态同一套约定。
+     * 归属与状态两个判据留在订单这一侧算，调用方只拿结论，不自己拼 {@code oms_order} 的查询条件。</p>
+     *
+     * <p>只读，无副作用。订单项不存在与"不属于该会员"返回同一个错误码，避免变成用户枚举点。</p>
+     *
+     * @param orderItemId 订单项主键，不能为 {@code null}
+     * @param memberId 会员 ID，不能为 {@code null}
+     * @return 评价来源快照，含订单号、订单项、SKU/SPU、购买时属性与下单会员名
+     * @throws common.exception.BaseException 订单项不存在或不属于该会员
+     *         {@code COMMENT_ORDER_ITEM_NOT_FOUND}、订单不是已完成状态 {@code COMMENT_ORDER_NOT_FINISHED}
+     */
+    CommentTargetVo getCommentTarget(Long orderItemId, Long memberId);
+
+    /**
+     * 登记订单的评价时间，供 product 在评价落库成功后调用。
+     *
+     * <p>幂等：登记成功后 {@code comment_time} 非空，重复调用只会更新 0 行。登记失败不抛异常 ——
+     * 评价的事实已经落在 product 侧的 {@code uk_order_item} 唯一键上，这里只补一个展示时间列，
+     * 让调用方失败重试没有意义。</p>
+     *
+     * <p>登记生效时沿订单操作史留一行，操作人取会员名（秒杀单没有会员名时用会员 ID 兜底），
+     * 让后台看单时知道这单被评过。</p>
+     *
+     * @param orderSn 订单号，不能为 {@code null}
+     * @param memberId 会员 ID，不能为 {@code null}
+     */
+    void markCommented(String orderSn, Long memberId);
 }

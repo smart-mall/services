@@ -186,10 +186,16 @@ CREATE TABLE IF NOT EXISTS `pms_sku_sale_attr_value` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
+-- 【注意】已部署的库里 `pms_spu_comment` 没有 `order_item_id` 与它的唯一键：`CREATE TABLE IF NOT EXISTS`
+-- 对已存在的表整句跳过，不会补列。先查一下 information_schema 确认，缺了再执行一次
+-- （重复执行会报 duplicate column / duplicate key）：
+--   ALTER TABLE `pms_spu_comment` ADD COLUMN `order_item_id` bigint DEFAULT NULL COMMENT '来源订单项ID，指向 oms_order_item.id；一件商品在一张订单里最多评价一次';
+--   ALTER TABLE `pms_spu_comment` ADD UNIQUE INDEX `uk_order_item` (`order_item_id`);
 CREATE TABLE IF NOT EXISTS `pms_spu_comment` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `sku_id` bigint DEFAULT NULL,
   `spu_id` bigint DEFAULT NULL,
+  `order_item_id` bigint DEFAULT NULL COMMENT '来源订单项ID，指向 oms_order_item.id；一件商品在一张订单里最多评价一次',
   `spu_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '商品名字',
   `member_nick_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '会员昵称',
   `star` tinyint(1) DEFAULT NULL COMMENT '星级',
@@ -203,7 +209,8 @@ CREATE TABLE IF NOT EXISTS `pms_spu_comment` (
   `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT '内容',
   `member_icon` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '用户头像',
   `comment_type` tinyint DEFAULT NULL COMMENT '评论类型[0 - 对商品的直接评论，1 - 对评论的回复]',
-  PRIMARY KEY (`id`) USING BTREE
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE KEY `uk_order_item` (`order_item_id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='商品评价';
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
