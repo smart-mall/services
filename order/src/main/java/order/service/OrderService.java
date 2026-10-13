@@ -35,7 +35,7 @@ public interface OrderService extends IService<OrderEntity> {
     PageVO<OrderEntity> queryPage(OrderPageQuery query);
 
     /**
-     * 组装结算页数据：收货地址、已勾选购物项、库存、积分、防重令牌、可用券与四个金额。
+     * 组装结算页数据：收货地址、已勾选购物项、库存、积分、防重令牌、可用券与五个金额。
      *
      * <p>副作用是写一条防重令牌到 Redis（{@code order:token:<memberId>}，有效期 30 分钟），
      * 每次调用都覆盖上一条，提交订单时必须原样回传。
@@ -43,15 +43,21 @@ public interface OrderService extends IService<OrderEntity> {
      * <p>抵扣额由券服务按同一份购物车算出，前端切换券后必须重新调用本接口取新的应付金额 ——
      * 前端拿券面金额自己减会与提交时的校验算成两个数。
      *
+     * <p>积分余额取自会员服务而不是登录凭证：凭证里的积分是登录那一刻的快照，下过单之后就不准了。
+     * 余额查不到时按 0 降级，页面不出现积分抵扣 —— 它只决定这一栏显不显示，不并进任何金额；
+     * 真正要凭余额拒绝的是下单扣减那一步，见 {@link #submitOrder}。
+     *
      * @param user 当前登录会员，不能为 {@code null}，{@code id} 不能为 {@code null}
      * @param couponHistoryId 选中的优惠券领取记录 ID；不用券时传 {@code null}。
      *                        传了但券不可用时抛出，不静默按不用券处理 —— 那样会员会以为自己用上了
+     * @param useIntegration 使用的积分数；不用积分时传 {@code null} 或 0。
+     *                       超过本单上限时抛 {@code INTEGRATION_LIMIT_EXCEEDED}，超过余额时抛
+     *                       {@code INTEGRATION_NOT_ENOUGH}，都不静默夹取
      * @return 结算页数据；没有收货地址时 {@code addresses} 为空列表、{@code defaultAddrId} 为 {@code null}
      * @throws common.exception.BaseException 远程加载地址或购物车失败、购物项缺少价格或数量、
-     *         运费算不出来时抛出，走兜底码 {@code UNKNOWN_EXCEPTION}；
-     *         指定的券不可用时转发券服务的错误码
+     *         运费算不出来时抛出，走兜底码 {@code UNKNOWN_EXCEPTION}；指定的券不可用时转发券服务的错误码
      */
-    OrderConfirmVo confirmOrder(MemberResponseVo user, Long couponHistoryId);
+    OrderConfirmVo confirmOrder(MemberResponseVo user, Long couponHistoryId, Integer useIntegration);
 
     /**
      * 按当前购物车与指定收货地址重算结算金额。
@@ -59,19 +65,21 @@ public interface OrderService extends IService<OrderEntity> {
      * <p>商品清单取购物车已勾选项而不是前端传的参数，与提交订单取的是同一份数据；
      * 先确认地址属于该会员再计费，否则会拿别人的地址算运费。
      *
-     * <p>影响价格的参数变了就该走本方法重算：地址换了重算运费，券换了重算优惠。
-     * 选中券的抵扣额一并并进 {@code payAmount}，换地址只覆盖运费、不丢券的效果 ——
-     * 否则前端换完地址拿到的应付金额会退回原价，提交时被判成价格变动。
+     * <p>影响价格的参数变了就该走本方法重算：地址换了重算运费，券换了重算优惠，
+     * 积分数量变了重算扣减。券优惠与积分抵扣一并并进 {@code payAmount}，
+     * 换地址只覆盖运费、不丢券与积分的效果 —— 否则前端换完地址拿到的应付金额会退回原价，
+     * 提交时被判成价格变动。
      *
      * @param user   当前登录会员，不能为 {@code null}
      * @param addrId 收货地址 id，不能为 {@code null}，且必须是该会员的地址
      * @param couponHistoryId 选中的优惠券领取记录 ID；不用券时传 {@code null}
-     * @return 四个金额与两份按商品的明细；购物车没有勾选项时运费为 0
+     * @param useIntegration 使用的积分数；不用积分时传 {@code null} 或 0；超上限或超余额时抛出，不夹取
+     * @return 五个金额与三份按商品的明细；购物车没有勾选项时运费为 0
      * @throws common.exception.BaseException 地址不属于该会员时抛 {@code ADDRESS_NOT_FOUND}；
      *         地址没有行政区划编码、ware 算不出运费时抛 {@code ORDER_FARE_FAILED}
      *         或原样转发 ware 的错误码；指定的券不可用时转发券服务的错误码
      */
-    FareVo getFare(MemberResponseVo user, Long addrId, Long couponHistoryId);
+    FareVo getFare(MemberResponseVo user, Long addrId, Long couponHistoryId, Integer useIntegration);
 
     /**
      * 提交订单：校验地址与防重令牌、重算价格、落库、锁定库存，并清空购物车。
@@ -85,7 +93,10 @@ public interface OrderService extends IService<OrderEntity> {
      * @return 提交结果，含落库后的订单；应付金额以服务端重算结果为准，不取前端回传值
      * @throws common.exception.BaseException 地址不属于该会员 {@code ADDRESS_NOT_FOUND}、令牌失效
      *         {@code ORDER_TOKEN_INVALID}、价格与确认页不一致 {@code ORDER_PRICE_CHANGED}、
-     *         库存不足 {@code NO_STOCK_EXCEPTION}；购物车已清空或商品信息缺失时走兜底码
+     *         库存不足 {@code NO_STOCK_EXCEPTION}；购物车已清空或商品信息缺失时走兜底码；
+     *         用到积分时余额不足 {@code INTEGRATION_NOT_ENOUGH}、超本单上限
+     *         {@code INTEGRATION_LIMIT_EXCEEDED}、会员服务不可用 {@code ORDER_INTEGRATION_UNAVAILABLE}
+     *         —— 这三处都失败关闭，绝不放行成"按原价付款却以为用上了积分"
      */
     SubmitOrderResponseVo submitOrder(MemberResponseVo user, OrderSubmitVo vo);
 

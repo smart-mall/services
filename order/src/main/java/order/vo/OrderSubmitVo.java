@@ -30,11 +30,20 @@ public class OrderSubmitVo {
      */
     private Long couponHistoryId;
 
+    /**
+     * 使用的积分数；不用积分时不传。
+     *
+     * <p>只传数量，不传抵扣额：抵扣额按服务端的兑换比例算，前端传金额等于把优惠额交给客户端决定。
+     * 数量超过本单上限或超过余额时提交会被拒，不做静默夹取 —— 夹取会改掉应付金额，
+     * 让前端回传的价格对不上，最后落到一个说不清的"价格已变动"。
+     */
+    private Integer useIntegration;
+
     /** 防重令牌。 */
     @NotBlank(message = "缺少防重令牌，请返回结算页重试")
     private String orderToken;
 
-    /** 应付价格。前端回传「商品总额 + 运费 - 优惠券抵扣额」（由 {@code /order/front/jwt/confirm} 给全），提交时和重算结果比对。 */
+    /** 应付价格。前端回传「商品总额 + 运费 - 优惠券抵扣额 - 积分抵扣额」（由 {@code /order/front/jwt/confirm} 给全），提交时和重算结果比对。 */
     @NotNull(message = "缺少应付金额")
     private BigDecimal payPrice;
 

@@ -8,10 +8,13 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import member.entity.MemberEntity;
 import member.entity.MemberReceiveAddressEntity;
+import member.service.IntegrationAccountService;
+import member.service.IntegrationChangeHistoryService;
 import member.service.MemberLoginLogService;
 import member.service.MemberReceiveAddressService;
 import member.service.MemberService;
 import member.vo.AddressSaveVo;
+import member.vo.IntegrationHistoryVo;
 import member.vo.MemberProfileUpdateVo;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -31,7 +34,7 @@ import common.vo.PageVO;
 import member.entity.MemberLoginLogEntity;
 import common.query.PageQuery;
 /**
- * 会员中心的前台接口：资料修改、收货地址管理、本人登录记录查询。
+ * 会员中心的前台接口：资料修改、收货地址管理、本人登录记录与积分查询。
  *
  * <p>路径在 {@code /front/jwt} 下，会员 id 只取自网关注入的 {@code X-Member-Claims}，不接受前端传参；
  * 改资料会重签 token，返回形状与 auth 的登录接口一致。
@@ -43,6 +46,8 @@ public class MemberFrontController {
     private final MemberService memberService;
     private final MemberReceiveAddressService memberReceiveAddressService;
     private final MemberLoginLogService memberLoginLogService;
+    private final IntegrationAccountService integrationAccountService;
+    private final IntegrationChangeHistoryService integrationChangeHistoryService;
     private final JwtUtils jwtUtils;
 
     /**
@@ -51,15 +56,21 @@ public class MemberFrontController {
      * @param memberService 会员业务服务
      * @param memberReceiveAddressService 会员收货地址服务
      * @param memberLoginLogService 会员登录记录服务
+     * @param integrationAccountService 会员积分账户服务
+     * @param integrationChangeHistoryService 会员积分流水查询服务
      * @param jwtUtils 会员登录态签发工具
      */
     public MemberFrontController(MemberService memberService,
                                  MemberReceiveAddressService memberReceiveAddressService,
                                  MemberLoginLogService memberLoginLogService,
+                                 IntegrationAccountService integrationAccountService,
+                                 IntegrationChangeHistoryService integrationChangeHistoryService,
                                  JwtUtils jwtUtils) {
         this.memberService = memberService;
         this.memberReceiveAddressService = memberReceiveAddressService;
         this.memberLoginLogService = memberLoginLogService;
+        this.integrationAccountService = integrationAccountService;
+        this.integrationChangeHistoryService = integrationChangeHistoryService;
         this.jwtUtils = jwtUtils;
     }
 
@@ -166,6 +177,34 @@ public class MemberFrontController {
     @GetMapping("/memberloginlog/mine")
     public R<PageVO<MemberLoginLogEntity>> listLoginLog(PageQuery query, HttpServletRequest request) {
         return R.ok(memberLoginLogService.queryMine(LoginUserUtils.requireCurrentUser(request).getId(), query));
+    }
+
+    /* ═══════════════════ 积分 ═══════════════════ */
+
+    /**
+     * 查询当前登录会员的积分余额。
+     *
+     * @param request 当前请求，会员身份从它携带的 {@code X-Member-Claims} 头解析
+     * @return 可用积分，最小为 0；积分列为空时返回 0，不返回 {@code null}
+     */
+    @GetMapping("/integration")
+    public R<Integer> integration(HttpServletRequest request) {
+        return R.ok(integrationAccountService.balance(LoginUserUtils.requireCurrentUser(request).getId()));
+    }
+
+    /**
+     * 分页查询当前登录会员自己的积分变动流水，按变动时间倒序。
+     *
+     * <p>只返回本人流水：会员维度取自登录态，不接受前端传参。
+     *
+     * @param query 分页参数，{@code page} 为页码、{@code limit} 为每页条数
+     * @param request 当前请求，会员身份从它携带的 {@code X-Member-Claims} 头解析
+     * @return 分页结果，{@code rows} 为积分流水
+     */
+    @GetMapping("/integration/history")
+    public R<PageVO<IntegrationHistoryVo>> integrationHistory(PageQuery query, HttpServletRequest request) {
+        return R.ok(integrationChangeHistoryService.queryMine(
+                LoginUserUtils.requireCurrentUser(request).getId(), query));
     }
 
     /* ═══════════════════ 内部 ═══════════════════ */

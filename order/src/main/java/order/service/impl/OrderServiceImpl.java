@@ -24,6 +24,7 @@ import common.utils.R;
 import common.vo.MemberResponseVo;
 import lombok.extern.slf4j.Slf4j;
 import order.config.AlipayTemplate;
+import order.constant.IntegrationConstant;
 import order.constant.OrderConstant;
 import order.constant.PayConstant;
 import order.dao.OrderDao;
@@ -52,6 +53,7 @@ import order.vo.DeliverVo;
 import order.vo.DeliveryCompanyVo;
 import order.vo.FareItemVo;
 import order.vo.FareVo;
+import order.vo.IntegrationDiscountItemVo;
 import order.vo.MemberAddressVo;
 import order.vo.OrderConfirmVo;
 import order.vo.OrderItemVo;
@@ -291,9 +293,12 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
      *
      * <p>券的两段查询是串行的且必须在算完金额之后：可用券列表要用购物项内容去匹配，
      * 选中券的抵扣额又要并进应付金额。
+     *
+     * <p>积分排在券之后：抵扣上限按"商品总额减券抵扣"算，顺序反了会多抵一笔。
+     * 余额取自会员服务而不是凭证里那份登录时的快照。
      */
     @Override
-    public OrderConfirmVo confirmOrder(MemberResponseVo user, Long couponHistoryId) {
+    public OrderConfirmVo confirmOrder(MemberResponseVo user, Long couponHistoryId, Integer useIntegration) {
         Long memberId = user.getId();
         OrderConfirmVo confirmVo = new OrderConfirmVo();
 
@@ -374,9 +379,17 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         confirmVo.setCouponHistoryId(selected == null ? null : selected.getCouponHistoryId());
         confirmVo.setCouponAmount(fare.getCouponAmount());
         confirmVo.setCouponItems(fare.getCouponItems());
-        confirmVo.setPayAmount(fare.getPayAmount());
 
-        confirmVo.setIntegration(user.getIntegration());
+        // 积分：排在券之后算，抵扣上限按"商品总额减券抵扣"的一半取。
+        // 余额查不到就按 0 降级：它只决定结算页上这一栏显不显示，不并进任何金额
+        int integrationBalance = optionalIntegrationBalance(memberId);
+        confirmVo.setIntegration(integrationBalance);
+        confirmVo.setIntegrationLimit(
+                applyIntegration(fare, confirmVo.getItems(), integrationBalance, useIntegration));
+        confirmVo.setIntegrationAmount(fare.getIntegrationAmount());
+        confirmVo.setIntegrationItems(fare.getIntegrationItems());
+        // 应付金额必须在券与积分都并进去之后再取，否则前端拿到的价与提交时的校验对不上
+        confirmVo.setPayAmount(fare.getPayAmount());
 
         // 防重令牌
         String orderToken = UUID.randomUUID().toString().replace("-", "");
@@ -392,13 +405,16 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
     /** {@inheritDoc} */
     @Override
-    public FareVo getFare(MemberResponseVo user, Long addrId, Long couponHistoryId) {
+    public FareVo getFare(MemberResponseVo user, Long addrId, Long couponHistoryId, Integer useIntegration) {
         MemberAddressVo address = requireOwnAddress(addrId, memberAddresses(user));
         List<OrderItemVo> items = checkedCartItems();
         FareVo fare = calcFare(address, items);
-        // 换地址只该覆盖运费。这里不跟着减一次券的话，前端换完地址拿到的应付金额会退回原价，
+        // 换地址只该覆盖运费。这里不跟着减一次券与积分的话，前端换完地址拿到的应付金额会退回原价，
         // 提交时被 price 校验判成"商品价格已变动"
         applyCoupon(fare, user.getId(), toCouponCartItems(items), couponHistoryId);
+        // 与确认页同一套：余额查不到按 0 降级，只影响这一栏的展示
+        fare.setIntegrationLimit(
+                applyIntegration(fare, items, optionalIntegrationBalance(user.getId()), useIntegration));
         return fare;
     }
 
@@ -623,6 +639,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         // 5. 占用优惠券，放在最后一步：它写在券服务自己的事务里，本事务回滚不会跟着回滚，
         //    越靠后剩下的可失败步骤越少
         lockCoupon(memberId, newOrder, vo.getCouponHistoryId());
+
+        // 6. 抵扣积分。同样写在会员服务自己的事务里，靠回滚补偿退回；
+        //    排在占券之后，任一失败的补偿都只涉及已经成功的那些步骤
+        deductIntegration(memberId, newOrder.getOrderSn(), newOrder.getUseIntegration());
 
         SubmitOrderResponseVo responseVo = new SubmitOrderResponseVo();
         responseVo.setOrder(order.getOrder());
@@ -927,6 +947,319 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
             throw new BaseException(
                     response == null ? BaseCodeEnum.ORDER_COUPON_UNAVAILABLE.getCode() : response.getCode(),
                     response == null ? BaseCodeEnum.ORDER_COUPON_UNAVAILABLE.getMsg() : response.getMsg());
+        }
+    }
+
+    /* ═══════════════════ 积分 ═══════════════════ */
+
+    /**
+     * 查询会员的积分余额，查不到按 0 返回。
+     *
+     * <p>余额只决定结算页上"积分抵扣"那一栏显不显示，不并进任何金额，所以拿不到时按 0 降级：
+     * 会员看到的是"这单用不了积分"，而不是整页打不开。
+     *
+     * <p>代价是真正的余额会暂时不可见，所以它只用在算价路径；要凭余额决定"能不能扣"的那一步走
+     * {@link #requireIntegrationBalance}。
+     *
+     * @param memberId 会员主键，不能为 {@code null}
+     * @return 可用积分，最小为 0
+     */
+    private int optionalIntegrationBalance(Long memberId) {
+        R<Integer> response;
+        try {
+            response = memberFeignService.integrationBalance(memberId);
+        } catch (Exception e) {
+            log.warn("查询积分余额失败，本次按 0 处理：memberId={}", memberId, e);
+            return 0;
+        }
+        if (response == null || response.getCode() != 0 || response.getData() == null) {
+            log.warn("查询积分余额返回非成功码，本次按 0 处理：memberId={}, code={}",
+                    memberId, response == null ? null : response.getCode());
+            return 0;
+        }
+        return response.getData();
+    }
+
+    /**
+     * 查询会员的积分余额，取不到就报错。
+     *
+     * <p>用在"余额本身就是一道闸门"的地方 —— 下单扣减前校验够不够。那里按 0 降级会把会员服务的故障
+     * 误报成"积分余额不足"，会员只会去查自己的积分，所以必须失败关闭。
+     *
+     * @param memberId 会员主键，不能为 {@code null}
+     * @return 可用积分，最小为 0
+     * @throws BaseException 会员服务不可用时抛 {@code ORDER_INTEGRATION_UNAVAILABLE}；
+     *         会员不存在这类业务失败时原样转发 member 的错误码
+     */
+    private int requireIntegrationBalance(Long memberId) {
+        R<Integer> response;
+        try {
+            response = memberFeignService.integrationBalance(memberId);
+        } catch (Exception e) {
+            log.error("查询积分余额失败，memberId={}", memberId, e);
+            throw new BaseException(BaseCodeEnum.ORDER_INTEGRATION_UNAVAILABLE);
+        }
+        if (response == null) {
+            throw new BaseException(BaseCodeEnum.ORDER_INTEGRATION_UNAVAILABLE);
+        }
+        if (response.getCode() != 0 || response.getData() == null) {
+            throw new BaseException(response.getCode(), response.getMsg());
+        }
+        return response.getData();
+    }
+
+    /**
+     * 把积分抵扣并进结算金额，并算出本单的可用上限。
+     *
+     * <p>必须在券之后调用：上限算的是"商品总额减券抵扣"的一半，顺序反了会多抵一笔。
+     *
+     * <p>改写入参 {@code fare} 的 {@code integrationAmount}、{@code integrationItems} 与
+     * {@code payAmount}；商品总额、运费与券优惠都不动。
+     *
+     * @param fare 已算好商品总额、运费与券优惠的结果，不能为 {@code null}
+     * @param cartItems 已勾选的购物项，用于逐项分摊，不能为 {@code null}
+     * @param balance 会员积分余额
+     * @param useIntegration 请求使用的积分数；{@code null} 或 0 表示不用
+     * @return 本单最多可用的积分数；为 0 表示本单用不了积分
+     * @throws BaseException 请求数超过本单上限（15010）或超过余额（15009）时抛出
+     */
+    private int applyIntegration(FareVo fare, List<OrderItemVo> cartItems, int balance, Integer useIntegration) {
+        int limit = IntegrationConstant.maxUsablePoints(fare.getTotalAmount(), fare.getCouponAmount(), balance);
+        int points = resolveIntegrationPoints(limit, balance, useIntegration);
+
+        BigDecimal amount = points == 0 ? BigDecimal.ZERO : IntegrationConstant.pointsToAmount(points);
+        fare.setIntegrationAmount(amount);
+        fare.setIntegrationItems(points == 0 ? List.of() : splitIntegration(amount, cartItems));
+        fare.setPayAmount(fare.getPayAmount().subtract(amount));
+        return limit;
+    }
+
+    /**
+     * 校验请求使用的积分数，返回实际使用的数量。
+     *
+     * <p>不做静默夹取：请求数超过上限或余额时直接报错。夹取会改掉应付金额，让前端回传的价格对不上，
+     * 最后落到一个说不清的"价格已变动"。
+     *
+     * @param limit 本单最多可用的积分数，由调用方按订单金额算出
+     * @param balance 会员积分余额
+     * @param useIntegration 请求使用的积分数，可以为 {@code null}
+     * @return 实际使用的积分数，最小为 0
+     * @throws BaseException 数量为负数（10001）、超过余额（15009）或超过本单上限（15010）时抛出
+     */
+    private int resolveIntegrationPoints(int limit, int balance, Integer useIntegration) {
+        int points = useIntegration == null ? 0 : useIntegration;
+        if (points < 0) {
+            throw new BaseException(BaseCodeEnum.VALID_EXCEPTION, "使用的积分数不能为负数");
+        }
+        if (points > balance) {
+            throw new BaseException(BaseCodeEnum.INTEGRATION_NOT_ENOUGH);
+        }
+        if (points > limit) {
+            // 上限依赖本单金额，只有这里算得出来，所以具体数值在这里覆盖 msg
+            throw new BaseException(BaseCodeEnum.INTEGRATION_LIMIT_EXCEEDED,
+                    "本单最多可用 " + limit + " 积分，请调整后重试");
+        }
+        return points;
+    }
+
+    /**
+     * 把积分抵扣额摊到各购物项上。
+     *
+     * <p>积分没有适用范围，基数是全部购物项金额之和；最后一项吃掉前面的舍入差额，
+     * 各项之和恒等于抵扣额。
+     *
+     * @param amount 抵扣额，不能为 {@code null}，不能为负数
+     * @param cartItems 已勾选的购物项，不能为 {@code null}
+     * @return 按 SKU 的抵扣拆分；一项都没有或商品总额为 0 时为空列表
+     */
+    private List<IntegrationDiscountItemVo> splitIntegration(BigDecimal amount, List<OrderItemVo> cartItems) {
+        BigDecimal total = sumItemAmount(cartItems);
+        if (total.compareTo(BigDecimal.ZERO) <= 0) {
+            return List.of();
+        }
+
+        List<IntegrationDiscountItemVo> shares = new ArrayList<>(cartItems.size());
+        BigDecimal allocated = BigDecimal.ZERO;
+        for (int i = 0; i < cartItems.size(); i++) {
+            OrderItemVo item = cartItems.get(i);
+            BigDecimal share;
+            if (i == cartItems.size() - 1) {
+                share = amount.subtract(allocated);
+            } else {
+                share = amount.multiply(itemAmount(item)).divide(total, 2, RoundingMode.DOWN);
+                allocated = allocated.add(share);
+            }
+
+            IntegrationDiscountItemVo shareVo = new IntegrationDiscountItemVo();
+            shareVo.setSkuId(item.getSkuId());
+            shareVo.setDiscountAmount(share);
+            shares.add(shareVo);
+        }
+        return shares;
+    }
+
+    /**
+     * 算单个购物项的金额，即单价 × 数量。
+     *
+     * <p>不读 {@code totalPrice}：那是购物车下发的展示字段，结算链路只保证 {@code price} 与
+     * {@code count} 有值。算法与 {@link #sumItemAmount} 一致，分摊的基数与汇总才不会差几分钱。
+     *
+     * @param item 购物项，{@code price} 与 {@code count} 不能为 {@code null}
+     * @return 该项的金额
+     */
+    private BigDecimal itemAmount(OrderItemVo item) {
+        return item.getPrice().multiply(BigDecimal.valueOf(item.getCount()));
+    }
+
+    /**
+     * 把积分抵扣的拆分写到订单项上，并重算实付金额。
+     *
+     * <p>必须写到订单项而不是只记在订单头上：{@code computePrice} 把订单头的积分抵扣额算成
+     * 各订单项 {@code integrationAmount} 的汇总，只写订单头会被那次汇总覆盖成 0。
+     *
+     * @param orderItems 待落库的订单项，不能为 {@code null}
+     * @param shares 按 SKU 的抵扣拆分，不能为 {@code null}，可以为空
+     */
+    private void writeIntegrationToOrderItems(List<OrderItemEntity> orderItems,
+                                              List<IntegrationDiscountItemVo> shares) {
+        if (shares.isEmpty()) {
+            return;
+        }
+        Map<Long, BigDecimal> amountBySkuId = shares.stream()
+                .collect(Collectors.toMap(IntegrationDiscountItemVo::getSkuId,
+                        IntegrationDiscountItemVo::getDiscountAmount, (first, second) -> first));
+
+        for (OrderItemEntity orderItem : orderItems) {
+            BigDecimal amount = amountBySkuId.get(orderItem.getSkuId());
+            if (amount == null) {
+                continue;
+            }
+            orderItem.setIntegrationAmount(amount);
+            // 实付金额在 builderOrderItem 里已算过一次，积分额变了必须重算
+            orderItem.setRealAmount(originAmount(orderItem)
+                    .subtract(orderItem.getCouponAmount())
+                    .subtract(orderItem.getPromotionAmount())
+                    .subtract(orderItem.getIntegrationAmount()));
+        }
+    }
+
+    /**
+     * 下单抵扣积分，并登记"事务回滚时退回"的补偿。
+     *
+     * <p>抵扣写在会员服务自己的事务里，本事务回滚不会把它一起回滚，所以要在调用之前就登记回滚补偿：
+     * 抵扣已经落账、应答却在回程丢失时，本端会抛异常并回滚，补偿是会员拿回那部分积分的唯一机会。
+     * 抵扣根本没发生时，退回在 member 侧找不到对应的抵扣流水，按无操作处理，不会凭空加分。
+     *
+     * <p>补偿本身也可能失败，那种情况下积分会停在已抵扣。这个方向的损失落在会员身上，
+     * 所以只记日志不抛出 —— 在回滚路径上再抛异常只会盖掉真正的失败原因。
+     *
+     * @param memberId 会员主键，不能为 {@code null}
+     * @param orderSn 订单号，不能为 {@code null}
+     * @param points 抵扣的积分数；{@code null} 或非正数表示本单没用积分，直接返回
+     * @throws BaseException 余额不足、会员不存在或会员服务不可用时抛出
+     */
+    private void deductIntegration(Long memberId, String orderSn, Integer points) {
+        if (points == null || points <= 0) {
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                if (status == TransactionSynchronization.STATUS_ROLLED_BACK) {
+                    refundIntegrationQuietly(memberId, orderSn, points);
+                }
+            }
+        });
+
+        R<Void> response;
+        try {
+            response = memberFeignService.deductIntegration(memberId, orderSn, points);
+        } catch (Exception e) {
+            log.error("抵扣积分失败，orderSn={}, points={}", orderSn, points, e);
+            throw new BaseException(BaseCodeEnum.ORDER_INTEGRATION_UNAVAILABLE);
+        }
+        if (response == null || response.getCode() != 0) {
+            // 原样转发 member 的码：余额不足（15009）要直接告诉会员，不能笼统报"服务不可用"，
+            // 否则会员只会反复重试
+            throw new BaseException(
+                    response == null ? BaseCodeEnum.ORDER_INTEGRATION_UNAVAILABLE.getCode() : response.getCode(),
+                    response == null ? BaseCodeEnum.ORDER_INTEGRATION_UNAVAILABLE.getMsg() : response.getMsg());
+        }
+    }
+
+    /**
+     * 回滚补偿：把已抵扣的积分退回，失败只记日志。
+     *
+     * @param memberId 会员主键，不能为 {@code null}
+     * @param orderSn 订单号，不能为 {@code null}
+     * @param points 退回的积分数
+     */
+    private void refundIntegrationQuietly(Long memberId, String orderSn, Integer points) {
+        try {
+            memberFeignService.refundIntegration(memberId, orderSn, points);
+        } catch (Exception e) {
+            log.error("回滚时退回积分失败，这部分积分会停在已抵扣，orderSn={}, points={}", orderSn, points, e);
+        }
+    }
+
+    /**
+     * 关单时退回已抵扣的积分。
+     *
+     * <p>不吞异常：积分丢了会让会员既没买到东西也没拿回积分，与"关了单却不释放库存"是同一类错误。
+     * 抛出去让整个关单回滚，由关单消息重投兜底。
+     *
+     * @param memberId 会员主键，不能为 {@code null}
+     * @param orderSn 订单号，不能为 {@code null}
+     * @param points 退回的积分数；{@code null} 或非正数表示本单没用积分，直接返回
+     * @throws BaseException 会员服务不可用时抛出
+     */
+    private void refundIntegration(Long memberId, String orderSn, Integer points) {
+        if (points == null || points <= 0) {
+            return;
+        }
+
+        R<Void> response;
+        try {
+            response = memberFeignService.refundIntegration(memberId, orderSn, points);
+        } catch (Exception e) {
+            log.error("退回积分失败，orderSn={}, points={}", orderSn, points, e);
+            throw new BaseException(BaseCodeEnum.ORDER_INTEGRATION_UNAVAILABLE);
+        }
+        if (response == null || response.getCode() != 0) {
+            throw new BaseException(
+                    response == null ? BaseCodeEnum.ORDER_INTEGRATION_UNAVAILABLE.getCode() : response.getCode(),
+                    response == null ? BaseCodeEnum.ORDER_INTEGRATION_UNAVAILABLE.getMsg() : response.getMsg());
+        }
+    }
+
+    /**
+     * 支付成功时赠送积分。
+     *
+     * <p>不吞异常：支付平台收到非成功应答会重新通知，而赠送是幂等的，重试安全；
+     * 反过来吞掉异常会让会员白白少拿积分，且没有任何地方会再补一次。
+     *
+     * @param memberId 会员主键，不能为 {@code null}
+     * @param orderSn 订单号，不能为 {@code null}
+     * @param points 赠送的积分数；{@code null} 或非正数表示这一单没有可得积分，直接返回
+     * @throws BaseException 会员服务不可用时抛出
+     */
+    private void grantIntegration(Long memberId, String orderSn, Integer points) {
+        if (points == null || points <= 0) {
+            return;
+        }
+
+        R<Void> response;
+        try {
+            response = memberFeignService.grantIntegration(memberId, orderSn, points);
+        } catch (Exception e) {
+            log.error("赠送积分失败，orderSn={}, points={}", orderSn, points, e);
+            throw new BaseException(BaseCodeEnum.ORDER_INTEGRATION_UNAVAILABLE);
+        }
+        if (response == null || response.getCode() != 0) {
+            throw new BaseException(
+                    response == null ? BaseCodeEnum.ORDER_INTEGRATION_UNAVAILABLE.getCode() : response.getCode(),
+                    response == null ? BaseCodeEnum.ORDER_INTEGRATION_UNAVAILABLE.getMsg() : response.getMsg());
         }
     }
 
@@ -1465,6 +1798,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
             unlockCoupon(orderInfo.getOrderSn());
         }
 
+        // 积分同理：退回失败会让会员白丢积分，所以不吞异常，由关单消息重投兜底。
+        // 没用积分的订单不调会员服务
+        refundIntegration(orderInfo.getMemberId(), orderInfo.getOrderSn(), orderInfo.getUseIntegration());
+
         return true;
     }
 
@@ -1514,7 +1851,23 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
                 : requireCouponDiscount(user.getId(), couponCartItems, submitVo.getCouponHistoryId());
         writeCouponToOrderItems(orderItemEntities, splitCouponDiscount(couponCartItems, coupon));
 
-        // 6. 计算价格与积分
+        // 6. 积分：抵扣上限按"商品总额减券抵扣"的一半算，所以必须排在第 5 步之后。
+        //    不用积分的订单不调会员服务，免得被它的可用性拖住
+        Integer requestedPoints = submitVo.getUseIntegration();
+        int usePoints = 0;
+        List<IntegrationDiscountItemVo> integrationShares = List.of();
+        if (requestedPoints != null && requestedPoints > 0) {
+            int balance = requireIntegrationBalance(user.getId());
+            int limit = IntegrationConstant.maxUsablePoints(sumItemAmount(cartItems),
+                    coupon == null ? BigDecimal.ZERO : coupon.getDiscountAmount(), balance);
+            usePoints = resolveIntegrationPoints(limit, balance, requestedPoints);
+            integrationShares = splitIntegration(IntegrationConstant.pointsToAmount(usePoints), cartItems);
+        }
+        writeIntegrationToOrderItems(orderItemEntities, integrationShares);
+        // 不使用积分时写 0 而不是留 NULL：这一列的语义是"下单时使用的积分"，事实就是 0
+        orderEntity.setUseIntegration(usePoints);
+
+        // 7. 计算价格与积分
         computePrice(orderEntity, orderItemEntities);
         // 券模板 ID 落到订单上供展示与排查；核销与退回按订单号定位，不依赖这个字段
         orderEntity.setCouponId(coupon == null ? null : coupon.getCouponId());
@@ -1779,6 +2132,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
             consumeCoupon(orderSn);
         }
 
+        // 赠送积分与核销券同一个位置、同一个理由。重投不会重复赠送：
+        // member 侧按订单号与变动类型做了幂等
+        grantIntegration(order.getMemberId(), orderSn, order.getIntegration());
+
         int affected = this.updateOrderStatus(orderSn, OrderStatusEnum.PAYED.getCode(), PayConstant.ALIPAY,
                 "支付宝支付成功");
         if (affected == 0) {
@@ -1950,6 +2307,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
             consumeCoupon(orderSn);
         }
 
+        // 赠送积分：与核销券同一位置、同一理由，失败时整个事务回滚，重投能补上
+        grantIntegration(orderEntity.getMemberId(), orderSn, orderEntity.getIntegration());
+
         // 5. 修改订单支付状态
         this.updateOrderStatus(orderSn, OrderStatusEnum.PAYED.getCode(), PayConstant.WXPAY, "微信支付成功");
 
@@ -2002,7 +2362,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
             consumeCoupon(orderSn);
         }
 
-        // 5. 置为已付款
+        // 5. 赠送积分，同样排在改状态之前
+        grantIntegration(order.getMemberId(), orderSn, order.getIntegration());
+
+        // 6. 置为已付款
         updateOrderStatus(orderSn, OrderStatusEnum.PAYED.getCode(), PayConstant.MOCK, "测试支付成功");
     }
 
@@ -2112,6 +2475,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         orderEntity.setCouponAmount(BigDecimal.ZERO);
         orderEntity.setPromotionAmount(BigDecimal.ZERO);
         orderEntity.setIntegrationAmount(BigDecimal.ZERO);
+        // 秒杀单不参与积分抵扣，这一列也写 0 而不是留 NULL
+        orderEntity.setUseIntegration(0);
         orderEntity.setIntegration(gift);
         orderEntity.setGrowth(gift);
         // memberUsername 留 NULL：秒杀消息里没有用户名，

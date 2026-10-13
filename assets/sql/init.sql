@@ -826,14 +826,28 @@ CREATE TABLE IF NOT EXISTS `ums_growth_change_history` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
+-- 【注意】已部署的库里 `ums_integration_change_history` 没有下面两列与唯一索引。
+-- `CREATE TABLE IF NOT EXISTS` 对已存在的表整句跳过，不会补列也不会补索引。手工补一次
+-- （重复执行会报 duplicate column/key name）：
+--   ALTER TABLE `ums_integration_change_history` ADD COLUMN `order_sn` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '关联订单号：下单抵扣、关单退回、支付赠送三类变动必填' AFTER `change_count`;
+--   ALTER TABLE `ums_integration_change_history` ADD COLUMN `change_type` tinyint DEFAULT NULL COMMENT '变动类型[1->下单抵扣；2->关单退回；3->支付赠送]；非订单变动为 NULL' AFTER `order_sn`;
+--   ALTER TABLE `ums_integration_change_history` ADD UNIQUE INDEX `uk_order_change` (`order_sn`, `change_type`);
+-- uk_order_change 是「一张订单的每类变动最多一条」的硬约束：下单抵扣、关单退回、支付赠送各一条，
+-- 支付回调重投或关单消息重投时撞上唯一键，即说明这一次变动已经落过账，据此实现幂等，
+-- 不必依赖调用方只调一次。两列同时为 NULL 的变动（管理员手工调整这类没有订单来源的）不受约束 ——
+-- 唯一索引允许多个 NULL。加索引之前先确认没有重复值，有重复会让 ALTER 直接失败：
+--   SELECT `order_sn`, `change_type`, COUNT(*) FROM `ums_integration_change_history` WHERE `order_sn` IS NOT NULL GROUP BY `order_sn`, `change_type` HAVING COUNT(*) > 1;
 CREATE TABLE IF NOT EXISTS `ums_integration_change_history` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `member_id` bigint DEFAULT NULL,
   `create_time` datetime DEFAULT NULL,
   `change_count` int DEFAULT NULL COMMENT '变化的值',
+  `order_sn` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '关联订单号：下单抵扣、关单退回、支付赠送三类变动必填',
+  `change_type` tinyint DEFAULT NULL COMMENT '变动类型[1->下单抵扣；2->关单退回；3->支付赠送]；非订单变动为 NULL',
   `note` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '备注',
   `source_type` tinyint DEFAULT NULL COMMENT '来源[0->购物；1->管理员修改;2->活动]',
-  PRIMARY KEY (`id`) USING BTREE
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_order_change` (`order_sn`, `change_type`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='积分变化历史记录';
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;

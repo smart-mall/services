@@ -8,16 +8,18 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 订单确认页需要用的数据。四个金额都由后端算好，前端只负责显示和原样回传：
+ * 订单确认页需要用的数据。五个金额都由后端算好，前端只负责显示和原样回传：
  * {@code totalAmount} = 各购物项 price × count 之和，{@code freightAmount} = 默认收货地址的运费
  * （换地址时调 {@code /order/front/jwt/fare} 重取），{@code couponAmount} = 选中券的抵扣额，
- * {@code payAmount} = 商品总额 + 运费 - 抵扣额，即提交时要回传的 {@code payPrice}。
+ * {@code integrationAmount} = 本单使用的积分抵掉的钱，
+ * {@code payAmount} = 商品总额 + 运费 − 券抵扣 − 积分抵扣，即提交时要回传的 {@code payPrice}。
  *
- * <p>运费与优惠各有一份按商品拆分的明细（{@code fareItems} 与 {@code couponItems}），
- * 前端逐行展示商品自己的费用与优惠，不必自己再算。
+ * <p>运费、券优惠与积分抵扣各有一份按商品拆分的明细（{@code fareItems}、{@code couponItems} 与
+ * {@code integrationItems}），前端逐行展示商品自己的费用与优惠，不必自己再算。
  *
- * <p>{@code couponHistoryId} 是"当前选中的券"，由调用方在请求里指定。它变了就要重新请求本接口：
- * 抵扣额必须由后端算，前端拿券面金额自己减会与提交时的校验算成两个数。
+ * <p>{@code couponHistoryId} 与 {@code useIntegration} 是"当前选中的优惠"，由调用方在请求里指定。
+ * 这两个参数变了就要重新请求本接口或 {@code /fare}：抵扣额必须由后端算，
+ * 前端自己减会与提交时的校验算成两个数。
  */
 @Data
 public class OrderConfirmVo {
@@ -32,9 +34,10 @@ public class OrderConfirmVo {
     private List<OrderItemVo> items;
 
     /**
-     * 会员积分。
+     * 会员当前的积分余额。
      *
-     * <p>可能为 null：会员表的 integration 允许为空，前端要么不显示这一项，要么按 0 处理。</p>
+     * <p>取自会员服务，不取登录凭证里那一份：凭证是登录那一刻的快照，下过单之后就不再是当前余额。
+     * 已按 0 归一，不会为 {@code null}；余额查不到时按 0 处理，页面不出现积分抵扣。
      */
     private Integer integration;
 
@@ -53,8 +56,19 @@ public class OrderConfirmVo {
     /** 优惠券抵扣额；没有选券时为 0。 */
     private BigDecimal couponAmount;
 
-    /** 应付总额 = 商品总额 + 运费 - 优惠券抵扣额。 */
+    /** 积分抵扣额；没有使用积分时为 0。 */
+    private BigDecimal integrationAmount;
+
+    /** 应付总额 = 商品总额 + 运费 - 优惠券抵扣额 - 积分抵扣额。 */
     private BigDecimal payAmount;
+
+    /**
+     * 本单最多可用的积分，取封顶上限与余额中的较小值。
+     *
+     * <p>为 0 表示本单用不了积分（封顶算下来不足 1 分，或余额为 0），前端据此隐藏积分抵扣这一栏。
+     * 会员在这个上限内自选数量，超过上限提交会被拒。
+     */
+    private Integer integrationLimit;
 
     /** 当前选中的领取记录 ID；没有选券时为 {@code null}。 */
     private Long couponHistoryId;
@@ -83,6 +97,14 @@ public class OrderConfirmVo {
      * 与 {@code couponAmount} 出自同一次分摊，两者必然自洽。
      */
     private List<CouponDiscountItemVo> couponItems;
+
+    /**
+     * 每个商品的积分抵扣明细，与 {@code items} 按 {@code skuId} 对应；前端逐行显示商品自己的积分抵扣。
+     *
+     * <p>没有使用积分时为空列表，不会为 {@code null}；积分没有适用范围，所以覆盖全部购物项。
+     * 与 {@code integrationAmount} 出自同一次分摊，两者必然自洽。
+     */
+    private List<IntegrationDiscountItemVo> integrationItems;
 
     /**
      * 商品总件数。
