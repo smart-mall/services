@@ -14,6 +14,7 @@ import java.util.List;
  * 服务于发货，{@link #confirmReceive} 服务于确认收货，{@link #closeOrder} 服务于关单与取消；
  * 另有 {@link #updateNote} 服务于后台改备注、{@link #markDeleted} 服务于会员软删、
  * {@link #deleteMarked} 服务于后台硬删、{@link #markCommented} 服务于评价后登记评价时间、
+ * {@link #unmarkCommented} 服务于删除评价后撤回评价时间、
  * {@link #selectAutoConfirmable} 供自动确认任务扫描到期订单，
  * 其余使用 {@link BaseMapper} 提供的通用增删改查。
  */
@@ -138,4 +139,19 @@ public interface OrderDao extends BaseMapper<OrderEntity> {
      * @return 受影响行数，1 表示登记生效，0 表示订单不存在、不属于该会员、不是已完成状态或已登记过
      */
     int markCommented(String orderSn, Long memberId);
+
+    /**
+     * 撤回订单的评价时间。
+     *
+     * <p>SQL 见 {@code mapper/order/OrderDao.xml}：{@code WHERE} 带 {@code member_id} 与
+     * {@code status = 3}，归属与状态校验跟写入是同一条 SQL。与 {@link #markCommented} 的区别是
+     * 不要求 {@code comment_time} 非空 —— 撤回本身就是把值清掉，重复调用只会更新 0 行。</p>
+     *
+     * <p>只写 {@code comment_time} 与 {@code modify_time}，不碰 {@code status}。</p>
+     *
+     * @param orderSn 订单号，业务主键，不能为 {@code null}
+     * @param memberId 当前登录会员 ID，不能为 {@code null}
+     * @return 受影响行数，1 表示撤回生效，0 表示订单不存在、不属于该会员、不是已完成状态或本来就没有评价时间
+     */
+    int unmarkCommented(String orderSn, Long memberId);
 }

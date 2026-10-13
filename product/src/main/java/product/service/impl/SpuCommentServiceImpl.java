@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
+import common.to.CommentBriefVo;
 import common.to.CommentTargetVo;
 import common.utils.R;
 import common.vo.PageVO;
@@ -18,13 +19,15 @@ import product.service.SpuCommentService;
 import product.vo.CommentSubmitVo;
 
 import java.util.Date;
+import java.util.List;
 
 import common.query.PageQuery;
 /**
  * 商品评价服务的默认实现，基于 MyBatis-Plus 的 {@code ServiceImpl} 读写 {@code pms_spu_comment}。
  *
- * <p>会员端提交评价由 {@link #submitComment} 承担：来源核对向订单服务发起，落库与幂等在本类完成。
- * 分页查询与继承来的增删改供后台使用，不做业务校验。
+ * <p>会员端的三件事都在本类：{@link #submitComment} 先核对来源再落库，{@link #queryMyComments} 与
+ * {@link #deleteComment} 按评价行的 {@code member_id} 判归属。分页查询与继承来的增删改供后台使用，
+ * 不做业务校验。
  */
 @Slf4j
 @Service("spuCommentService")
@@ -54,6 +57,16 @@ public class SpuCommentServiceImpl extends ServiceImpl<SpuCommentDao, SpuComment
 
     /** {@inheritDoc} */
     @Override
+    public PageVO<SpuCommentEntity> queryMyComments(Long memberId, PageQuery query) {
+        IPage<SpuCommentEntity> page = this.page(query.toPage(), new LambdaQueryWrapper<SpuCommentEntity>()
+                .eq(SpuCommentEntity::getMemberId, memberId)
+                .orderByDesc(SpuCommentEntity::getCreateTime));
+
+        return new PageVO<>(page.getTotal(), page.getRecords());
+    }
+
+    /** {@inheritDoc} */
+    @Override
     public void submitComment(Long memberId, CommentSubmitVo vo) {
         // 1. 向订单服务核对来源：归属与状态判据在那边算，这里只接受结论
         R<CommentTargetVo> targetResult = orderFeignService.getCommentTarget(vo.getOrderItemId(), memberId);
@@ -76,6 +89,7 @@ public class SpuCommentServiceImpl extends ServiceImpl<SpuCommentDao, SpuComment
         // 3. 落库。并发提交的两个请求都会通过第 2 步，由 uk_order_item 唯一索引兜住后一个
         SpuCommentEntity comment = new SpuCommentEntity();
         comment.setOrderItemId(target.getOrderItemId());
+        comment.setMemberId(memberId);
         comment.setSkuId(target.getSkuId());
         comment.setSpuId(target.getSpuId());
         comment.setSpuName(target.getSpuName());
@@ -104,6 +118,53 @@ public class SpuCommentServiceImpl extends ServiceImpl<SpuCommentDao, SpuComment
         } catch (Exception e) {
             log.error("登记订单评价时间失败，orderSn={}", target.getOrderSn(), e);
         }
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void deleteComment(Long commentId, Long memberId) {
+        // 先读一次是为了拿 orderItemId：评价行里没有订单号，撤回订单时间只能按订单项定位。
+        // 归属不靠这次读来保证 —— 真正的闸门是下面 DELETE 语句里的 member_id
+        SpuCommentEntity existing = this.getById(commentId);
+        if (existing == null || !memberId.equals(existing.getMemberId())) {
+            throw new BaseException(BaseCodeEnum.COMMENT_NOT_FOUND);
+        }
+
+        if (this.baseMapper.deleteOwn(commentId, memberId) == 0) {
+            // 读到之后被别人删掉了：并发删除只有一个生效，另一个落到这里
+            throw new BaseException(BaseCodeEnum.COMMENT_NOT_FOUND);
+        }
+
+        // 撤回订单上的评价时间。失败只记日志：评价已经删掉，那列是展示用，
+        // 让它拦住删除会把"删不掉自己的评价"变成用户可见的故障
+        try {
+            orderFeignService.unmarkCommented(existing.getOrderItemId(), memberId);
+        } catch (Exception e) {
+            log.error("撤回订单评价时间失败，orderItemId={}", existing.getOrderItemId(), e);
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public List<CommentBriefVo> listCommentedItems(List<Long> orderItemIds) {
+        // 空集合直接返回：拼出 IN () 是非法 SQL，这个坑在项目里出现过不止一次
+        if (orderItemIds == null || orderItemIds.isEmpty()) {
+            return List.of();
+        }
+
+        return this.list(new LambdaQueryWrapper<SpuCommentEntity>()
+                        .in(SpuCommentEntity::getOrderItemId, orderItemIds))
+                .stream()
+                .map(comment -> {
+                    CommentBriefVo vo = new CommentBriefVo();
+                    vo.setCommentId(comment.getId());
+                    vo.setOrderItemId(comment.getOrderItemId());
+                    vo.setStar(comment.getStar());
+                    vo.setContent(comment.getContent());
+                    vo.setCreateTime(comment.getCreateTime());
+                    return vo;
+                })
+                .toList();
     }
 
 }

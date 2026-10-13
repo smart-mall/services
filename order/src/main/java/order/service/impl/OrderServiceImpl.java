@@ -12,6 +12,7 @@ import common.exception.BaseException;
 import common.exception.ValidationException;
 import common.mq.MqConstant;
 import common.mq.outbox.ReliableMqPublisher;
+import common.to.CommentBriefVo;
 import common.to.CommentTargetVo;
 import common.to.CouponCartItemVo;
 import common.to.CouponUsableVo;
@@ -963,11 +964,51 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
                     .collect(Collectors.groupingBy(OrderItemEntity::getOrderSn));
             records.forEach(order -> order.setOrderItemEntityList(
                     itemsByOrderSn.getOrDefault(order.getOrderSn(), List.of())));
+            // 评价摘要一次批量取：供卡片决定显示「评价」还是「查看评价」
+            attachCommentBriefs(records);
         }
         fillStatusText(records);
 
         page.setRecords(records);
         return new PageVO<>(page.getTotal(), page.getRecords());
+    }
+
+    /**
+     * 给订单项挂上评价摘要，供会员端把已评价的入口显示成「查看评价」。
+     *
+     * <p>把这一页所有订单项 ID 一次交给 product，按订单项 ID 回挂 —— 逐个订单项查是 N+1，还是跨服务。
+     * product 不可用时整页按"都没评价"处理并记 warn：评价摘要只决定按钮文案，取不到不该让订单列表打不开。
+     * 代价是那一次按钮显示成「评价」，点下去会拿到 11203。</p>
+     *
+     * @param records 本页订单，不能为 {@code null}；订单项已填好
+     */
+    private void attachCommentBriefs(List<OrderEntity> records) {
+        List<Long> orderItemIds = records.stream()
+                .flatMap(order -> order.getOrderItemEntityList().stream())
+                .map(OrderItemEntity::getId)
+                .filter(id -> id != null)
+                .toList();
+        if (orderItemIds.isEmpty()) {
+            return;
+        }
+
+        Map<Long, CommentBriefVo> briefs;
+        try {
+            R<List<CommentBriefVo>> result = productFeignService.listCommentedItems(orderItemIds);
+            if (result == null || result.getCode() != R.SUCCESS_CODE || result.getData() == null) {
+                log.warn("查询评价摘要失败，本次按未评价处理：orderItemIds={}, code={}",
+                        orderItemIds.size(), result == null ? null : result.getCode());
+                return;
+            }
+            briefs = result.getData().stream()
+                    .collect(Collectors.toMap(CommentBriefVo::getOrderItemId, vo -> vo, (first, second) -> first));
+        } catch (Exception e) {
+            log.warn("查询评价摘要异常，本次按未评价处理：orderItemIds={}", orderItemIds.size(), e);
+            return;
+        }
+
+        records.forEach(order -> order.getOrderItemEntityList()
+                .forEach(item -> item.setComment(briefs.get(item.getId()))));
     }
 
     /** {@inheritDoc} */
@@ -2183,6 +2224,34 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
                     ? order.getMemberUsername() : "会员#" + memberId;
             saveOperateHistory(order.getId(), order.getStatus(), operateMan, "会员评价");
         }
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void unmarkCommented(Long orderItemId, Long memberId) {
+        OrderItemEntity item = orderItemService.getById(orderItemId);
+        if (item == null) {
+            // 订单项已经不存在（比如订单被硬删）：没有订单时间可撤，按幂等处理
+            log.info("撤回评价时间跳过，订单项不存在：orderItemId={}", orderItemId);
+            return;
+        }
+        OrderEntity order = getOrderByOrderSn(item.getOrderSn());
+        if (order == null) {
+            log.info("撤回评价时间跳过，订单不存在：orderSn={}", item.getOrderSn());
+            return;
+        }
+
+        // 带 member_id 与 status 条件：撤别人的、撤未完成订单的都不会改到行
+        if (this.baseMapper.unmarkCommented(item.getOrderSn(), memberId) == 0) {
+            log.info("评价时间未撤回，不属于该会员、不是已完成状态或本来就没有评价时间：orderSn={}",
+                    item.getOrderSn());
+            return;
+        }
+
+        // 秒杀单的 member_username 为空，用会员 ID 兜底：操作人留空就看不出这条记录是谁做的
+        String operateMan = order.getMemberUsername() != null
+                ? order.getMemberUsername() : "会员#" + memberId;
+        saveOperateHistory(order.getId(), order.getStatus(), operateMan, "会员删除评价");
     }
 
 }

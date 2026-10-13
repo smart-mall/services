@@ -1,5 +1,6 @@
 package product.controller;
 
+import common.to.CommentBriefVo;
 import common.vo.PageVO;
 import common.utils.R;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,6 +9,7 @@ import product.entity.SpuCommentEntity;
 import product.service.SpuCommentService;
 
 import java.util.Arrays;
+import java.util.List;
 
 
 import common.query.PageQuery;
@@ -87,6 +89,20 @@ public class SpuCommentController {
 		spuCommentService.removeByIds(Arrays.asList(ids));
 
         return R.ok();
+    }
+
+    /**
+     * 批量查询这些订单项里哪些已经评价过，供订单服务装配会员订单列表。
+     *
+     * <p>服务间接口：order 经 {@code order/feign/ProductFeignService} 直连调用，不经网关。
+     * 入参只给订单项 ID、不给会员 —— 调用方给出的订单项已经属于它要展示的那张单。</p>
+     *
+     * @param orderItemIds 订单项 ID 列表，允许为空
+     * @return 评价摘要列表；都没有评价时为空列表
+     */
+    @PostMapping("/commented-items")
+    public R<List<CommentBriefVo>> commentedItems(@RequestBody List<Long> orderItemIds){
+        return R.ok(spuCommentService.listCommentedItems(orderItemIds));
     }
 
 }

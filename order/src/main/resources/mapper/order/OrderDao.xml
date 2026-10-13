@@ -153,5 +153,18 @@
           AND comment_time IS NULL
     </update>
 
+    <!-- 撤回评价时间：会员删掉自己的评价后调用。带 member_id 与 status = 3 已完成
+         （取值见 order.enums.OrderStatusEnum）两个条件，归属与状态校验跟写入是同一条 SQL。
+         与登记那条的区别是不要求 comment_time 非空：撤回本身就是把值清掉，
+         值本来已经是 NULL 时不算改动，因此重复调用只更新 0 行、也不会重复写操作史 -->
+    <update id="unmarkCommented">
+        UPDATE oms_order
+        SET comment_time = NULL,
+            modify_time = NOW()
+        WHERE order_sn = #{orderSn}
+          AND member_id = #{memberId}
+          AND `status` = 3
+    </update>
+
 
 </mapper>

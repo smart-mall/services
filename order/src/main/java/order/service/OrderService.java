@@ -419,4 +419,18 @@ public interface OrderService extends IService<OrderEntity> {
      * @param memberId 会员 ID，不能为 {@code null}
      */
     void markCommented(String orderSn, Long memberId);
+
+    /**
+     * 撤回订单上的评价时间，供会员删除自己的评价后调用。
+     *
+     * <p>幂等：只有订单属于该会员、状态为已完成、且当前确实有评价时间时才生效，重复调用改 0 行。
+     * 订单项或订单已经不存在时按无操作处理、不抛异常 —— 调用方那边的评价已经删掉了，
+     * 这里再报错只会让会员看到"删不掉自己的评价"。</p>
+     *
+     * <p>撤回生效时沿订单操作史留一行，操作人取会员名（秒杀单没有会员名时用会员 ID 兜底）。</p>
+     *
+     * @param orderItemId 来源订单项主键，不能为 {@code null}
+     * @param memberId 会员 ID，不能为 {@code null}
+     */
+    void unmarkCommented(Long orderItemId, Long memberId);
 }

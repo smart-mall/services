@@ -1,5 +1,6 @@
 package order.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
@@ -7,6 +8,7 @@ import java.math.BigDecimal;
 import java.io.Serial;
 import java.io.Serializable;
 import lombok.Data;
+import common.to.CommentBriefVo;
 
 /**
  * 订单项表 {@code oms_order_item} 的记录，保存订单中每个 SKU 的下单明细。
@@ -59,5 +61,12 @@ public class OrderItemEntity implements Serializable {
 	private Integer giftIntegration;
 	/** 赠送成长值。 */
 	private Integer giftGrowth;
+	/**
+	 * 该项的商品评价摘要，供会员端把已评价的入口显示成「查看评价」。
+	 *
+	 * <p>不落库：订单列表装配时向 product 批量取回，没有评价或取不到时保持 {@code null}。
+	 */
+	@TableField(exist = false)
+	private CommentBriefVo comment;
 
 }

@@ -108,6 +108,12 @@ public enum BaseCodeEnum {
      * {@code comment-target} 失败。不降级放行：放行会写出一条无法核对来源的假评价。
      */
     COMMENT_ORDER_UNAVAILABLE(11204, "订单服务暂时不可用，请稍后重试"),
+    /**
+     * 评论不存在或不属于当前会员。触发场景：会员删除自己的评价时，那条评价已经不存在，或不是他写的。
+     * 两种情况合并给同一个码，理由同 {@link #COMMENT_ORDER_ITEM_NOT_FOUND}：分开等于告诉调用方
+     * "这条评论存在，只是不是你的"。
+     */
+    COMMENT_NOT_FOUND(11205, "评论不存在或不属于当前会员"),
     /** 请求流量过大，请稍后再试。触发场景：Sentinel 限流拦截，或下游服务降级返回。 */
     TO_MANY_REQUEST(10003, "请求流量过大，请稍后再试"),
 

@@ -45,4 +45,18 @@ public interface OrderFeignService {
     R<Void> markCommented(@RequestParam("orderSn") String orderSn,
                           @RequestParam("memberId") Long memberId);
 
+    /**
+     * 撤回订单上的评价时间，供会员删除自己的评价后调用。
+     *
+     * <p>幂等：订单上本来就没有评价时间时只更新 0 行且返回成功。按订单项定位订单，
+     * 因为评价行里只有 {@code order_item_id}、没有订单号。</p>
+     *
+     * @param orderItemId 来源订单项主键，不能为 {@code null}
+     * @param memberId 当前登录会员 ID，不能为 {@code null}
+     * @return 统一响应体，{@code data} 为空
+     */
+    @PostMapping("/order/order/comment-unmark/{orderItemId}")
+    R<Void> unmarkCommented(@PathVariable("orderItemId") Long orderItemId,
+                            @RequestParam("memberId") Long memberId);
+
 }

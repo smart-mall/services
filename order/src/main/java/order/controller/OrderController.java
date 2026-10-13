@@ -33,7 +33,8 @@ import order.vo.OrderStatusVo;
  *
  * <p>路径不在 {@code /front} 下，经网关访问时按管理端接口鉴权；另有服务间接口给下游直连调用：
  * ware 释放库存前的状态查询见 {@link #status(String)}，product 提交评价前的来源核对见
- * {@link #commentTarget(Long, Long)}、评价落库后的时间登记见 {@link #commentMarked(String, Long)}。
+ * {@link #commentTarget(Long, Long)}、评价落库后的时间登记见 {@link #commentMarked(String, Long)}、
+ * 删除评价后的时间撤回见 {@link #commentUnmark(Long, Long)}。
  * 会员侧接口在 {@code order.web.OrderFrontController}。
  */
 @RestController
@@ -256,6 +257,24 @@ public class OrderController {
     public R<Void> commentMarked(@RequestParam("orderSn") String orderSn,
                                  @RequestParam("memberId") Long memberId){
         orderService.markCommented(orderSn, memberId);
+
+        return R.ok();
+    }
+
+    /**
+     * 撤回订单的评价时间，供 product 在会员删掉评价后调用。
+     *
+     * <p>幂等：订单不属于该会员、状态不是已完成、或者本来就没有评价时间，都只更新 0 行且不报错。
+     * 按订单项定位订单，因为评价行里只有订单项 ID、没有订单号（与 {@link #commentTarget} 同源）。</p>
+     *
+     * @param orderItemId 来源订单项主键
+     * @param memberId 当前登录会员 ID，由调用方显式传入
+     * @return 统一成功响应，不含业务数据
+     */
+    @PostMapping("/comment-unmark/{orderItemId}")
+    public R<Void> commentUnmark(@PathVariable("orderItemId") Long orderItemId,
+                                 @RequestParam("memberId") Long memberId){
+        orderService.unmarkCommented(orderItemId, memberId);
 
         return R.ok();
     }

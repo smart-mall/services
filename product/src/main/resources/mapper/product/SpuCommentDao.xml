@@ -8,6 +8,8 @@
         <result property="id" column="id"/>
         <result property="skuId" column="sku_id"/>
         <result property="spuId" column="spu_id"/>
+        <result property="orderItemId" column="order_item_id"/>
+        <result property="memberId" column="member_id"/>
         <result property="spuName" column="spu_name"/>
         <result property="memberNickName" column="member_nick_name"/>
         <result property="star" column="star"/>
@@ -22,6 +24,15 @@
         <result property="memberIcon" column="member_icon"/>
         <result property="commentType" column="comment_type"/>
     </resultMap>
+
+    <!-- 删除会员自己的一条评价：member_id 写在 WHERE 里，归属校验与删除是同一条 SQL，
+         删别人的或删不存在的都只会影响 0 行；调用方按受影响行数抛 COMMENT_NOT_FOUND。
+         回复行不需要额外条件挡住：它们的 member_id 为空，本来就匹配不上 -->
+    <delete id="deleteOwn">
+        DELETE FROM pms_spu_comment
+        WHERE id = #{id}
+          AND member_id = #{memberId}
+    </delete>
 
 
 </mapper>
