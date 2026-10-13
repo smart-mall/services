@@ -1500,38 +1500,78 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
 
     /**
+     * 落一条支付宝支付流水。
+     *
+     * <p>从支付宝通知里取出订单号、交易号、金额与状态，交给
+     * {@link #savePaymentInfo(PaymentInfoEntity)} 落库。
+     *
+     * @param asyncVo 通知参数，不能为 {@code null}
+     */
+    private void savePaymentInfo(PayAsyncVo asyncVo) {
+
+        PaymentInfoEntity paymentInfo = new PaymentInfoEntity();
+        paymentInfo.setOrderSn(asyncVo.getOut_trade_no());
+        paymentInfo.setAlipayTradeNo(asyncVo.getTrade_no());
+        paymentInfo.setTotalAmount(parseAmount(asyncVo.getBuyer_pay_amount()));
+        paymentInfo.setSubject(asyncVo.getBody());
+        paymentInfo.setPaymentStatus(asyncVo.getTrade_status());
+        paymentInfo.setCreateTime(new Date());
+        paymentInfo.setCallbackTime(asyncVo.getNotify_time());
+        savePaymentInfo(paymentInfo);
+    }
+
+
+    /**
+     * 落一条微信支付流水。
+     *
+     * <p>{@code PayResponse} 的 {@code outTradeNo} 装的是微信交易号 {@code transaction_id}，
+     * {@code orderId} 装的是本系统的订单号。微信通知里没有交易内容与状态原文，因此
+     * {@code subject} 留空、{@code payment_status} 记渠道侧的约定值。
+     *
+     * @param orderEntity 已查出的订单，不能为 {@code null}
+     * @param payResponse 微信通知的解析结果，不能为 {@code null}
+     */
+    private void saveWxPaymentInfo(OrderEntity orderEntity, PayResponse payResponse) {
+
+        PaymentInfoEntity paymentInfo = new PaymentInfoEntity();
+        paymentInfo.setOrderSn(orderEntity.getOrderSn());
+        paymentInfo.setAlipayTradeNo(payResponse.getOutTradeNo());
+        // 金额是 Double，valueOf 走 toString，无二进制误差
+        paymentInfo.setTotalAmount(payResponse.getOrderAmount() == null
+                ? null : BigDecimal.valueOf(payResponse.getOrderAmount()));
+        paymentInfo.setPaymentStatus("WXPAY_SUCCESS");
+        paymentInfo.setCreateTime(new Date());
+        paymentInfo.setCallbackTime(new Date());
+        savePaymentInfo(paymentInfo);
+    }
+
+
+    /**
      * 落一条支付流水，同一个平台交易号只落一条。
      *
      * <p>支付平台会对同一笔交易多次通知（如退款后再发一条 {@code TRADE_CLOSED}），而
      * {@code oms_payment_info} 的 {@code alipay_trade_no} 是唯一键，重复插入会让整个事务回滚、
      * 回调方收到失败应答后继续重投，因此已存在时只记日志、不覆盖已落库的内容。
      *
-     * @param asyncVo 通知参数，不能为 {@code null}；提供交易号、订单号、金额与状态原文
+     * @param paymentInfo 待落库的流水，不能为 {@code null}；其 {@code alipayTradeNo} 是查重键，
+     *                    也不能为 {@code null}
      */
-    private void savePaymentInfo(PayAsyncVo asyncVo) {
+    private void savePaymentInfo(PaymentInfoEntity paymentInfo) {
 
-        String tradeNo = asyncVo.getTrade_no();
+        String tradeNo = paymentInfo.getAlipayTradeNo();
         List<PaymentInfoEntity> recorded = this.paymentInfoService.list(
                 new LambdaQueryWrapper<PaymentInfoEntity>()
                         .eq(PaymentInfoEntity::getAlipayTradeNo, tradeNo));
 
         if (!recorded.isEmpty()) {
             String recordedStatus = recorded.get(0).getPaymentStatus();
-            if (!Objects.equals(recordedStatus, asyncVo.getTrade_status())) {
+            if (!Objects.equals(recordedStatus, paymentInfo.getPaymentStatus())) {
                 log.warn("同一交易号的支付状态已变化，不覆盖已落库的流水：tradeNo={}, 已记录={}, 本次={}",
-                        tradeNo, recordedStatus, asyncVo.getTrade_status());
+                        tradeNo, recordedStatus, paymentInfo.getPaymentStatus());
             }
             return;
         }
 
-        PaymentInfoEntity paymentInfo = new PaymentInfoEntity();
-        paymentInfo.setOrderSn(asyncVo.getOut_trade_no());
-        paymentInfo.setAlipayTradeNo(tradeNo);
-        paymentInfo.setTotalAmount(parseAmount(asyncVo.getBuyer_pay_amount()));
-        paymentInfo.setSubject(asyncVo.getBody());
-        paymentInfo.setPaymentStatus(asyncVo.getTrade_status());
-        paymentInfo.setCreateTime(new Date());
-        paymentInfo.setCallbackTime(asyncVo.getNotify_time());
         this.paymentInfoService.save(paymentInfo);
     }
 
@@ -1574,6 +1614,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     }
 
     /** {@inheritDoc} */
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public String asyncNotify(String notifyData) {
 
@@ -1598,17 +1639,20 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
         // TODO: 微信异步通知的金额未与订单应付金额比对，需补校验并在不一致时告警
 
-        // 3. 核销优惠券。必须排在改状态之前：本方法没有事务，先改状态会让重投撞上幂等分支，
-        //    核销再也补不上；没用券的订单不调券服务，那边把"找不到券"当成错误
+        // 3. 落交易流水
+        saveWxPaymentInfo(orderEntity, payResponse);
+
+        // 4. 核销优惠券。核销失败时整个事务回滚，重投能重新走一遍；
+        //    没用券的订单不调券服务，那边把"找不到券"当成错误
         String orderSn = orderEntity.getOrderSn();
         if (orderEntity.getCouponId() != null) {
             consumeCoupon(orderSn);
         }
 
-        // 4. 修改订单支付状态
+        // 5. 修改订单支付状态
         this.updateOrderStatus(orderSn,OrderStatusEnum.PAYED.getCode(),PayConstant.WXPAY);
 
-        // 5. 应答 SUCCESS，微信收到后不再重复通知
+        // 6. 应答 SUCCESS，微信收到后即停止重发通知
         return WX_SUCCESS_RESPONSE;
     }
 

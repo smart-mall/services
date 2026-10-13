@@ -24,13 +24,13 @@ public class PaymentInfoEntity implements Serializable {
 	private String orderSn;
 	/** 关联的订单 ID。 */
 	private Long orderId;
-	/** 支付宝交易流水号。 */
+	/** 平台交易流水号：支付宝存 {@code trade_no}，微信存 {@code transaction_id}。 */
 	private String alipayTradeNo;
-	/** 支付总金额。 */
+	/** 支付金额：支付宝存买家实付 {@code buyer_pay_amount}，微信存订单金额。 */
 	private BigDecimal totalAmount;
 	/** 交易内容。 */
 	private String subject;
-	/** 支付状态，保存支付宝回调返回的 {@code trade_status} 原文。 */
+	/** 支付状态：支付宝存回调里的 {@code trade_status} 原文，微信与测试支付存渠道侧的约定值。 */
 	private String paymentStatus;
 	/** 创建时间。 */
 	private Date createTime;

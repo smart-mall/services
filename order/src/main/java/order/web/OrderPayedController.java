@@ -95,7 +95,7 @@ public class OrderPayedController {
     }
 
     /**
-     * 处理微信异步通知：交给 {@code OrderService#asyncNotify} 验签、校验订单状态并置为已付款。
+     * 处理微信异步通知：交给 {@code OrderService#asyncNotify} 验签、落交易流水、校验订单状态并置为已付款。
      *
      * <p>入参是微信 POST 的原始报文，返回值必须是微信约定的应答 XML；已支付或已取消的订单
      * 不改任何数据，但仍回 {@code SUCCESS}，因此重复通知不会被再次入账。

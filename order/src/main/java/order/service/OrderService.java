@@ -192,14 +192,17 @@ public interface OrderService extends IService<OrderEntity> {
     String handlePayResult(PayAsyncVo asyncVo);
 
     /**
-     * 处理微信的异步支付通知：验签、校验订单状态，并把订单置为已付款。
+     * 处理微信的异步支付通知：验签、落交易流水，并把订单置为已付款。
      *
      * <p>订单查不到时抛异常，微信会按失败重发通知。订单已付款或已取消时不改任何数据，
      * 但照常返回 {@code SUCCESS} 应答 —— 这两种情况下重发通知不会有新的结果。
      *
+     * <p>流水、券核销与订单状态在同一事务内写入，三者必须一起生效。
+     *
      * @param notifyData 微信通知的原始报文，不能为 {@code null}
      * @return 微信要求的 {@code SUCCESS} 应答 XML，原样回给微信即可
      */
+    @Transactional(rollbackFor = Exception.class)
     String asyncNotify(String notifyData);
 
     /**
