@@ -124,7 +124,8 @@ CREATE TABLE `wms_ware_order_task`  (
   `create_time` datetime(0) NULL DEFAULT NULL,
   `ware_id` bigint(20) NULL DEFAULT NULL COMMENT '仓库id',
   `task_comment` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '工作单备注',
-  PRIMARY KEY (`id`) USING BTREE
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_order_sn`(`order_sn`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '库存工作单' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -145,7 +146,8 @@ CREATE TABLE `wms_ware_order_task_detail`  (
   `task_id` bigint(20) NULL DEFAULT NULL COMMENT '工作单id',
   `ware_id` bigint(20) NULL DEFAULT NULL COMMENT '仓库id',
   `lock_status` int(1) NULL DEFAULT NULL COMMENT '1-已锁定  2-已解锁  3-扣减',
-  PRIMARY KEY (`id`) USING BTREE
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_task_id`(`task_id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '库存工作单' ROW_FORMAT = Dynamic;
 
 -- ----------------------------

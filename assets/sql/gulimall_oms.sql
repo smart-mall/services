@@ -76,7 +76,7 @@ CREATE TABLE `oms_order`  (
   `receiver_detail_address` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '详细地址',
   `note` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '订单备注',
   `confirm_status` tinyint(4) NULL DEFAULT NULL COMMENT '确认收货状态[0->未确认；1->已确认]',
-  `delete_status` tinyint(4) NULL DEFAULT NULL COMMENT '删除状态【0->未删除；1->已删除】',
+  `delete_status` tinyint(4) NOT NULL DEFAULT 0 COMMENT '删除状态【0->未删除；1->已删除】',
   `use_integration` int(11) NULL DEFAULT NULL COMMENT '下单时使用的积分',
   `payment_time` datetime(0) NULL DEFAULT NULL COMMENT '支付时间',
   `delivery_time` datetime(0) NULL DEFAULT NULL COMMENT '发货时间',
@@ -84,7 +84,9 @@ CREATE TABLE `oms_order`  (
   `comment_time` datetime(0) NULL DEFAULT NULL COMMENT '评价时间',
   `modify_time` datetime(0) NULL DEFAULT NULL COMMENT '修改时间',
   PRIMARY KEY (`id`) USING BTREE,
-  UNIQUE INDEX `order_sn`(`order_sn`) USING BTREE
+  UNIQUE INDEX `order_sn`(`order_sn`) USING BTREE,
+  INDEX `idx_member_delete`(`member_id`, `delete_status`) USING BTREE,
+  INDEX `idx_create_time`(`create_time`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '订单' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -118,7 +120,8 @@ CREATE TABLE `oms_order_item`  (
   `real_amount` decimal(18, 4) NULL DEFAULT NULL COMMENT '该商品经过优惠后的分解金额',
   `gift_integration` int(11) NULL DEFAULT NULL COMMENT '赠送积分',
   `gift_growth` int(11) NULL DEFAULT NULL COMMENT '赠送成长值',
-  PRIMARY KEY (`id`) USING BTREE
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_order_sn`(`order_sn`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '订单项信息' ROW_FORMAT = Dynamic;
 
 -- ----------------------------

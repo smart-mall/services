@@ -307,6 +307,18 @@ CREATE TABLE IF NOT EXISTS `mq_message` (
   KEY `idx_status_create_time` (`message_status`,`create_time`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC;
 /*!40101 SET character_set_client = @saved_cs_client */;
+-- 【注意】`oms_order.delete_status` 在早期脚本里是可空列：会员列表按 `delete_status = 0` 过滤，
+-- 而 SQL 里 `NULL = 0` 不成立，NULL 的行会被当成"已删除"、在会员端看不见。列定义要规整成
+-- NOT NULL DEFAULT 0，并把历史 NULL 刷成 0。`CREATE TABLE IF NOT EXISTS` 对已存在的表整句跳过，
+-- 所以已部署的库必须手工执行下面这几句（重复执行会报 Duplicate column / Duplicate key name）：
+--   UPDATE `oms_order` SET `delete_status` = 0 WHERE `delete_status` IS NULL;
+--   ALTER TABLE `oms_order` MODIFY COLUMN `delete_status` tinyint NOT NULL DEFAULT 0 COMMENT '删除状态【0->未删除；1->已删除】';
+--   ALTER TABLE `oms_order` ADD INDEX `idx_member_delete` (`member_id`, `delete_status`);
+--   ALTER TABLE `oms_order` ADD INDEX `idx_create_time` (`create_time`);
+--   ALTER TABLE `oms_order_item` ADD INDEX `idx_order_sn` (`order_sn`);
+-- idx_member_delete 服务会员列表（member_id + delete_status），idx_create_time 服务后台列表按
+-- 下单时间排序与区间过滤，idx_order_sn 服务订单项按订单号批量查。这两张表原本只有主键 +
+-- 订单号的唯一索引，上面这些查询全是全表扫描；工单侧的两个索引同理，见 gulimall_wms 段。
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `oms_order` (
@@ -345,7 +357,7 @@ CREATE TABLE IF NOT EXISTS `oms_order` (
   `receiver_detail_address` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '详细地址',
   `note` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '订单备注',
   `confirm_status` tinyint DEFAULT NULL COMMENT '确认收货状态[0->未确认；1->已确认]',
-  `delete_status` tinyint DEFAULT NULL COMMENT '删除状态【0->未删除；1->已删除】',
+  `delete_status` tinyint NOT NULL DEFAULT 0 COMMENT '删除状态【0->未删除；1->已删除】',
   `use_integration` int DEFAULT NULL COMMENT '下单时使用的积分',
   `payment_time` datetime DEFAULT NULL COMMENT '支付时间',
   `delivery_time` datetime DEFAULT NULL COMMENT '发货时间',
@@ -353,7 +365,9 @@ CREATE TABLE IF NOT EXISTS `oms_order` (
   `comment_time` datetime DEFAULT NULL COMMENT '评价时间',
   `modify_time` datetime DEFAULT NULL COMMENT '修改时间',
   PRIMARY KEY (`id`) USING BTREE,
-  UNIQUE KEY `order_sn` (`order_sn`) USING BTREE
+  UNIQUE KEY `order_sn` (`order_sn`) USING BTREE,
+  KEY `idx_member_delete` (`member_id`, `delete_status`) USING BTREE,
+  KEY `idx_create_time` (`create_time`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='订单';
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -379,7 +393,8 @@ CREATE TABLE IF NOT EXISTS `oms_order_item` (
   `real_amount` decimal(18,4) DEFAULT NULL COMMENT '该商品经过优惠后的分解金额',
   `gift_integration` int DEFAULT NULL COMMENT '赠送积分',
   `gift_growth` int DEFAULT NULL COMMENT '赠送成长值',
-  PRIMARY KEY (`id`) USING BTREE
+  PRIMARY KEY (`id`) USING BTREE,
+  KEY `idx_order_sn` (`order_sn`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='订单项信息';
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -1017,6 +1032,11 @@ CREATE TABLE IF NOT EXISTS `wms_ware_info` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC COMMENT='仓库信息';
 /*!40101 SET character_set_client = @saved_cs_client */;
+-- 【注意】下面两张表原本只有主键：工作单按订单号反查（库存解锁链路）与明细按 task_id 批量查
+-- （后台列表）都是日常读法，却都是全表扫描。`CREATE TABLE IF NOT EXISTS` 不会给已存在的表补索引，
+-- 已部署的库需手工补一次（重复执行会报 Duplicate key name）：
+--   ALTER TABLE `wms_ware_order_task` ADD INDEX `idx_order_sn` (`order_sn`);
+--   ALTER TABLE `wms_ware_order_task_detail` ADD INDEX `idx_task_id` (`task_id`);
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `wms_ware_order_task` (
@@ -1034,7 +1054,8 @@ CREATE TABLE IF NOT EXISTS `wms_ware_order_task` (
   `create_time` datetime DEFAULT NULL,
   `ware_id` bigint DEFAULT NULL COMMENT '仓库id',
   `task_comment` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '工作单备注',
-  PRIMARY KEY (`id`) USING BTREE
+  PRIMARY KEY (`id`) USING BTREE,
+  KEY `idx_order_sn` (`order_sn`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC COMMENT='库存工作单';
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -1047,7 +1068,8 @@ CREATE TABLE IF NOT EXISTS `wms_ware_order_task_detail` (
   `task_id` bigint DEFAULT NULL COMMENT '工作单id',
   `ware_id` bigint DEFAULT NULL COMMENT '仓库id',
   `lock_status` int DEFAULT NULL COMMENT '1-已锁定  2-已解锁  3-扣减',
-  PRIMARY KEY (`id`) USING BTREE
+  PRIMARY KEY (`id`) USING BTREE,
+  KEY `idx_task_id` (`task_id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC COMMENT='库存工作单';
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
