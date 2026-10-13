@@ -1,5 +1,6 @@
 package ware.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
@@ -13,6 +14,8 @@ import java.io.Serializable;
 /**
  * 库存工作单明细，对应 {@code wms_ware_order_task_detail} 表，一行记录一次成功的库存锁定：
  * 某个 SKU 在某个仓库锁了多少件。
+ *
+ * <p>{@code wareName} 不落库，由查询侧按 {@code wareId} 组装，供后台展示仓库名。
  *
  * <p>解锁按 {@code lockStatus} 判断幂等，只处理仍为已锁定的明细。
  */
@@ -43,5 +46,8 @@ public class WareOrderTaskDetailEntity implements Serializable {
 	 * <p>只有 1 的明细需要解锁，重复消费解锁消息时不会把库存多减一次。
 	 */
 	private Integer lockStatus;
+	/** 锁定库存所在仓库的名称，查询时按 {@code wareId} 组装，不落库。 */
+	@TableField(exist = false)
+	private String wareName;
 
 }

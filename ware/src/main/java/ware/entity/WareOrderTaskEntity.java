@@ -1,11 +1,13 @@
 package ware.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Date;
+import java.util.List;
 import lombok.Data;
 
 /**
@@ -13,6 +15,8 @@ import lombok.Data;
  * 明细挂在它下面。
  *
  * <p>解锁时按订单号反查工作单，再逐条处理其明细。
+ *
+ * <p>{@code detailList} 不落库，由查询侧组装，后台列表据此把明细一起返回。
  *
  * <p>收货人、配送地址、订单备注与付款方式在 lockStock 时从 order 侧传来的订单快照写入，
  * 工作单因此是自包含的，发货流程不必回查订单。
@@ -56,5 +60,8 @@ public class WareOrderTaskEntity implements Serializable {
 	private Long wareId;
 	/** 工作单备注。 */
 	private String taskComment;
+	/** 工作单明细，查询时组装，不落库。 */
+	@TableField(exist = false)
+	private List<WareOrderTaskDetailEntity> detailList;
 
 }

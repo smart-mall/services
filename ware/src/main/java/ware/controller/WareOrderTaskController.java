@@ -1,10 +1,7 @@
 package ware.controller;
 
-import java.util.Arrays;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -15,12 +12,16 @@ import common.utils.R;
 
 
 
-import common.query.PageQuery;
+import common.query.KeyPageQuery;
 /**
- * 库存工作单接口：记录一次订单的库存锁定任务（订单号、收货信息、任务状态）。
+ * 库存工作单接口：一次订单的库存锁定任务对应一张工作单（订单号、收货人、创建时间），
+ * 明细记录锁了哪个 SKU、锁在哪个仓。
  *
- * <p>工作单是库存解锁的入口，解锁时按订单号反查它再逐条处理明细；日常不人工写，
- * 只保留查询与维护入口。
+ * <p>工作单是库存解锁的入口，解锁时按订单号反查它再逐条处理明细。它是锁定库存时生成的台账，
+ * 因此只提供查询：手工改 {@code lock_status} 会让同一批库存被重复解锁，删掉一条已锁定的明细
+ * 则会让这批库存再也解不开，需要释放库存请走订单侧的关单。
+ *
+ * <p>明细随列表一起返回，没有独立的明细分页接口。
  */
 @RestController
 @RequestMapping("ware/wareordertask")
@@ -29,13 +30,13 @@ public class WareOrderTaskController {
     private WareOrderTaskService wareOrderTaskService;
 
     /**
-     * 分页查询库存工作单。
+     * 分页查询库存工作单，附带每条工作单的明细。
      *
-     * @param query 分页参数
-     * @return 工作单分页数据
+     * @param query 分页与关键字条件；{@code key} 同时匹配订单号与收货人
+     * @return 工作单分页数据，每行的 {@code detailList} 已按仓库名填好
      */
     @RequestMapping("/list")
-    public R<PageVO<WareOrderTaskEntity>> list(PageQuery query){
+    public R<PageVO<WareOrderTaskEntity>> list(KeyPageQuery query){
         PageVO<WareOrderTaskEntity> page = wareOrderTaskService.queryPage(query);
 
         return R.ok(page);
@@ -53,45 +54,6 @@ public class WareOrderTaskController {
 		WareOrderTaskEntity wareOrderTask = wareOrderTaskService.getById(id);
 
         return R.ok(wareOrderTask);
-    }
-
-    /**
-     * 新增库存工作单。
-     *
-     * @param wareOrderTask 工作单内容，{@code id} 由数据库生成
-     * @return 成功响应，无数据体
-     */
-    @RequestMapping("/save")
-    public R<Void> save(@RequestBody WareOrderTaskEntity wareOrderTask){
-		wareOrderTaskService.save(wareOrderTask);
-
-        return R.ok();
-    }
-
-    /**
-     * 按主键更新库存工作单，只更新入参中非 {@code null} 的字段。
-     *
-     * @param wareOrderTask 工作单内容，必须带 {@code id}
-     * @return 成功响应，无数据体
-     */
-    @RequestMapping("/update")
-    public R<Void> update(@RequestBody WareOrderTaskEntity wareOrderTask){
-		wareOrderTaskService.updateById(wareOrderTask);
-
-        return R.ok();
-    }
-
-    /**
-     * 按主键批量删除库存工作单。
-     *
-     * @param ids 工作单 ID 数组，不能为 {@code null}
-     * @return 成功响应，无数据体
-     */
-    @RequestMapping("/delete")
-    public R<Void> delete(@RequestBody Long[] ids){
-		wareOrderTaskService.removeByIds(Arrays.asList(ids));
-
-        return R.ok();
     }
 
 }

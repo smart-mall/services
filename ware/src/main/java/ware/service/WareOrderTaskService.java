@@ -5,7 +5,7 @@ import common.vo.PageVO;
 import ware.entity.WareOrderTaskEntity;
 
 
-import common.query.PageQuery;
+import common.query.KeyPageQuery;
 /**
  * 库存工作单服务：记录订单锁定库存时生成的工作单。
  *
@@ -15,12 +15,15 @@ import common.query.PageQuery;
 public interface WareOrderTaskService extends IService<WareOrderTaskEntity> {
 
     /**
-     * 分页查询库存工作单，不附加任何筛选条件。
+     * 分页查询库存工作单，附带每条工作单的明细。
      *
-     * @param query 分页参数，不能为 {@code null}
+     * <p>{@code key} 同时匹配订单号与收货人，为空时不加过滤；结果按创建时间倒序。
+     * 明细随列表一起返回，展开某一行不必再发请求，每条的 {@code wareName} 也已按仓库 ID 填好。</p>
+     *
+     * @param query 分页与关键字条件，不能为 {@code null}
      * @return 工作单分页数据；无数据时 {@code rows} 为空列表，{@code total} 为 0
      */
-    PageVO<WareOrderTaskEntity> queryPage(PageQuery query);
+    PageVO<WareOrderTaskEntity> queryPage(KeyPageQuery query);
 
     /**
      * 按订单号查询库存工作单。
