@@ -24,7 +24,7 @@ public interface OrderDao extends BaseMapper<OrderEntity> {
      * @param orderSn 订单号，业务主键，不能为 {@code null}
      * @param code 目标状态码，取值见 {@link order.enums.OrderStatusEnum}
      * @param payType 支付方式，取值见 {@code PayConstant}
-     * @return 受影响行数，1 表示本次流转生效，0 表示订单不存在或已不是待付款状态
+     * @return 受影响行数；1 表示更新生效，0 表示订单不存在或已不是待付款状态
      */
     int updateOrderStatus(String orderSn, Integer code, Integer payType);
 

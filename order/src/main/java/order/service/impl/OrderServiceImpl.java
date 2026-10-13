@@ -151,7 +151,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     @Autowired
     private ThreadPoolExecutor threadPoolExecutor;
 
-    /** 微信要求的成功应答，原样回给微信；微信收到后不再重发同一条通知。 */
+    /** 微信要求的成功应答，原样回给微信；微信收到后即停止重发通知。 */
     private static final String WX_SUCCESS_RESPONSE = "<xml>\n" +
             "  <return_code><![CDATA[SUCCESS]]></return_code>\n" +
             "  <return_msg><![CDATA[OK]]></return_msg>\n" +
@@ -1107,7 +1107,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     @Override
     public void cancelOrder(MemberResponseVo user, String orderSn) {
         OrderEntity order = requireOwnOrder(user, orderSn);
-        // 这次判断只为提前挡掉明显不能取消的请求（如重复点击），真正的判据在 doClose 的条件更新里
+        // 只挡明显不能取消的请求，真正的判据在 doClose 的条件更新里
         if (!OrderStatusEnum.CREATE_NEW.getCode().equals(order.getStatus())) {
             throw new BaseException(BaseCodeEnum.ORDER_STATUS_INVALID);
         }
@@ -1147,16 +1147,17 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
      * 注解在此不生效；边界由两个调用者 {@code cancelOrder} 与 {@code closeOrder} 承担，
      * 保证"置为已取消""释放库存的消息记录"与"退回优惠券"一起生效。
      *
+     * <p>并发：关单与支付回调谁先到谁赢。订单已被支付时关单不生效，此时不释放库存也不退券。
+     *
      * @param orderInfo 待关闭的订单
      * @return {@code true} 表示确实关掉了；{@code false} 表示订单状态已被并发变更，未做任何变更
      */
     private boolean doClose(OrderEntity orderInfo) {
 
-        // 带状态条件的 UPDATE：判断"是不是待付款"与写入"置为已取消"是同一条 SQL。
-        // 与支付回调并发时谁先到谁赢，支付成功后再关单只会更新 0 行
+        // 判断与写入是同一条 SQL：与支付回调并发时谁先到谁赢
         int affected = this.baseMapper.closeOrder(orderInfo.getOrderSn());
         if (affected == 0) {
-            // 状态没改成，后面两件副作用都不能做：订单其实已被付款，库存该被实扣而不是释放
+            // 状态没改成：订单其实已被付款，库存该被实扣而不是释放
             log.warn("关单未生效，订单状态已被并发变更（可能是刚支付成功）：orderSn={}", orderInfo.getOrderSn());
             return false;
         }
@@ -1451,7 +1452,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         String orderSn = asyncVo.getOut_trade_no();
         String tradeStatus = asyncVo.getTrade_status();
 
-        // 只有这两个交易状态代表付款成功，其余状态（如退款后的 TRADE_CLOSED）只落流水，不动订单
+        // 只有这两个状态代表付款成功，其余状态只落流水，不动订单
         if (!"TRADE_SUCCESS".equals(tradeStatus) && !"TRADE_FINISHED".equals(tradeStatus)) {
             savePaymentInfo(asyncVo);
             return "success";
@@ -1465,8 +1466,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
             return "success";
         }
 
-        // 钱已到账但订单已被取消或超时关单：流水留证并告警，但不把订单改回已付款 ——
-        // 关单时库存已经释放，改回去会让一张已释放库存的单变成已付款
+        // 钱已到账但订单已关单：留流水并告警，但不改状态 —— 库存已释放
         if (OrderStatusEnum.CANCLED.getCode().equals(order.getStatus())) {
             log.error("已取消的订单收到支付成功回调，订单状态未变更，需人工核对退款：orderSn={}, tradeNo={}",
                     orderSn, asyncVo.getTrade_no());
@@ -1474,7 +1474,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
             return "success";
         }
 
-        // 已付款及之后的状态说明这笔通知是重复投递：不重复落流水、不重复核销，直接应答让支付宝停止重投
+        // 已付款及之后说明是重复投递：不落流水、不核销，直接应答停止重投
         if (!OrderStatusEnum.CREATE_NEW.getCode().equals(order.getStatus())) {
             log.info("支付回调重复投递，订单已处理过：orderSn={}, status={}", orderSn, order.getStatus());
             return "success";
@@ -1491,7 +1491,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
         int affected = this.updateOrderStatus(orderSn, OrderStatusEnum.PAYED.getCode(), PayConstant.ALIPAY);
         if (affected == 0) {
-            // 查询与更新之间订单被并发改走，条件更新拦住了这次覆盖
+            // 查询与更新之间订单被并发改走，条件更新拦住了覆盖
             log.error("支付回调的状态更新未生效，订单状态已被并发变更：orderSn={}", orderSn);
         }
 
@@ -1506,7 +1506,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
      * {@code oms_payment_info} 的 {@code alipay_trade_no} 是唯一键，重复插入会让整个事务回滚、
      * 回调方收到失败应答后继续重投，因此已存在时只记日志、不覆盖已落库的内容。
      *
-     * @param asyncVo 通知参数，提供交易号、订单号、金额与状态原文
+     * @param asyncVo 通知参数，不能为 {@code null}；提供交易号、订单号、金额与状态原文
      */
     private void savePaymentInfo(PayAsyncVo asyncVo) {
 
@@ -1542,7 +1542,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
      * @param orderSn 订单号
      * @param code 目标状态码，取自 {@link OrderStatusEnum}
      * @param payType 支付方式，取自 {@code PayConstant}
-     * @return 受影响行数，1 表示本次流转生效，0 表示订单不存在或已不是待付款状态
+     * @return 受影响行数；1 表示更新生效，0 表示订单不存在或已不是待付款状态
      */
     private int updateOrderStatus(String orderSn, Integer code,Integer payType) {
 
@@ -1565,8 +1565,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
             throw new RuntimeException("通过订单编号查询出来的结果是null");
         }
 
-        // 幂等：已支付或已取消的订单不再重复推进。这里回成功应答而不是抛异常 ——
-        // 抛异常会让微信收到失败应答并一直重投，而重投不产生新的结果
+        // 幂等：已支付或已取消时直接应答成功，不重复推进；重投不会改变结果
         Integer status = orderEntity.getStatus();
         if (status.equals(OrderStatusEnum.PAYED.getCode()) || status.equals(OrderStatusEnum.CANCLED.getCode())) {
             log.info("微信支付回调重复投递，订单已处理过：orderSn={}, status={}", orderEntity.getOrderSn(), status);
