@@ -20,11 +20,14 @@ import product.entity.CommentReplayEntity;
 import product.entity.SpuCommentEntity;
 import product.feign.OrderFeignService;
 import product.service.SpuCommentService;
+import product.vo.CommentAuditReplyVo;
+import product.vo.CommentAuditVo;
 import product.vo.CommentReplySubmitVo;
 import product.vo.CommentReplyVo;
 import product.vo.CommentSubmitVo;
 import product.vo.CommentSummaryVo;
 import product.vo.MyCommentVo;
+import product.vo.SpuCommentPageQuery;
 import product.vo.SpuCommentVo;
 
 import java.math.BigDecimal;
@@ -45,12 +48,13 @@ import common.query.PageQuery;
  *
  * <p>公开接口：{@link #querySpuComments} 与 {@link #summaryOfSpu} 按 SPU 聚合，共同过滤
  * {@code show_status = 1} 与 {@code comment_type = 0}，对外只给公开投影
- * （{@link #maskNickName} 打码昵称，会员 ID 与 IP 不出本类）。
+ * （{@link #maskNickName} 打码昵称，会员 ID 与 IP 只留在后台审核投影里）。
  *
  * <p>回复与直接评价同表，靠 {@code comment_type} 区分：回复行不带星级与订单项，商品字段只复制
  * {@code spu_id}，挂在哪条评价下记在 {@code pms_comment_replay}，只挂一层。
  *
- * <p>后台的分页查询与继承来的增删改不做业务校验。
+ * <p>后台走 {@link #queryAuditPage} 与 {@link #auditComment}：列表按直接评价分页、回复不过滤显示状态，
+ * 审核只改 {@code show_status}，不碰内容与计数。
  */
 @Slf4j
 @Service("spuCommentService")
@@ -61,6 +65,9 @@ public class SpuCommentServiceImpl extends ServiceImpl<SpuCommentDao, SpuComment
 
     /** 对评价的回复的 {@code comment_type} 取值。 */
     private static final int COMMENT_TYPE_REPLY = 1;
+
+    /** 下架的 {@code show_status} 取值；后台审核把要撤下的行置为该值。 */
+    private static final int SHOW_STATUS_HIDDEN = 0;
 
     /** 可见的 {@code show_status} 取值；0 是后台下架，公开接口一律不列。 */
     private static final int SHOW_STATUS_VISIBLE = 1;
@@ -88,10 +95,49 @@ public class SpuCommentServiceImpl extends ServiceImpl<SpuCommentDao, SpuComment
 
     /** {@inheritDoc} */
     @Override
-    public PageVO<SpuCommentEntity> queryPage(PageQuery query) {
-        IPage<SpuCommentEntity> page = this.page(query.toPage());
+    public PageVO<CommentAuditVo> queryAuditPage(SpuCommentPageQuery query) {
+        String key = query.getKey();
+        boolean hasKey = key != null && !key.isBlank();
 
-        return new PageVO<>(page.getTotal(), page.getRecords());
+        IPage<SpuCommentEntity> page = this.page(query.toPage(), new LambdaQueryWrapper<SpuCommentEntity>()
+                // 列表只按直接评价分页：回复挂在父评价的 replies 里，自己占一行会让总数虚高
+                .eq(SpuCommentEntity::getCommentType, COMMENT_TYPE_DIRECT)
+                .eq(query.getSkuId() != null, SpuCommentEntity::getSkuId, query.getSkuId())
+                .eq(query.getSpuId() != null, SpuCommentEntity::getSpuId, query.getSpuId())
+                .eq(query.getShowStatus() != null, SpuCommentEntity::getShowStatus, query.getShowStatus())
+                .and(hasKey, wrapper -> wrapper.like(SpuCommentEntity::getContent, key)
+                        .or().like(SpuCommentEntity::getSpuName, key)
+                        .or().like(SpuCommentEntity::getMemberNickName, key))
+                // 不过滤 show_status 与 star：已下架、没有星级的行都必须查得到，否则没有入口处理它们
+                .orderByDesc(SpuCommentEntity::getCreateTime));
+
+        Map<Long, List<CommentAuditReplyVo>> repliesByComment = queryAllRepliesByCommentIds(
+                page.getRecords().stream().map(SpuCommentEntity::getId).toList());
+        List<CommentAuditVo> rows = page.getRecords().stream()
+                .map(comment -> toAuditVo(comment, repliesByComment))
+                .toList();
+
+        return new PageVO<>(page.getTotal(), rows);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void auditComment(Long commentId, Integer showStatus) {
+        // 只认 0 与 1：别的值写进 tinyint(1) 会让可见性判断恒为 false，这一行在前台凭空消失且查不出原因
+        if (!Integer.valueOf(SHOW_STATUS_HIDDEN).equals(showStatus)
+                && !Integer.valueOf(SHOW_STATUS_VISIBLE).equals(showStatus)) {
+            throw new BaseException(BaseCodeEnum.VALID_EXCEPTION);
+        }
+
+        if (this.getById(commentId) == null) {
+            throw new BaseException(BaseCodeEnum.COMMENT_NOT_FOUND);
+        }
+
+        // 只带 id 与 show_status 走 updateById：其余字段为 null 不参与更新，审核不会顺带改写评价内容
+        SpuCommentEntity target = new SpuCommentEntity();
+        target.setId(commentId);
+        target.setShowStatus(showStatus);
+        this.updateById(target);
     }
 
     /** {@inheritDoc} */
@@ -399,6 +445,45 @@ public class SpuCommentServiceImpl extends ServiceImpl<SpuCommentDao, SpuComment
     }
 
     /**
+     * 批量查这些评价下的全部回复，按评价 ID 分组，含已下架的。
+     *
+     * <p>公开链路那条 {@link #queryRepliesByCommentIds} 只给可见回复，后台这条不能这么筛：
+     * 下架过的回复得回给审核页，否则没有任何入口把它们恢复。</p>
+     *
+     * @param commentIds 根评价 ID 列表，允许为空；为空时返回空 Map
+     * @return 评价 ID → 回复列表，按回复时间正序；没有回复的评价不在返回里
+     */
+    private Map<Long, List<CommentAuditReplyVo>> queryAllRepliesByCommentIds(List<Long> commentIds) {
+        // 空集合直接返回：拼出 IN () 是非法 SQL，这个坑在项目里出现过不止一次
+        if (commentIds.isEmpty()) {
+            return Map.of();
+        }
+
+        List<CommentReplayEntity> relations = commentReplayDao.selectList(new LambdaQueryWrapper<CommentReplayEntity>()
+                .in(CommentReplayEntity::getCommentId, commentIds));
+        if (relations.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<Long, Long> commentIdByReplyId = new LinkedHashMap<>();
+        for (CommentReplayEntity relation : relations) {
+            commentIdByReplyId.put(relation.getReplyId(), relation.getCommentId());
+        }
+
+        List<SpuCommentEntity> replies = this.list(new LambdaQueryWrapper<SpuCommentEntity>()
+                .in(SpuCommentEntity::getId, commentIdByReplyId.keySet())
+                .eq(SpuCommentEntity::getCommentType, COMMENT_TYPE_REPLY)
+                .orderByAsc(SpuCommentEntity::getCreateTime));
+
+        Map<Long, List<CommentAuditReplyVo>> grouped = new LinkedHashMap<>();
+        for (SpuCommentEntity reply : replies) {
+            grouped.computeIfAbsent(commentIdByReplyId.get(reply.getId()), key -> new ArrayList<>())
+                    .add(toAuditReplyVo(reply));
+        }
+        return grouped;
+    }
+
+    /**
      * 判断一行是不是公开区里能看到的内容：有星级的可见直接评价，或可见的回复。
      *
      * <p>点赞以它为前提 —— 列表里看不到的行不该能点赞。直接评价要不要星级，口径与
@@ -487,6 +572,49 @@ public class SpuCommentServiceImpl extends ServiceImpl<SpuCommentDao, SpuComment
         vo.setMemberNickName(maskNickName(reply.getMemberNickName()));
         vo.setContent(reply.getContent());
         vo.setCreateTime(reply.getCreateTime());
+        vo.setLikesCount(nullToZero(reply.getLikesCount()));
+        return vo;
+    }
+
+    /**
+     * 把评价行转成后台审核投影，并挂上它的回复。
+     *
+     * @param comment 评价行，不能为 {@code null}
+     * @param repliesByComment 评价 ID → 回复列表，见 {@link #queryAllRepliesByCommentIds}
+     * @return 含会员 ID 与显示状态的投影，昵称不打码
+     */
+    private CommentAuditVo toAuditVo(SpuCommentEntity comment, Map<Long, List<CommentAuditReplyVo>> repliesByComment) {
+        CommentAuditVo vo = new CommentAuditVo();
+        vo.setId(comment.getId());
+        vo.setSpuId(comment.getSpuId());
+        vo.setSkuId(comment.getSkuId());
+        vo.setSpuName(comment.getSpuName());
+        vo.setMemberId(comment.getMemberId());
+        vo.setMemberNickName(comment.getMemberNickName());
+        vo.setStar(comment.getStar());
+        vo.setContent(comment.getContent());
+        vo.setCreateTime(comment.getCreateTime());
+        vo.setShowStatus(comment.getShowStatus());
+        vo.setLikesCount(nullToZero(comment.getLikesCount()));
+        vo.setReplyCount(nullToZero(comment.getReplyCount()));
+        vo.setReplies(repliesByComment.getOrDefault(comment.getId(), List.of()));
+        return vo;
+    }
+
+    /**
+     * 把回复行转成后台审核投影。
+     *
+     * @param reply 回复行，不能为 {@code null}
+     * @return 含会员 ID 与显示状态的投影，昵称不打码
+     */
+    private CommentAuditReplyVo toAuditReplyVo(SpuCommentEntity reply) {
+        CommentAuditReplyVo vo = new CommentAuditReplyVo();
+        vo.setId(reply.getId());
+        vo.setMemberId(reply.getMemberId());
+        vo.setMemberNickName(reply.getMemberNickName());
+        vo.setContent(reply.getContent());
+        vo.setCreateTime(reply.getCreateTime());
+        vo.setShowStatus(reply.getShowStatus());
         vo.setLikesCount(nullToZero(reply.getLikesCount()));
         return vo;
     }

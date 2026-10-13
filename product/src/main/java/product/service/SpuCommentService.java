@@ -4,11 +4,13 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import common.to.CommentBriefVo;
 import common.vo.PageVO;
 import product.entity.SpuCommentEntity;
+import product.vo.CommentAuditVo;
 import product.vo.CommentReplySubmitVo;
 import product.vo.CommentReplyVo;
 import product.vo.CommentSubmitVo;
 import product.vo.CommentSummaryVo;
 import product.vo.MyCommentVo;
+import product.vo.SpuCommentPageQuery;
 import product.vo.SpuCommentVo;
 
 import java.util.List;
@@ -23,17 +25,39 @@ import common.query.PageQuery;
  * 商品详情页走 {@link #querySpuComments} 与 {@link #summaryOfSpu}（公开、按 SPU 聚合、昵称已打码）；
  * 订单服务走 {@link #listCommentedItems} 批量查哪些订单项已评价。
  *
- * <p>后台的增删改由继承的 {@code IService} 提供，不做业务校验。
+ * <p>后台走 {@link #queryAuditPage} 与 {@link #auditComment}：列表按直接评价分页、回复挂在各自父评价下，
+ * 审核只改显示状态。评价只能由会员在会员端发起，后台没有新增与删除入口。
  */
 public interface SpuCommentService extends IService<SpuCommentEntity> {
 
     /**
-     * 分页查询全部商品评价，不带筛选条件。
+     * 分页查询后台审核用的评价列表，回复挂在各自的父评价下。
      *
-     * @param query 分页参数，{@code page} 为页码、{@code limit} 为每页条数，不能为 {@code null}
-     * @return 分页结果，{@code rows} 为评价列表
+     * <p>不过滤显示状态：已下架的行也要能查到，否则没有入口把它们恢复。筛选条件由 {@code query} 给出，
+     * 都不填时列出全部直接评价（{@code comment_type = 0}），按评价时间倒序。</p>
+     *
+     * <p>实现方必须保证：只按直接评价分页，回复不单独占一行 —— 回复行混进列表会让总数虚高、
+     * 每条评价的回复数也对不上。</p>
+     *
+     * @param query 查询条件，不能为 {@code null}
+     * @return 分页结果，{@code rows} 为审核投影，每行的 {@code replies} 含该评价下已下架的回复
      */
-    PageVO<SpuCommentEntity> queryPage(PageQuery query);
+    PageVO<CommentAuditVo> queryAuditPage(SpuCommentPageQuery query);
+
+    /**
+     * 审核一条评价或回复：下架或恢复。
+     *
+     * <p>只改显示状态，不碰内容、星级与计数。下架一条直接评价后它连同下属回复一起从前台消失，
+     * 回复行自身的显示状态不受影响；只想下架某一条回复时，在 {@code commentId} 处传回复的主键。</p>
+     *
+     * <p>幂等：把显示状态设成它当前的值不报错，重复调用结果一致。</p>
+     *
+     * @param commentId 评价或回复主键，不能为 {@code null}
+     * @param showStatus 目标显示状态，只能为 0（下架）或 1（恢复）
+     * @throws common.exception.BaseException 这一行不存在时抛 {@code COMMENT_NOT_FOUND}；
+     *         {@code showStatus} 不是 0 或 1 时抛 {@code VALID_EXCEPTION}
+     */
+    void auditComment(Long commentId, Integer showStatus);
 
     /**
      * 提交一条商品评价。

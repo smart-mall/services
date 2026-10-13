@@ -7,17 +7,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import product.entity.SpuCommentEntity;
 import product.service.SpuCommentService;
+import product.vo.CommentAuditVo;
+import product.vo.SpuCommentPageQuery;
 
-import java.util.Arrays;
 import java.util.List;
 
-
-import common.query.PageQuery;
 /**
- * 商品评价的后台管理接口：分页列表、详情、新增、修改、删除，以及一条供订单服务调用的服务间接口。
+ * 商品评价的后台管理接口：审核列表、下架/恢复、详情，以及一条供订单服务调用的服务间接口。
  *
- * <p>路径不在 {@code /front} 下，经网关访问时按管理端接口鉴权；评价下的回复关系走
- * {@link CommentReplayController}。
+ * <p>路径不在 {@code /front} 下，经网关访问时按管理端接口鉴权。
+ *
+ * <p>没有新增与删除：评价只能由会员在会员端对自己买过的订单项发起，删除还会连带清掉回复与订单上的
+ * 评价时间，后台撤下一条评价做的是下架，而不是把记录抹掉。
  *
  * <p>{@link #commentedItems(List)} 是给 order 用的：由 {@code order/feign/ProductFeignService}
  * 直连调用、不经网关，返回"订单项到评价摘要"的映射，供会员订单列表决定显示「评价」还是「查看评论」。
@@ -29,16 +30,14 @@ public class SpuCommentController {
     private SpuCommentService spuCommentService;
 
     /**
-     * 分页查询商品评价。
+     * 分页查询评价，回复挂在各自的父评价下。
      *
-     * @param query 分页参数，{@code page} 为页码、{@code limit} 为每页条数
-     * @return 分页结果，{@code rows} 为评价列表
+     * @param query 查询条件：分页参数与 SKU/SPU/显示状态/关键字筛选，字段留空即不参与过滤
+     * @return 分页结果，{@code rows} 为审核投影，每行的 {@code replies} 为该评价下的回复
      */
     @RequestMapping("/list")
-    public R<PageVO<SpuCommentEntity>> list(PageQuery query){
-        PageVO<SpuCommentEntity> page = spuCommentService.queryPage(query);
-
-        return R.ok(page);
+    public R<PageVO<CommentAuditVo>> list(SpuCommentPageQuery query){
+        return R.ok(spuCommentService.queryAuditPage(query));
     }
 
 
@@ -56,19 +55,6 @@ public class SpuCommentController {
     }
 
     /**
-     * 新增一条商品评价。
-     *
-     * @param spuComment 评价内容，需带 {@code spuId} 与 {@code skuId}
-     * @return 统一成功响应，不含业务数据
-     */
-    @RequestMapping("/save")
-    public R<Void> save(@RequestBody SpuCommentEntity spuComment){
-		spuCommentService.save(spuComment);
-
-        return R.ok();
-    }
-
-    /**
      * 按主键修改商品评价。
      *
      * @param spuComment 评价内容，主键必填
@@ -82,14 +68,17 @@ public class SpuCommentController {
     }
 
     /**
-     * 按主键批量删除商品评价。
+     * 审核一条评价或回复：下架或恢复。
      *
-     * @param ids 待删除的评价主键数组
+     * <p>传入回复的主键即可单独撤下某一条回复；下架一条直接评价则它连同下属回复一起从前台消失。</p>
+     *
+     * @param id 评价或回复主键
+     * @param showStatus 目标显示状态，0 为下架、1 为恢复
      * @return 统一成功响应，不含业务数据
      */
-    @RequestMapping("/delete")
-    public R<Void> delete(@RequestBody Long[] ids){
-		spuCommentService.removeByIds(Arrays.asList(ids));
+    @PostMapping("/audit/{id}")
+    public R<Void> audit(@PathVariable("id") Long id, @RequestParam("showStatus") Integer showStatus){
+        spuCommentService.auditComment(id, showStatus);
 
         return R.ok();
     }
