@@ -1,6 +1,6 @@
 package order.constant;
 
-/** 订单服务的常量：防重令牌、测试支付票据与订单来源。 */
+/** 订单服务的常量：防重令牌、测试支付票据、订单来源与自动确认天数。 */
 public class OrderConstant {
 
     /** 防重令牌的 Redis 键前缀，实际键为前缀拼接 memberId。 */
@@ -31,5 +31,12 @@ public class OrderConstant {
      * <p>会员端只有浏览器 SPA 一个入口，不区分 App，因此订单来源恒为 PC 订单。
      */
     public static final int SOURCE_TYPE_PC = 0;
+
+    /**
+     * 自动确认收货的天数，下单时写进 {@code oms_order.auto_confirm_day}。
+     *
+     * <p>普通订单与秒杀单都写这个值，集中在这里以免两条建单路径各写一遍而漂移。
+     */
+    public static final int AUTO_CONFIRM_DAY = 7;
 
 }

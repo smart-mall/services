@@ -4,11 +4,16 @@ import order.entity.OrderEntity;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 
+
+import java.util.List;
+
 /**
  * {@code oms_order} 表的 MyBatis-Plus Mapper，映射订单主表 {@link OrderEntity}。
  *
- * <p>自定义 SQL 有三条状态流转：{@link #updateOrderStatus} 服务于支付，{@link #deliverOrder}
- * 服务于发货，{@link #closeOrder} 服务于关单与取消；其余使用 {@link BaseMapper} 提供的通用增删改查。
+ * <p>自定义 SQL 有四条状态流转：{@link #updateOrderStatus} 服务于支付，{@link #deliverOrder}
+ * 服务于发货，{@link #confirmReceive} 服务于确认收货，{@link #closeOrder} 服务于关单与取消；
+ * 另有 {@link #selectAutoConfirmable} 供自动确认任务扫描到期订单，其余使用 {@link BaseMapper}
+ * 提供的通用增删改查。
  */
 @Mapper
 public interface OrderDao extends BaseMapper<OrderEntity> {
@@ -55,4 +60,26 @@ public interface OrderDao extends BaseMapper<OrderEntity> {
      * @return 受影响行数，1 表示关单生效，0 表示订单不存在或已不是待付款状态
      */
     int closeOrder(String orderSn);
+
+    /**
+     * 确认收货：把订单从"已发货"改成已完成，并写入确认状态与确认收货时间。
+     *
+     * <p>SQL 见 {@code mapper/order/OrderDao.xml}：{@code WHERE} 带 {@code status = 2}，
+     * 判断与写入是同一条 SQL，因此会员手动确认与任务自动确认并发时只有一个会成功。
+     *
+     * @param orderSn 订单号，业务主键，不能为 {@code null}
+     * @return 受影响行数，1 表示确认生效，0 表示订单不存在或已不是已发货状态
+     */
+    int confirmReceive(String orderSn);
+
+    /**
+     * 查出已经越过自动确认期限的订单号，供自动确认任务逐单确认。
+     *
+     * <p>SQL 见 {@code mapper/order/OrderDao.xml}：期限按发货时间加 {@code auto_confirm_day} 天算，
+     * 比较在数据库里完成，不受应用时区影响。{@code auto_confirm_day} 为空的历史订单不会被选出。
+     *
+     * @param limit 单轮最多取多少条，必须为正数
+     * @return 到期可自动确认的订单号；没有到期订单时返回空列表
+     */
+    List<String> selectAutoConfirmable(int limit);
 }

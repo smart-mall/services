@@ -162,4 +162,20 @@ public class OrderFrontController {
         orderService.cancelOrder(LoginUserUtils.requireCurrentUser(request), orderSn);
         return R.ok();
     }
+
+    /**
+     * 确认收货，把已发货的订单置为已完成。
+     *
+     * <p>订单不在已发货状态时返回 {@code ORDER_STATUS_INVALID}（17003）—— 被自动确认任务抢先确认的
+     * 订单走的就是这一分支。</p>
+     *
+     * @param request 当前请求，用于取出登录用户
+     * @param orderSn 订单号，必须是当前用户自己的已发货订单
+     * @return 成功响应，无数据
+     */
+    @PutMapping("/receive/{orderSn}")
+    public R<Void> receive(HttpServletRequest request, @PathVariable("orderSn") String orderSn) {
+        orderService.confirmReceive(LoginUserUtils.requireCurrentUser(request), orderSn);
+        return R.ok();
+    }
 }

@@ -1324,7 +1324,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         orderEntity.setReceiverDetailAddress(address.getDetailAddress());
 
         orderEntity.setStatus(OrderStatusEnum.CREATE_NEW.getCode());
-        orderEntity.setAutoConfirmDay(7);
+        orderEntity.setAutoConfirmDay(OrderConstant.AUTO_CONFIRM_DAY);
         orderEntity.setConfirmStatus(0);
         // 支付方式在提交订单时已选定，落库记录下来；支付回调会按实际结果覆盖一次
         orderEntity.setPayType(submitVo.getPayType());
@@ -1735,6 +1735,32 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
     /** {@inheritDoc} */
     @Override
+    public void confirmReceive(MemberResponseVo user, String orderSn) {
+        requireOwnOrder(user, orderSn);
+
+        // 带状态条件的 UPDATE：判断"是不是已发货"与写入"置为已完成"是同一条 SQL。
+        // 与自动确认任务撞上时只有一个会成功，另一个落到下面的状态错误
+        if (this.baseMapper.confirmReceive(orderSn) == 0) {
+            log.info("确认收货未生效，订单不是已发货状态：orderSn={}", orderSn);
+            throw new BaseException(BaseCodeEnum.ORDER_STATUS_INVALID);
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public int autoConfirmReceive(int limit) {
+        // 逐单独立更新，不合到一个事务里：某一单失败不该回滚已经确认好的其他订单
+        int confirmed = 0;
+        for (String orderSn : this.baseMapper.selectAutoConfirmable(limit)) {
+            if (this.baseMapper.confirmReceive(orderSn) > 0) {
+                confirmed++;
+            }
+        }
+        return confirmed;
+    }
+
+    /** {@inheritDoc} */
+    @Override
     public List<DeliveryCompanyVo> listDeliveryCompanies() {
         return DeliveryCompanyEnum.listAll().stream()
                 .map(company -> new DeliveryCompanyVo(company.getCode(), company.getName()))
@@ -1751,8 +1777,26 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         orderEntity.setMemberId(orderTo.getMemberId());
         orderEntity.setCreateTime(new Date());
         BigDecimal totalPrice = orderTo.getSeckillPrice().multiply(BigDecimal.valueOf(orderTo.getNum()));
+        int gift = totalPrice.intValue();
+
+        // 与普通下单同一套口径：总额是商品金额、应付 = 总额 + 运费；
+        // 秒杀单不收运费、不参与用券与积分抵扣，那几列写 0 而不是留 NULL
+        orderEntity.setTotalAmount(totalPrice);
+        orderEntity.setFreightAmount(BigDecimal.ZERO);
         orderEntity.setPayAmount(totalPrice);
+        orderEntity.setCouponAmount(BigDecimal.ZERO);
+        orderEntity.setPromotionAmount(BigDecimal.ZERO);
+        orderEntity.setIntegrationAmount(BigDecimal.ZERO);
+        orderEntity.setIntegration(gift);
+        orderEntity.setGrowth(gift);
+        // memberUsername 留 NULL：秒杀消息里没有用户名，
+        // member 的 Feign 也没有按 id 查会员的接口，取不到的值不猜
         orderEntity.setStatus(OrderStatusEnum.CREATE_NEW.getCode());
+        // 自动确认扫描按这两列选单，缺了就永远扫不到这一单
+        orderEntity.setAutoConfirmDay(OrderConstant.AUTO_CONFIRM_DAY);
+        orderEntity.setConfirmStatus(0);
+        // 会员端列表按 delete_status = 0 过滤，不写就查不到这一单
+        orderEntity.setDeleteStatus(0);
         // 秒杀单同样来自会员端 SPA；支付方式此时尚未选定，留空由支付回调写入
         orderEntity.setSourceType(OrderConstant.SOURCE_TYPE_PC);
 
@@ -1771,6 +1815,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         orderEntity.setReceiverCity(addressVo.getCity());
         orderEntity.setReceiverRegion(addressVo.getRegion());
         orderEntity.setReceiverDetailAddress(addressVo.getDetailAddress());
+        orderEntity.setReceiverPostCode(addressVo.getPostCode());
 
         this.save(orderEntity);
 
@@ -1792,14 +1837,17 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
         R<SkuInfoVo> skuInfo = productFeignService.getSkuInfoBySkuId(orderTo.getSkuId());
         SkuInfoVo skuInfoVo = skuInfo.getData();
+        orderItem.setSkuId(orderTo.getSkuId());
         orderItem.setSkuName(skuInfoVo.getSkuName());
         orderItem.setSkuPic(skuInfoVo.getSkuDefaultImg());
         orderItem.setSkuPrice(skuInfoVo.getPrice());
         orderItem.setPromotionAmount(new BigDecimal(0));
         orderItem.setCouponAmount(new BigDecimal(0));
         orderItem.setIntegrationAmount(new BigDecimal(0));
-        orderItem.setGiftGrowth(orderTo.getSeckillPrice().intValueExact());
-        orderItem.setGiftIntegration(orderTo.getSeckillPrice().intValueExact());
+        // 按订单项总额算，与普通下单一致；不用 intValueExact ——
+        // 它遇到带小数的秒杀价会抛异常，而消费端失败是无限重投
+        orderItem.setGiftGrowth(gift);
+        orderItem.setGiftIntegration(gift);
         orderItemService.save(orderItem);
     }
 

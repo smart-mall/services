@@ -243,6 +243,35 @@ public interface OrderService extends IService<OrderEntity> {
     void deliverOrder(DeliverVo vo);
 
     /**
+     * 确认收货：把已发货的订单置为已完成，并写入确认状态与确认收货时间。
+     *
+     * <p>只允许 {@code status} 为已发货的订单确认，靠带状态条件的 UPDATE 保证：判断与写入是同一条 SQL，
+     * 与自动确认任务并发时只有一个会成功，输的那个落到 {@code ORDER_STATUS_INVALID}。</p>
+     *
+     * <p>确认收货不计积分与成长值：{@code oms_order.integration} 与 {@code growth} 在下单时就已算好，
+     * 发放属于积分业务，尚未开工。</p>
+     *
+     * @param user    当前登录会员，不能为 {@code null}
+     * @param orderSn 订单号，不能为 {@code null}
+     * @throws common.exception.BaseException 订单不存在或不属于该会员 {@code ORDER_NOT_FOUND}、
+     *         状态不是已发货或已被自动确认 {@code ORDER_STATUS_INVALID}
+     */
+    void confirmReceive(MemberResponseVo user, String orderSn);
+
+    /**
+     * 自动确认收货：把已发货且超过 {@code auto_confirm_day} 天仍未确认的订单置为已完成。
+     *
+     * <p>供定时任务调用。逐单独立提交，不包在一个事务里：每一单的条件更新各自幂等，
+     * 某一单失败不该回滚已经确认的其他订单。</p>
+     *
+     * <p>多实例安全：多个实例同时跑只会重复扫一遍，不会把订单重复流转。</p>
+     *
+     * @param limit 单轮最多确认多少单，必须为正数
+     * @return 实际置为已完成的订单数；没有到期订单时返回 0
+     */
+    int autoConfirmReceive(int limit);
+
+    /**
      * 查询支持的物流公司，供管理端发货弹窗的下拉框使用。
      *
      * <p>只读，不查库：取值就是 {@link order.enums.DeliveryCompanyEnum} 本身。</p>

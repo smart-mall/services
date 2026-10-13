@@ -83,5 +83,29 @@
           AND `status` = 0
     </update>
 
+    <!-- 确认收货：已发货 2 -> 已完成 3，两个状态都固化在语句里（取值见 order.enums.OrderStatusEnum）。
+         带 status = 2 条件，判断与写入是同一条 SQL：会员手动确认与任务自动确认并发时只有一个会成功 -->
+    <update id="confirmReceive">
+        UPDATE oms_order
+        SET `status` = 3,
+            confirm_status = 1,
+            receive_time = NOW(),
+            modify_time = NOW()
+        WHERE order_sn = #{orderSn}
+          AND `status` = 2
+    </update>
+
+    <!-- 自动确认任务扫描到期订单：期限 = 发货时间 + auto_confirm_day 天，比较全在库里做（DB 跑 UTC）。
+         auto_confirm_day 为空的行不会被选出 —— 秒杀单在补齐这两个字段之前建出的行就是空的 -->
+    <select id="selectAutoConfirmable" resultType="java.lang.String">
+        SELECT order_sn
+        FROM oms_order
+        WHERE `status` = 2
+          AND auto_confirm_day IS NOT NULL
+          AND delivery_time &lt;= DATE_SUB(NOW(), INTERVAL auto_confirm_day DAY)
+        ORDER BY delivery_time
+        LIMIT #{limit}
+    </select>
+
 
 </mapper>
