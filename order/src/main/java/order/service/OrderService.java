@@ -11,7 +11,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 
-import common.query.PageQuery;
 import order.vo.OrderPageQuery;
 /**
  * 订单服务：结算页组装、提交下单、订单查询、支付结果处理与发货。
@@ -23,12 +22,16 @@ public interface OrderService extends IService<OrderEntity> {
     /**
      * 分页查询全部订单，供后台列表使用。
      *
-     * <p>不做会员过滤：任何会员的订单都会返回。
+     * <p>不做会员过滤：任何会员的订单都会返回。结果按下单时间倒序。{@code key} 同时匹配订单号、
+     * 收货人与下单会员名，时间区间按下单时间比较，除分页外的字段为空即不过滤。</p>
      *
-     * @param query 分页参数，不能为 {@code null}
+     * <p>每行的 {@code statusText} 已填好，{@code orderItemEntityList} 为空：列表不带订单项，
+     * 需要订单项请调用 {@link #getOrderDetailForAdmin}。</p>
+     *
+     * @param query 查询条件，不能为 {@code null}
      * @return 分页结果，{@code rows} 为当前页订单；当前页没有数据时为空列表
      */
-    PageVO<OrderEntity> queryPage(PageQuery query);
+    PageVO<OrderEntity> queryPage(OrderPageQuery query);
 
     /**
      * 组装结算页数据：收货地址、已勾选购物项、库存、积分、防重令牌、可用券与四个金额。
@@ -108,6 +111,17 @@ public interface OrderService extends IService<OrderEntity> {
     OrderEntity getOrderDetail(MemberResponseVo user, String orderSn);
 
     /**
+     * 查询订单详情，供后台查看，不做会员归属校验。
+     *
+     * <p>与查自己订单的详情只差归属校验：后台看的是全部会员的订单。</p>
+     *
+     * @param orderSn 订单号，不能为 {@code null}
+     * @return 订单详情，{@code orderItemEntityList} 与 {@code statusText} 已填好
+     * @throws common.exception.BaseException 订单不存在时抛 {@code ORDER_NOT_FOUND}
+     */
+    OrderEntity getOrderDetailForAdmin(String orderSn);
+
+    /**
      * 按订单号查询订单，不做归属校验。
      *
      * <p>面向会员的接口不能用它：它会把别人的订单也返回，请改用 {@code getOrderDetail}。
@@ -176,6 +190,33 @@ public interface OrderService extends IService<OrderEntity> {
      * @param orderEntity 延迟消息携带的订单，只读取 {@code orderSn}；不能为 {@code null}
      */
     void closeOrder(OrderEntity orderEntity);
+
+    /**
+     * 后台关闭订单：把待付款的订单置为已取消，并释放库存、退回优惠券。
+     *
+     * <p>与超时关单共用同一条路径，生效条件也一样（{@code status} 为待付款）；差别在结果反馈：
+     * 状态不支持时抛异常，而不是像消息消费那样静默跳过。</p>
+     *
+     * <p>副作用：订单状态置为已取消，并以消息记录的形式通知仓库释放库存；消息记录与状态变更在同一事务，
+     * 写不进去就整体回滚。订单在并发中被支付成功时，关单不生效。</p>
+     *
+     * @param orderSn 订单号，不能为 {@code null}
+     * @throws common.exception.BaseException 订单不存在 {@code ORDER_NOT_FOUND}、
+     *         状态不是待付款或并发中被支付成功 {@code ORDER_STATUS_INVALID}
+     */
+    void closeOrderByAdmin(String orderSn);
+
+    /**
+     * 修改订单备注。
+     *
+     * <p>备注是给运营看的说明，不参与状态流转，因此任何状态的订单都能改；可写的字段只有备注一个，
+     * 金额、收货信息与状态都不在可改范围内。</p>
+     *
+     * @param orderSn 订单号，不能为 {@code null}
+     * @param note 订单备注，长度不超过 500；传 {@code null} 或空串表示清空
+     * @throws common.exception.BaseException 订单不存在时抛 {@code ORDER_NOT_FOUND}
+     */
+    void updateNote(String orderSn, String note);
 
     /**
      * 处理支付宝的异步支付通知：落一条交易流水，并在支付成功时把订单置为已付款。
@@ -279,6 +320,15 @@ public interface OrderService extends IService<OrderEntity> {
      * @return 物流公司选项，顺序与枚举声明一致；至少有一项
      */
     List<DeliveryCompanyVo> listDeliveryCompanies();
+
+    /**
+     * 查询订单状态选项，供管理端筛选下拉框使用。
+     *
+     * <p>只读，不查库：取值就是 {@link order.enums.OrderStatusEnum} 本身，状态文案只在枚举里维护一份。</p>
+     *
+     * @return 状态选项，顺序与枚举声明一致
+     */
+    List<OrderStatusOptionVo> listStatusOptions();
 
     /**
      * 创建秒杀订单：落订单主表与订单项，收货人取该会员的默认地址。

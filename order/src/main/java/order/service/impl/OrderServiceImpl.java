@@ -47,6 +47,7 @@ import order.vo.FareVo;
 import order.vo.MemberAddressVo;
 import order.vo.OrderConfirmVo;
 import order.vo.OrderItemVo;
+import order.vo.OrderStatusOptionVo;
 import order.vo.OrderStatusVo;
 import order.vo.OrderSubmitVo;
 import order.vo.PayAsyncVo;
@@ -93,7 +94,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import common.query.PageQuery;
 import order.vo.OrderPageQuery;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import static com.lly835.bestpay.enums.BestPayTypeEnum.WXPAY_NATIVE;
@@ -158,10 +158,43 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
             "</xml>";
 
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     *
+     * <p>关键字跨订单号、收货人、会员名三列，三个 or 用一个 and 包住：不包的话 or 会把后面的
+     * 状态与时间条件一起放开，查出不匹配的订单。</p>
+     */
     @Override
-    public PageVO<OrderEntity> queryPage(PageQuery query) {
-        IPage<OrderEntity> page = this.page(query.toPage());
+    public PageVO<OrderEntity> queryPage(OrderPageQuery query) {
+        LambdaQueryWrapper<OrderEntity> wrapper = new LambdaQueryWrapper<>();
+
+        String key = query.getKey();
+        if (key != null && !key.isBlank()) {
+            wrapper.and(inner -> inner.like(OrderEntity::getOrderSn, key)
+                    .or().like(OrderEntity::getReceiverName, key)
+                    .or().like(OrderEntity::getMemberUsername, key));
+        }
+
+        String status = query.getStatus();
+        if (status != null && !status.isBlank()) {
+            wrapper.eq(OrderEntity::getStatus, status);
+        }
+
+        String startTime = query.getStartTime();
+        if (startTime != null && !startTime.isBlank()) {
+            wrapper.ge(OrderEntity::getCreateTime, startTime);
+        }
+
+        String endTime = query.getEndTime();
+        if (endTime != null && !endTime.isBlank()) {
+            wrapper.le(OrderEntity::getCreateTime, endTime);
+        }
+
+        // 同一秒下的单按主键兜底，否则翻页可能重复或漏单
+        wrapper.orderByDesc(OrderEntity::getCreateTime).orderByDesc(OrderEntity::getId);
+
+        IPage<OrderEntity> page = this.page(query.toPage(), wrapper);
+        fillStatusText(page.getRecords());
 
         return new PageVO<>(page.getTotal(), page.getRecords());
     }
@@ -912,9 +945,30 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     /** {@inheritDoc} */
     @Override
     public OrderEntity getOrderDetail(MemberResponseVo user, String orderSn) {
-        OrderEntity order = requireOwnOrder(user, orderSn);
-        order.setOrderItemEntityList(
-                orderItemService.list(new LambdaQueryWrapper<OrderItemEntity>().eq(OrderItemEntity::getOrderSn, orderSn)));
+        return fillDetail(requireOwnOrder(user, orderSn));
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public OrderEntity getOrderDetailForAdmin(String orderSn) {
+        OrderEntity order = getOrderByOrderSn(orderSn);
+        if (order == null) {
+            throw new BaseException(BaseCodeEnum.ORDER_NOT_FOUND);
+        }
+        return fillDetail(order);
+    }
+
+    /**
+     * 装配订单详情：补订单项与状态文案。
+     *
+     * <p>只在详情接口用，列表不带订单项：一页十条订单各查一次订单项是 N+1。</p>
+     *
+     * @param order 已查出的订单，不能为 {@code null}
+     * @return 同一个订单对象，{@code orderItemEntityList} 与 {@code statusText} 已填好
+     */
+    private OrderEntity fillDetail(OrderEntity order) {
+        order.setOrderItemEntityList(orderItemService.list(
+                new LambdaQueryWrapper<OrderItemEntity>().eq(OrderItemEntity::getOrderSn, order.getOrderSn())));
         order.setStatusText(statusText(order.getStatus()));
         return order;
     }
@@ -1137,6 +1191,30 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
         if (OrderStatusEnum.CREATE_NEW.getCode().equals(orderInfo.getStatus())) {
             doClose(orderInfo);
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void closeOrderByAdmin(String orderSn) {
+        OrderEntity order = getOrderByOrderSn(orderSn);
+        if (order == null) {
+            throw new BaseException(BaseCodeEnum.ORDER_NOT_FOUND);
+        }
+
+        // 关单不生效只可能是订单已被支付或已关闭：doClose 带 status = 0 条件，
+        // 没生效就没写过任何数据，报状态错误是安全的
+        if (!doClose(order)) {
+            throw new BaseException(BaseCodeEnum.ORDER_STATUS_INVALID);
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void updateNote(String orderSn, String note) {
+        if (this.baseMapper.updateNote(orderSn, note) == 0) {
+            throw new BaseException(BaseCodeEnum.ORDER_NOT_FOUND);
         }
     }
 
@@ -1764,6 +1842,14 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     public List<DeliveryCompanyVo> listDeliveryCompanies() {
         return DeliveryCompanyEnum.listAll().stream()
                 .map(company -> new DeliveryCompanyVo(company.getCode(), company.getName()))
+                .toList();
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public List<OrderStatusOptionVo> listStatusOptions() {
+        return Arrays.stream(OrderStatusEnum.values())
+                .map(status -> new OrderStatusOptionVo(status.getCode(), status.getMsg()))
                 .toList();
     }
 

@@ -11,17 +11,20 @@ import order.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Arrays;
 import java.util.List;
-
 
 
 import order.vo.DeliverVo;
 import order.vo.DeliveryCompanyVo;
+import order.vo.OrderNoteVo;
+import order.vo.OrderPageQuery;
+import order.vo.OrderStatusOptionVo;
 import order.vo.OrderStatusVo;
-import common.query.PageQuery;
 /**
- * 订单（{@code oms_order} 表）的后台管理接口：分页列表、详情、新增、修改、删除与发货。
+ * 订单（{@code oms_order} 表）的后台管理接口：分页列表、详情、发货、关闭、改备注与状态选项查询。
+ *
+ * <p>不提供按主键改任意字段与按主键删除的接口：订单是财务与售后的凭据，物理删除会留下孤儿订单项，
+ * 而自由更新能绕过状态流转；需要作废走 {@link #close(String)}，它带状态前置条件并会释放库存。
  *
  * <p>路径不在 {@code /front} 下，经网关访问时按管理端接口鉴权；另有 ware 释放库存前调用的状态查询，
  * 见 {@link #status(String)}。会员侧接口在 {@code order.web.OrderFrontController}。
@@ -36,11 +39,12 @@ public class OrderController {
     /**
      * 分页查询订单。
      *
-     * @param query 分页参数，{@code page} 为页码、{@code limit} 为每页条数
-     * @return 分页结果，{@code rows} 为订单列表
+     * @param query 查询条件，{@code page} 为页码、{@code limit} 为每页条数；{@code key} 匹配订单号、
+     *              收货人与下单会员名，{@code startTime} 与 {@code endTime} 按下单时间过滤，均可为空
+     * @return 分页结果，{@code rows} 为订单列表，每行的 {@code statusText} 已填好
      */
     @RequestMapping("/list")
-    public R<PageVO<OrderEntity>> list(PageQuery query){
+    public R<PageVO<OrderEntity>> list(OrderPageQuery query){
         log.info("查询订单列表: {}", JSON.toJSONString( query, SerializerFeature.PrettyFormat));
         PageVO<OrderEntity> page = orderService.queryPage(query);
 
@@ -81,45 +85,20 @@ public class OrderController {
     }
 
     /**
-     * 新增一条订单。
+     * 查询订单详情，附带订单项与状态文案，供后台的详情弹窗使用。
      *
-     * @param order 订单内容，主键由数据库生成
-     * @return 统一成功响应，不含业务数据
-     */
-    @RequestMapping("/save")
-    public R<Void> save(@RequestBody OrderEntity order){
-        log.info("保存订单: {}", JSON.toJSONString(order, SerializerFeature.PrettyFormat));
-		orderService.save(order);
-
-        return R.ok();
-    }
-
-    /**
-     * 按主键修改一条订单。
+     * <p>与 {@link #info(Long)} 的区别是按业务主键查询并带上订单项：后台看单要知道买了什么，
+     * 而订单项不在 {@code oms_order} 表里。</p>
      *
-     * @param order 订单内容，主键必填；为 {@code null} 的字段不参与更新
-     * @return 统一成功响应，不含业务数据
+     * @param orderSn 订单号
+     * @return 订单详情，{@code orderItemEntityList} 与 {@code statusText} 已填好；
+     *         订单不存在时返回 {@code ORDER_NOT_FOUND}
      */
-    @RequestMapping("/update")
-    public R<Void> update(@RequestBody OrderEntity order){
-        log.info("修改订单: {}", JSON.toJSONString(order, SerializerFeature.PrettyFormat));
-		orderService.updateById(order);
+    @GetMapping("/detail/{orderSn}")
+    public R<OrderEntity> detail(@PathVariable("orderSn") String orderSn){
+        log.info("订单详情: {}", orderSn);
 
-        return R.ok();
-    }
-
-    /**
-     * 按主键批量删除订单。
-     *
-     * @param ids 待删除的订单主键数组
-     * @return 统一成功响应，不含业务数据
-     */
-    @RequestMapping("/delete")
-    public R<Void> delete(@RequestBody Long[] ids){
-        log.info("删除订单: {}", JSON.toJSONString(ids, SerializerFeature.PrettyFormat));
-		orderService.removeByIds(Arrays.asList(ids));
-
-        return R.ok();
+        return R.ok(orderService.getOrderDetailForAdmin(orderSn));
     }
 
     /**
@@ -156,6 +135,50 @@ public class OrderController {
     @GetMapping("/delivery-companies")
     public R<List<DeliveryCompanyVo>> deliveryCompanies(){
         return R.ok(orderService.listDeliveryCompanies());
+    }
+
+    /**
+     * 关闭订单：把待付款的订单置为已取消，并释放库存、退回优惠券。
+     *
+     * <p>只允许待付款的订单关闭：对已付款或已发货的订单调用返回 {@code ORDER_STATUS_INVALID}，
+     * 且不写任何数据。后台作废订单只有这一个入口，直接改状态会漏掉库存释放与退券。</p>
+     *
+     * @param orderSn 订单号
+     * @return 统一成功响应，不含业务数据
+     */
+    @PostMapping("/close/{orderSn}")
+    public R<Void> close(@PathVariable("orderSn") String orderSn){
+        log.info("关闭订单: {}", orderSn);
+        orderService.closeOrderByAdmin(orderSn);
+
+        return R.ok();
+    }
+
+    /**
+     * 修改订单备注。
+     *
+     * @param vo 备注参数，{@code orderSn} 不能为空，{@code note} 传空表示清空备注
+     * @return 统一成功响应，不含业务数据
+     */
+    @PostMapping("/note")
+    public R<Void> note(@Valid @RequestBody OrderNoteVo vo){
+        log.info("修改订单备注: {}", JSON.toJSONString(vo, SerializerFeature.PrettyFormat));
+        orderService.updateNote(vo.getOrderSn(), vo.getNote());
+
+        return R.ok();
+    }
+
+    /**
+     * 查询订单状态选项，供列表页状态筛选的下拉框使用。
+     *
+     * <p>选项由服务端下发：状态文案只在 {@link order.enums.OrderStatusEnum} 里维护一份，
+     * 前端再抄一份就多了一个会漂移的副本。</p>
+     *
+     * @return 状态选项；{@code code} 用于筛选回传，{@code text} 用于展示
+     */
+    @GetMapping("/status-options")
+    public R<List<OrderStatusOptionVo>> statusOptions(){
+        return R.ok(orderService.listStatusOptions());
     }
 
 }

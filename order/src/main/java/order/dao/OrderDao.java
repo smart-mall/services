@@ -12,8 +12,8 @@ import java.util.List;
  *
  * <p>自定义 SQL 有四条状态流转：{@link #updateOrderStatus} 服务于支付，{@link #deliverOrder}
  * 服务于发货，{@link #confirmReceive} 服务于确认收货，{@link #closeOrder} 服务于关单与取消；
- * 另有 {@link #selectAutoConfirmable} 供自动确认任务扫描到期订单，其余使用 {@link BaseMapper}
- * 提供的通用增删改查。
+ * 另有 {@link #updateNote} 服务于后台改备注、{@link #selectAutoConfirmable} 供自动确认任务扫描到期订单，
+ * 其余使用 {@link BaseMapper} 提供的通用增删改查。
  */
 @Mapper
 public interface OrderDao extends BaseMapper<OrderEntity> {
@@ -71,6 +71,18 @@ public interface OrderDao extends BaseMapper<OrderEntity> {
      * @return 受影响行数，1 表示确认生效，0 表示订单不存在或已不是已发货状态
      */
     int confirmReceive(String orderSn);
+
+    /**
+     * 修改订单备注。
+     *
+     * <p>SQL 见 {@code mapper/order/OrderDao.xml}：只写 {@code note} 与 {@code modify_time}，
+     * 不带状态条件 —— 备注是给运营看的说明，不参与状态流转，任何状态的订单都能改。
+     *
+     * @param orderSn 订单号，业务主键，不能为 {@code null}
+     * @param note 订单备注，可为 {@code null} 或空串，表示清空
+     * @return 受影响行数，1 表示更新生效，0 表示订单不存在
+     */
+    int updateNote(String orderSn, String note);
 
     /**
      * 查出已经越过自动确认期限的订单号，供自动确认任务逐单确认。
