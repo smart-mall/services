@@ -1,5 +1,6 @@
 package order.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
@@ -26,6 +27,14 @@ public class OrderReturnApplyEntity implements Serializable {
 	private Long skuId;
 	/** 订单号。 */
 	private String orderSn;
+	/**
+	 * 售后类型[0->仅退款；1->退货退款]，取值见 {@link order.enums.AfterSaleTypeEnum}。
+	 *
+	 * <p>两条链共用本表：仅退款是整单退钱、不涉及具体商品，所以 {@code skuId}、退货数量、
+	 * 退货人与商家收货信息这些列都留 {@code null}（不适用）；退货退款按订单项发起，这些列才有值。
+	 * 两个业务共用一张申请表、靠这一列分开，而不是靠"某个字段是不是 NULL"去猜。
+	 */
+	private Integer type;
 	/** 申请时间。 */
 	private Date createTime;
 	/** 会员用户名。 */
@@ -37,7 +46,11 @@ public class OrderReturnApplyEntity implements Serializable {
 	/** 退货人电话。 */
 	private String returnPhone;
 	/**
-	 * 申请状态[0->待处理；1->退货中；2->已完成；3->已拒绝]。
+	 * 申请状态[0->待处理；1->退货中；2->已完成；3->已拒绝]，取值见
+	 * {@link order.enums.AfterSaleStatusEnum}。
+	 *
+	 * <p>仅退款的单不经过 1：待处理(0) 直接到已完成(2) 或已拒绝(3)。退货的单必经 1（退货中），
+	 * 因为"审核通过"与"商家收到货"是两件事。
 	 */
 	private Integer status;
 	/** 处理时间。 */
@@ -76,5 +89,13 @@ public class OrderReturnApplyEntity implements Serializable {
 	private String receivePhone;
 	/** 公司收货地址。 */
 	private String companyAddress;
+
+	/** 售后类型文案，查询时填充，不落库。 */
+	@TableField(exist = false)
+	private String typeText;
+
+	/** 申请状态文案，查询时填充，不落库。 */
+	@TableField(exist = false)
+	private String statusText;
 
 }

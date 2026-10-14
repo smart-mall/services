@@ -128,4 +128,23 @@ public class CouponTradeController {
         return R.ok();
     }
 
+    /**
+     * 整单退款时退回一张已核销的券。
+     *
+     * <p>与 {@code /unlock} 分开：那条退的是"占用中"的券（取消与超时关单），占用时没加过计数；
+     * 这条退的是"已使用"的券（付款之后整单退款），要把券模板的已核销计数减回去。
+     * 两件事的来源状态与副作用都不同，合成一个入口只会让读的人以为它们是一回事。
+     *
+     * <p>幂等且不报错：退款会重试，没用券的订单与重复调用都当作正常情况。
+     *
+     * @param orderSn 订单号
+     * @return 统一成功响应，不含业务数据
+     */
+    @PostMapping("/refund")
+    public R<Void> refund(@RequestParam("orderSn") String orderSn) {
+        couponUseService.unlockUsed(orderSn);
+
+        return R.ok();
+    }
+
 }

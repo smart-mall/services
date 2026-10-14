@@ -165,6 +165,25 @@
           AND member_id = #{memberId}
           AND `status` = 3
     </update>
+    <!-- 售后前锁订单行：同一张订单的售后申请串行执行，整单退款前也用它把订单状态冻住，
+         免得"钱已经退出去、作废语句却改 0 行"。只锁行、不改数据；
+         用 orderMap 带出整行，调用方要按锁住那一刻的状态判断，不能拿锁之前的旧快照 -->
+    <select id="lockOrderForAfterSale" resultMap="orderMap">
+        SELECT *
+        FROM oms_order
+        WHERE order_sn = #{orderSn}
+        FOR UPDATE
+    </select>
+
+    <!-- 整单退款成功后的订单作废：已付款 1 -> 已取消 4。
+         与关单那条只差前置状态：关单从"待付款(0)"来，这条从"已付款(1)"来，
+         分开写才能一眼看出各自允许的状态来源 -->
+    <update id="refundCloseOrder">
+        UPDATE oms_order
+        SET `status` = 4,modify_time = NOW()
+        WHERE order_sn = #{orderSn}
+          AND `status` = 1
+    </update>
 
 
 </mapper>

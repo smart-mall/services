@@ -93,4 +93,19 @@ public interface CouponFeignService {
     @PostMapping("/coupon/trade/unlock")
     R<Void> unlock(@RequestParam("orderSn") String orderSn);
 
+    /**
+     * 整单退款时退回一张已核销的券。
+     *
+     * <p>与 {@link #unlock} 分开：那条退的是"占用中"的券（取消与超时关单），这条退的是"已使用"的券
+     * （付款之后整单退款），后者还要把券模板上的已核销计数减回去。判据是两条链的来源状态与副作用
+     * 不同，合用一个入口会让"退券"这件事的语义变模糊。</p>
+     *
+     * <p>幂等且不报错：退款会重试，没用券的订单与重复调用都按正常情况返回。</p>
+     *
+     * @param orderSn 订单号，不能为 {@code null}
+     * @return 统一响应
+     */
+    @PostMapping("/coupon/trade/refund")
+    R<Void> refundCoupon(@RequestParam("orderSn") String orderSn);
+
 }

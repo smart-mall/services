@@ -39,4 +39,31 @@ public class OrderConstant {
      */
     public static final int AUTO_CONFIRM_DAY = 7;
 
+    /**
+     * 退货地址与收货人：退货申请审核通过时写进申请单，会员照着这个地址寄回。
+     *
+     * <p><b>为什么不建配置表、也不让管理员每次手填：</b>项目只有一处售后收货地址、几乎不会变。
+     * 让管理员手填等于每单采集一个没有来源的数据（每次填的都可能不一样，出事时无从复现），
+     * 与"物流单号由服务端生成、管理员不填"同源。
+     *
+     * <p><b>为什么不从 {@code wms_ware_info} 取：</b>那张表里确实有仓库地址，但取它要给退货审核
+     * 加上一个 ware 的远程依赖 —— ware 不可用会把审核一起挡住，而这是个纯展示信息。
+     * 以后真有多仓、要按库存所在仓退货时再改成查仓库，届时这个常量就该消失。
+     */
+    public static final String RETURN_COMPANY_ADDRESS = "河北省石家庄市长安区中山东路 1 号 谷粒商城售后仓";
+
+    /** 商家的退货收货人，随 {@link #RETURN_COMPANY_ADDRESS} 一起写进申请单。 */
+    public static final String RETURN_RECEIVER = "谷粒商城售后仓";
+
+    /** 商家的退货收货电话，随 {@link #RETURN_COMPANY_ADDRESS} 一起写进申请单。 */
+    public static final String RETURN_RECEIVER_PHONE = "0311-88880000";
+
+    /**
+     * 退款流水的状态：已退款。
+     *
+     * <p>本项目没有真实退款通道，平台的应答就是最终结果，所以只有这一个取值 ——
+     * 申请被拒绝时不写流水（没有钱出去），因此也不需要"已拒绝"这一档。
+     */
+    public static final int REFUND_STATUS_SUCCESS = 1;
+
 }

@@ -1,5 +1,6 @@
 package order.service.impl;
 
+import com.alibaba.fastjson.JSON;
 import com.alipay.api.AlipayApiException;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
@@ -28,26 +29,34 @@ import order.constant.IntegrationConstant;
 import order.constant.OrderConstant;
 import order.constant.PayConstant;
 import order.dao.OrderDao;
+import order.dao.OrderReturnApplyDao;
 import order.entity.OrderEntity;
 import order.entity.OrderItemEntity;
 import order.entity.OrderOperateHistoryEntity;
 import order.entity.OrderReturnApplyEntity;
+import order.entity.OrderReturnReasonEntity;
 import order.entity.PaymentInfoEntity;
 import order.entity.RefundInfoEntity;
+import order.enums.AfterSaleStatusEnum;
+import order.enums.AfterSaleTypeEnum;
 import order.enums.DeliveryCompanyEnum;
 import order.enums.OrderStatusEnum;
 import order.feign.CartFeignService;
 import order.feign.CouponFeignService;
 import order.feign.MemberFeignService;
+import order.feign.MockPayFeignService;
 import order.feign.ProductFeignService;
 import order.feign.WmsFeignService;
 import order.service.OrderItemService;
 import order.service.OrderOperateHistoryService;
 import order.service.OrderReturnApplyService;
+import order.service.OrderReturnReasonService;
 import order.service.OrderService;
 import order.service.PaymentInfoService;
 import order.service.RefundInfoService;
 import order.to.OrderCreateTo;
+import order.vo.AfterSaleAuditVo;
+import order.vo.AfterSalePageQuery;
 import order.vo.CouponDiscountItemVo;
 import order.vo.DeliverVo;
 import order.vo.DeliveryCompanyVo;
@@ -55,6 +64,9 @@ import order.vo.FareItemVo;
 import order.vo.FareVo;
 import order.vo.IntegrationDiscountItemVo;
 import order.vo.MemberAddressVo;
+import order.vo.MemberAfterSaleVo;
+import order.vo.MockRefundRequestVo;
+import order.vo.MockRefundResultVo;
 import order.vo.OrderConfirmVo;
 import order.vo.OrderItemVo;
 import order.vo.OrderStatusOptionVo;
@@ -63,6 +75,8 @@ import order.vo.OrderSubmitVo;
 import order.vo.PayAsyncVo;
 import order.vo.PayResultVo;
 import order.vo.PayVo;
+import order.vo.RefundApplyVo;
+import order.vo.ReturnApplyVo;
 import order.vo.SkuInfoVo;
 import order.vo.SkuStockVo;
 import order.vo.SpuInfoVo;
@@ -78,6 +92,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -157,6 +172,13 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     @Autowired
     private OrderReturnApplyService orderReturnApplyService;
 
+    /** 售后申请表的 Mapper：四条状态流转都带状态条件，直接用它的自定义 SQL。 */
+    @Autowired
+    private OrderReturnApplyDao orderReturnApplyDao;
+
+    @Autowired
+    private OrderReturnReasonService orderReturnReasonService;
+
     @Autowired
     private RefundInfoService refundInfoService;
 
@@ -172,6 +194,14 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     /** 模拟支付平台收银台的对外地址，取 {@code gl.pay.mock.cashier-url}。 */
     @Value("${gl.pay.mock.cashier-url}")
     private String mockCashierUrl;
+
+    /** 模拟支付平台的退款接口地址，取 {@code gl.pay.mock.refund-url}。 */
+    @Autowired
+    private MockPayFeignService mockPayFeignService;
+
+    /** 商户身份凭证，取 {@code gl.pay.mock.merchant-sign}，与 {@code mock-pay/nginx.conf} 里的判断同值。 */
+    @Value("${gl.pay.mock.merchant-sign}")
+    private String mockMerchantSign;
 
     @Autowired
     private ThreadPoolExecutor threadPoolExecutor;
@@ -1329,6 +1359,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
                     itemsByOrderSn.getOrDefault(order.getOrderSn(), List.of())));
             // 评价摘要一次批量取：供卡片决定显示「评价」还是「查看评价」
             attachCommentBriefs(records);
+            // 售后申请一次批量挂上：卡片要显示"退款中/退货中"，并按它决定申请入口显不显示
+            attachAfterSales(records);
         }
         fillStatusText(records);
 
@@ -1405,6 +1437,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         order.setOrderItemEntityList(orderItemService.list(
                 new LambdaQueryWrapper<OrderItemEntity>().eq(OrderItemEntity::getOrderSn, order.getOrderSn())));
         order.setStatusText(statusText(order.getStatus()));
+        // 详情也要带售后：会员在详情里看退货地址与进度，后台看这单走过哪些售后
+        attachAfterSales(List.of(order));
         return order;
     }
 
@@ -1453,7 +1487,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     /**
      * 为订单列表填充状态文案。
      *
-     * <p>文案由后端给而不是前端自己映射：{@link OrderStatusEnum} 有 7 个值，
+     * <p>文案由后端给而不是前端自己映射：{@link OrderStatusEnum} 有 5 个值，
      * 前端再维护一份就多了一个会漂移的副本。
      *
      * @param orders 待填充的订单列表
@@ -1833,6 +1867,607 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         refundIntegration(orderInfo.getMemberId(), orderInfo.getOrderSn(), orderInfo.getUseIntegration());
 
         return true;
+    }
+
+    /* ═══════════════════ 售后（仅退款 / 退货退款） ═══════════════════ */
+
+    /** {@inheritDoc} */
+    @Override
+    @Transactional(isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)
+    public void applyRefund(MemberResponseVo user, RefundApplyVo vo) {
+        // 归属先判：不属于自己的订单按"不存在"报，与其它会员接口一致
+        requireOwnOrder(user, vo.getOrderSn());
+
+        // 锁住订单行再判状态与重复：状态判断要在锁内做，否则并发下两个请求会各自看到"还没有申请"
+        OrderEntity locked = lockOrderForAfterSale(vo.getOrderSn());
+
+        // 只受理"已付款、还没发货"的订单：这一条要复用关单的解锁库存与退券退积分，
+        // 而发货之后那些账都已经结掉了，那时该走退货
+        if (!OrderStatusEnum.PAYED.getCode().equals(locked.getStatus())) {
+            throw new BaseException(BaseCodeEnum.ORDER_STATUS_INVALID);
+        }
+
+        if (hasActiveAfterSale(locked.getOrderSn(), AfterSaleTypeEnum.REFUND.getCode(), null)) {
+            throw new BaseException(BaseCodeEnum.ORDER_AFTER_SALE_APPLIED);
+        }
+
+        OrderReturnApplyEntity apply = new OrderReturnApplyEntity();
+        apply.setOrderId(locked.getId());
+        apply.setOrderSn(locked.getOrderSn());
+        apply.setType(AfterSaleTypeEnum.REFUND.getCode());
+        apply.setCreateTime(new Date());
+        apply.setMemberUsername(locked.getMemberUsername());
+        // 整单退：金额就是订单实付。下单时券与积分的逐项分摊已经算定，这里不重算、也不按项摊
+        apply.setReturnAmount(locked.getPayAmount());
+        // 退款不填原因：原因字典里的取值都是"收到货之后"的场景（质量问题、七天无理由、收到破损），
+        // 硬套到"还没发货就不想要了"上会得到一批解释不通的报表。会员要说的话在说明里
+        apply.setDescription(vo.getDescription());
+        apply.setStatus(AfterSaleStatusEnum.PENDING.getCode());
+        orderReturnApplyService.save(apply);
+
+        saveOperateHistory(locked.getId(), locked.getStatus(), user.getUsername(),
+                "会员申请退款：" + vo.getDescription());
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    @Transactional(isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)
+    public void applyReturn(MemberResponseVo user, ReturnApplyVo vo) {
+        // 入口是订单项：先按订单项定位订单，再判归属 —— 与评价那条链同一套顺序
+        OrderItemEntity item = orderItemService.getById(vo.getOrderItemId());
+        if (item == null) {
+            throw new BaseException(BaseCodeEnum.ORDER_ITEM_NOT_FOUND);
+        }
+        requireOwnOrder(user, item.getOrderSn());
+
+        OrderEntity locked = lockOrderForAfterSale(item.getOrderSn());
+
+        // 确认收货之后才允许退货：货在会员手里，退的是具体某一项
+        if (!OrderStatusEnum.RECIEVED.getCode().equals(locked.getStatus())) {
+            throw new BaseException(BaseCodeEnum.ORDER_STATUS_INVALID);
+        }
+
+        if (hasActiveAfterSale(locked.getOrderSn(), AfterSaleTypeEnum.RETURN.getCode(), item.getSkuId())) {
+            throw new BaseException(BaseCodeEnum.ORDER_AFTER_SALE_APPLIED);
+        }
+
+        OrderReturnApplyEntity apply = new OrderReturnApplyEntity();
+        apply.setOrderId(locked.getId());
+        apply.setOrderSn(locked.getOrderSn());
+        apply.setType(AfterSaleTypeEnum.RETURN.getCode());
+        apply.setCreateTime(new Date());
+        apply.setMemberUsername(locked.getMemberUsername());
+        // 整项退：金额取该项经过券与积分分摊后的实付额。不按数量摊 —— 不做部分数量退货，
+        // 摊出来的分位差还需要一条"末项吃差额"的规则，而这里根本没有"末项"
+        apply.setReturnAmount(item.getRealAmount());
+        apply.setReason(vo.getReason());
+        apply.setDescription(vo.getDescription());
+        apply.setDescPics(vo.getDescPics());
+        apply.setStatus(AfterSaleStatusEnum.PENDING.getCode());
+        // 商品快照随申请留下：商品之后可能改价、下架，核对该退哪一件时按申请这一刻的信息
+        apply.setSkuId(item.getSkuId());
+        apply.setSkuName(item.getSkuName());
+        apply.setSkuImg(item.getSkuPic());
+        apply.setSkuBrand(item.getSpuBrand());
+        apply.setSkuAttrsVals(item.getSkuAttrsVals());
+        apply.setSkuCount(item.getSkuQuantity());
+        apply.setSkuPrice(item.getSkuPrice());
+        apply.setSkuRealPrice(realUnitPrice(item));
+        // 退货人与电话取订单上的收货人：货当初就是寄给他的，退回时默认由他寄。
+        // 再让会员填一遍，只是把订单上已有的信息重抄一次
+        apply.setReturnName(locked.getReceiverName());
+        apply.setReturnPhone(locked.getReceiverPhone());
+        orderReturnApplyService.save(apply);
+
+        saveOperateHistory(locked.getId(), locked.getStatus(), user.getUsername(),
+                "会员申请退货：" + item.getSkuName());
+    }
+
+    /**
+     * 算订单项的实付单价，只给页面看。
+     *
+     * <p>权威金额是 {@code real_amount}（整项实付），它已经吸收过券分摊的末位取舍；从它反推单价
+     * 会带分位差，所以这一列只当展示用、不与 {@code return_amount} 相互校验。数量为空或非正时
+     * 返回 {@code null} —— 算不出来就不编一个数（与"来源未实现就留 NULL"同一口径）。</p>
+     *
+     * @param item 订单项，不能为 {@code null}
+     * @return 保留两位的实付单价；算不出来时返回 {@code null}
+     */
+    private BigDecimal realUnitPrice(OrderItemEntity item) {
+        if (item.getRealAmount() == null || item.getSkuQuantity() == null || item.getSkuQuantity() <= 0) {
+            return null;
+        }
+        return item.getRealAmount().divide(BigDecimal.valueOf(item.getSkuQuantity()), 2, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * 锁住订单行，返回锁住那一刻的行。
+     *
+     * <p>订单不存在时按 {@code ORDER_NOT_FOUND} 报：调用方在此之前已经判过归属，走到这里说明订单
+     * 刚被硬删掉。</p>
+     *
+     * @param orderSn 订单号，不能为 {@code null}
+     * @return 锁住的那一刻的订单行，不会为 {@code null}
+     * @throws BaseException 订单不存在时抛 {@code ORDER_NOT_FOUND}
+     */
+    private OrderEntity lockOrderForAfterSale(String orderSn) {
+        OrderEntity locked = this.baseMapper.lockOrderForAfterSale(orderSn);
+        if (locked == null) {
+            throw new BaseException(BaseCodeEnum.ORDER_NOT_FOUND);
+        }
+        return locked;
+    }
+
+    /**
+     * 判断这张订单（或这一项）是不是已经有一笔进行中的售后。
+     *
+     * <p>"进行中"包括待处理、退货中与已完成三态；<b>已拒绝不算占用名额</b> —— 拒绝常因凭证不清楚
+     * 或描述不全，会员补齐后可以再提交一次。</p>
+     *
+     * @param orderSn 订单号，不能为 {@code null}
+     * @param type 售后类型，取值见 {@link AfterSaleTypeEnum}
+     * @param skuId 退货时按 SKU 收窄；仅退款传 {@code null}，表示只看整单那条
+     * @return 存在进行中的申请时为 {@code true}
+     */
+    private boolean hasActiveAfterSale(String orderSn, Integer type, Long skuId) {
+        return orderReturnApplyService.count(new LambdaQueryWrapper<OrderReturnApplyEntity>()
+                .eq(OrderReturnApplyEntity::getOrderSn, orderSn)
+                .eq(OrderReturnApplyEntity::getType, type)
+                .eq(skuId != null, OrderReturnApplyEntity::getSkuId, skuId)
+                .in(OrderReturnApplyEntity::getStatus,
+                        AfterSaleStatusEnum.PENDING.getCode(),
+                        AfterSaleStatusEnum.RETURNING.getCode(),
+                        AfterSaleStatusEnum.FINISHED.getCode())) > 0;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public List<OrderReturnReasonEntity> listReturnReasons() {
+        return orderReturnReasonService.list(new LambdaQueryWrapper<OrderReturnReasonEntity>()
+                .eq(OrderReturnReasonEntity::getStatus, 1)
+                .orderByAsc(OrderReturnReasonEntity::getSort)
+                .orderByAsc(OrderReturnReasonEntity::getId));
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public List<OrderStatusOptionVo> listAfterSaleStatusOptions() {
+        return Arrays.stream(AfterSaleStatusEnum.values())
+                .map(value -> new OrderStatusOptionVo(value.getCode(), value.getMsg()))
+                .collect(Collectors.toList());
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public PageVO<OrderReturnApplyEntity> queryAfterSalePage(AfterSalePageQuery query) {
+        LambdaQueryWrapper<OrderReturnApplyEntity> wrapper = new LambdaQueryWrapper<OrderReturnApplyEntity>()
+                .eq(StringUtils.hasText(query.getType()), OrderReturnApplyEntity::getType, query.getType())
+                .eq(StringUtils.hasText(query.getStatus()), OrderReturnApplyEntity::getStatus, query.getStatus())
+                .ge(StringUtils.hasText(query.getStartTime()),
+                        OrderReturnApplyEntity::getCreateTime, query.getStartTime())
+                .le(StringUtils.hasText(query.getEndTime()),
+                        OrderReturnApplyEntity::getCreateTime, query.getEndTime())
+                .and(StringUtils.hasText(query.getKey()), w -> w
+                        .like(OrderReturnApplyEntity::getOrderSn, query.getKey())
+                        .or().like(OrderReturnApplyEntity::getMemberUsername, query.getKey()))
+                .orderByDesc(OrderReturnApplyEntity::getCreateTime)
+                .orderByDesc(OrderReturnApplyEntity::getId);
+
+        IPage<OrderReturnApplyEntity> page = orderReturnApplyService.page(query.toPage(), wrapper);
+        List<OrderReturnApplyEntity> records = page.getRecords();
+        fillAfterSaleTexts(records);
+
+        return new PageVO<>(page.getTotal(), records);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public OrderReturnApplyEntity getOrderReturnApply(Long id) {
+        OrderReturnApplyEntity apply = orderReturnApplyService.getById(id);
+        if (apply != null) {
+            fillAfterSaleTexts(List.of(apply));
+        }
+        return apply;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void auditAfterSale(AfterSaleAuditVo vo, String operator) {
+        OrderReturnApplyEntity apply = orderReturnApplyService.getById(vo.getId());
+        if (apply == null) {
+            throw new BaseException(BaseCodeEnum.ORDER_AFTER_SALE_NOT_FOUND);
+        }
+
+        OrderEntity order = getOrderByOrderSn(apply.getOrderSn());
+        if (order == null) {
+            // 硬删订单会连售后记录一起清掉，正常走不到这里；真走到说明有人手工删过库
+            throw new BaseException(BaseCodeEnum.ORDER_NOT_FOUND);
+        }
+
+        if (!Boolean.TRUE.equals(vo.getApprove())) {
+            rejectAfterSale(apply, order, vo.getHandleNote(), operator);
+            return;
+        }
+
+        if (AfterSaleTypeEnum.isRefund(apply.getType())) {
+            approveRefund(apply, order, vo.getHandleNote(), operator);
+        } else {
+            approveReturning(apply, order, vo.getHandleNote(), operator);
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void receiveReturn(Long id, String receiveNote, String operator) {
+        OrderReturnApplyEntity apply = orderReturnApplyService.getById(id);
+        if (apply == null) {
+            throw new BaseException(BaseCodeEnum.ORDER_AFTER_SALE_NOT_FOUND);
+        }
+
+        // 先向平台退款、再改本地：与整单退款同一条判据 —— 没拿到"钱确实退了"的应答就什么都不改
+        MockRefundResultVo result = refundByPlatform(apply);
+
+        if (orderReturnApplyDao.finishReturn(apply.getId(), operator, receiveNote) == 0) {
+            // 不是"退货中"的单收不了货：重复点、或对没通过审核的单点，都会落在这里
+            throw new BaseException(BaseCodeEnum.ORDER_AFTER_SALE_STATUS_INVALID);
+        }
+
+        OrderEntity order = getOrderByOrderSn(apply.getOrderSn());
+        saveRefundInfo(apply, result, order == null ? null : order.getPayType());
+
+        if (order != null) {
+            // 订单状态不变（还是已完成），操作史记的是这次收货
+            saveOperateHistory(order.getId(), order.getStatus(), operator,
+                    "商家确认收到退货：" + apply.getSkuName());
+        }
+    }
+
+    /**
+     * 拒绝售后申请：两条链共用，只改申请单。
+     *
+     * <p>订单状态、库存、券与积分一个都不动。拒绝必须写理由，会员要靠它判断能不能补齐材料再申请。</p>
+     *
+     * @param apply 待拒绝的申请，不能为 {@code null}
+     * @param order 申请所属订单，不能为 {@code null}
+     * @param handleNote 驳回理由，不能为空
+     * @param operator 操作人（管理员用户名）
+     * @throws BaseException 没写理由 {@code ORDER_AFTER_SALE_NOTE_REQUIRED}、
+     *         申请已被处理过 {@code ORDER_AFTER_SALE_STATUS_INVALID}
+     */
+    private void rejectAfterSale(OrderReturnApplyEntity apply, OrderEntity order, String handleNote, String operator) {
+        if (!StringUtils.hasText(handleNote)) {
+            throw new BaseException(BaseCodeEnum.ORDER_AFTER_SALE_NOTE_REQUIRED);
+        }
+
+        if (orderReturnApplyDao.rejectApply(apply.getId(), operator, handleNote) == 0) {
+            // 已经通过或已经处理完的单不能再拒绝：那时货可能已经在路上，改成"已拒绝"会让会员钱货两空
+            throw new BaseException(BaseCodeEnum.ORDER_AFTER_SALE_STATUS_INVALID);
+        }
+
+        saveOperateHistory(order.getId(), order.getStatus(), operator, "驳回售后申请：" + handleNote);
+    }
+
+    /**
+     * 仅退款审核通过：先向平台退款，再作废订单并做善后。
+     *
+     * <p>顺序是刻意的：<b>先拿到"钱确实退了"的应答，才改本地状态</b>。反过来先作废订单，平台失败时
+     * 会留下"订单已作废、钱没退"的账 —— 那是会员受损的方向；而这个顺序最坏只留下"平台退了、本地没记"，
+     * 且重试是安全的（商户退款单号由申请单主键派生，平台侧认得出是同一笔）。</p>
+     *
+     * @param apply 待处理的退款申请，不能为 {@code null}
+     * @param order 申请所属订单，不能为 {@code null}
+     * @param handleNote 处理备注，可为 {@code null}
+     * @param operator 操作人（管理员用户名）
+     * @throws BaseException 订单状态不是已付款 {@code ORDER_STATUS_INVALID}、
+     *         申请已被处理过 {@code ORDER_AFTER_SALE_STATUS_INVALID}、平台退款失败 {@code ORDER_REFUND_FAILED}
+     */
+    private void approveRefund(OrderReturnApplyEntity apply, OrderEntity order, String handleNote, String operator) {
+        // 锁住订单行：从这一刻到事务提交，发货之类的操作改不动这一行。
+        // 不锁的话，退款应答回来时订单可能已经变成"已发货"，下面那条 WHERE status = 1 的作废语句
+        // 会改 0 行、整个事务回滚，留下"钱退了、账没有"
+        OrderEntity locked = lockOrderForAfterSale(order.getOrderSn());
+        if (!OrderStatusEnum.PAYED.getCode().equals(locked.getStatus())) {
+            // 申请提交之后、审核之前被发货了：钱还没动，直接拒绝这次审核
+            throw new BaseException(BaseCodeEnum.ORDER_STATUS_INVALID);
+        }
+
+        // ① 向平台退款。失败关闭：拿不到"钱确实退了"的应答就什么都不改
+        MockRefundResultVo result = refundByPlatform(apply);
+
+        // ② 申请单置为已完成：带 type = 0 与 status = 0 的条件更新，重复审核只有第一次生效
+        if (orderReturnApplyDao.finishRefund(apply.getId(), operator, handleNote) == 0) {
+            throw new BaseException(BaseCodeEnum.ORDER_AFTER_SALE_STATUS_INVALID);
+        }
+
+        // ③ 记退款流水：这一行是"钱确实退出去了"的凭证
+        saveRefundInfo(apply, result, locked.getPayType());
+
+        // ④ 订单作废并善后：解锁库存、退回已核销的券、退回抵扣的积分。
+        //    与关单同一套动作，差别只在来源状态 —— 这条从"已付款(1)"来
+        if (!refundCloseOrder(locked, operator)) {
+            throw new BaseException(BaseCodeEnum.ORDER_STATUS_INVALID);
+        }
+    }
+
+    /**
+     * 退货审核通过：把申请置为"退货中"，并把商家的退货地址发给会员。
+     *
+     * <p>这一步不动钱：货还在会员手里，等他寄回来、商家确认收到才退款。</p>
+     *
+     * @param apply 待处理的退货申请，不能为 {@code null}
+     * @param order 申请所属订单，不能为 {@code null}
+     * @param handleNote 处理备注，可为 {@code null}
+     * @param operator 操作人（管理员用户名）
+     * @throws BaseException 申请已被处理过 {@code ORDER_AFTER_SALE_STATUS_INVALID}
+     */
+    private void approveReturning(OrderReturnApplyEntity apply, OrderEntity order, String handleNote, String operator) {
+        int affected = orderReturnApplyDao.approveReturning(apply.getId(), operator,
+                OrderConstant.RETURN_COMPANY_ADDRESS, OrderConstant.RETURN_RECEIVER,
+                OrderConstant.RETURN_RECEIVER_PHONE, handleNote);
+        if (affected == 0) {
+            throw new BaseException(BaseCodeEnum.ORDER_AFTER_SALE_STATUS_INVALID);
+        }
+
+        saveOperateHistory(order.getId(), order.getStatus(), operator,
+                "退货审核通过，已下发退货地址：" + apply.getSkuName());
+    }
+
+    /**
+     * 整单退款成功后的订单作废与善后，与关单是同一套动作。
+     *
+     * <p>三件善后：通知仓库释放锁定中的库存、退回已核销的优惠券、退回抵扣的积分。
+     * <b>不扣回支付时赠送的积分与成长值</b>：退款有后台审核这道闸门，而成长值"只增不减、
+     * 等级只升不降"是既有决策，扣它会把那条决策打破。</p>
+     *
+     * <p>本方法自己不承担事务边界（私有方法上注解不生效），由调用方保证。</p>
+     *
+     * @param order 待作废的订单，其状态必须已被锁住且为已付款
+     * @param operateMan 操作人（管理员用户名）
+     * @return {@code true} 表示确实作废了；{@code false} 表示订单状态不是已付款，未做任何变更
+     */
+    private boolean refundCloseOrder(OrderEntity order, String operateMan) {
+        if (this.baseMapper.refundCloseOrder(order.getOrderSn()) == 0) {
+            log.warn("整单退款作废未生效，订单状态不是已付款：orderSn={}, status={}",
+                    order.getOrderSn(), order.getStatus());
+            return false;
+        }
+
+        saveOperateHistory(order.getId(), OrderStatusEnum.CANCLED.getCode(), operateMan, "整单退款成功，订单作废");
+
+        OrderTo orderTo = new OrderTo();
+        BeanUtils.copyProperties(order, orderTo);
+        // copyProperties 拷到的是锁住那一刻的对象，status 仍是已付款；ware 按库存工作单解锁、
+        // 不读这个字段，但 OrderTo 是订单快照，发出去的状态必须与库里一致
+        orderTo.setStatus(OrderStatusEnum.CANCLED.getCode());
+
+        // 不吞异常：消息记录写不进去就整体回滚，宁可不作废，也不能作废了却不释放库存
+        reliableMqPublisher.publish(MqConstant.Exchanges.ORDER, MqConstant.RoutingKeys.ORDER_CLOSED, orderTo);
+
+        if (order.getCouponId() != null) {
+            refundCoupon(order.getOrderSn());
+        }
+
+        refundIntegration(order.getMemberId(), order.getOrderSn(), order.getUseIntegration());
+
+        return true;
+    }
+
+    /**
+     * 向模拟支付平台发起退款，返回平台的应答。
+     *
+     * <p>这是整条售后链路上唯一一次对外发起资金动作：<b>平台说资金动了才算退了</b>，
+     * 只看"接口调用成功"会把"重复退款、钱没动"当成退款成功。</p>
+     *
+     * <p>商户退款单号由订单号与申请单主键拼成：一张申请单对应一次退款请求，天然唯一、可追溯，
+     * 不必另立一套编号规则；它同时是平台侧的幂等锚 —— 重复提交同一个号，真实平台回的是同一笔结果。</p>
+     *
+     * @param apply 售后申请，不能为 {@code null}
+     * @return 平台应答，{@code fund_change} 已确认为 {@code Y}
+     * @throws BaseException 平台不可用、商户凭证不对（平台回 403）、平台没确认资金变动
+     *         {@code ORDER_REFUND_FAILED}；订单查不到可用的支付交易号时也抛它
+     */
+    private MockRefundResultVo refundByPlatform(OrderReturnApplyEntity apply) {
+        MockRefundRequestVo request = new MockRefundRequestVo();
+        request.setOutRequestNo(apply.getOrderSn() + "-AS" + apply.getId());
+        request.setRefundAmount(apply.getReturnAmount() == null
+                ? "0.00"
+                : apply.getReturnAmount().setScale(2, RoundingMode.HALF_UP).toPlainString());
+        request.setTradeNo(requireTradeNo(apply.getOrderSn()));
+
+        MockRefundResultVo result;
+        try {
+            result = mockPayFeignService.refund(mockMerchantSign, request);
+        } catch (Exception e) {
+            log.error("向模拟支付平台发起退款失败：orderSn={}, applyId={}", apply.getOrderSn(), apply.getId(), e);
+            throw new BaseException(BaseCodeEnum.ORDER_REFUND_FAILED);
+        }
+
+        // fund_change = N 表示资金没有变动（典型场景是这笔已经退过）。走到这里说明申请单还在待处理，
+        // 本来就不该出现"已经退过"的第二次请求，所以按未成功处理并留下平台原文
+        if (result == null || !result.isFundChanged()) {
+            log.error("平台未确认退款成功：orderSn={}, applyId={}, result={}",
+                    apply.getOrderSn(), apply.getId(), JSON.toJSONString(result));
+            throw new BaseException(BaseCodeEnum.ORDER_REFUND_FAILED);
+        }
+        return result;
+    }
+
+    /**
+     * 取原支付交易号，退款请求要带上它让平台定位退哪笔钱。
+     *
+     * <p>取最后一条支付流水：一笔订单可能有多条回调流水（重复通知各写一条）。</p>
+     *
+     * @param orderSn 订单号，不能为 {@code null}
+     * @return 支付交易号，不会为 {@code null}
+     * @throws BaseException 订单没有可用的交易号时抛 {@code ORDER_REFUND_FAILED} ——
+     *         已付款的订单正常都有一条带交易号的流水，取不到说明账本不全，不能拿着空交易号去退款
+     */
+    private String requireTradeNo(String orderSn) {
+        List<PaymentInfoEntity> payments = listPaymentInfo(orderSn);
+        String tradeNo = payments.isEmpty() ? null : payments.get(payments.size() - 1).getAlipayTradeNo();
+        if (tradeNo == null || tradeNo.isBlank()) {
+            log.error("订单没有可用的支付交易号，无法发起退款：orderSn={}", orderSn);
+            throw new BaseException(BaseCodeEnum.ORDER_REFUND_FAILED);
+        }
+        return tradeNo;
+    }
+
+    /**
+     * 写一行退款流水。
+     *
+     * <p>它是资金台账而不是申请表：申请人、申请时间与处理理由都在申请单上，这里只记钱。</p>
+     *
+     * @param apply 售后申请，不能为 {@code null}
+     * @param result 平台应答，不能为 {@code null}
+     * @param payType 订单当初的支付方式，作为退款渠道（退款是原路退回，渠道不该重新选）；可为 {@code null}
+     */
+    private void saveRefundInfo(OrderReturnApplyEntity apply, MockRefundResultVo result, Integer payType) {
+        RefundInfoEntity refund = new RefundInfoEntity();
+        // 两条链都填申请单 ID：这一列回答"这笔退款由哪张售后单产生"，仅退款也有申请单。
+        // 留 null 的话这条流水关联不回任何订单 —— 后台看不到它、硬删订单时也清不掉它
+        refund.setOrderReturnId(apply.getId());
+        refund.setRefund(apply.getReturnAmount());
+        refund.setRefundSn(result.getRefundId());
+        refund.setRefundStatus(OrderConstant.REFUND_STATUS_SUCCESS);
+        refund.setRefundChannel(payType);
+        // 平台原文照存：这是对账与排查时唯一能证明"平台当时怎么回的"的东西
+        refund.setRefundContent(JSON.toJSONString(result));
+        refundInfoService.save(refund);
+    }
+
+    /**
+     * 退回整单退款时那张已核销的券。
+     *
+     * <p>与关单用的 {@code unlock} 不是同一个接口：关单退的是"占用中"的券，这里退的是"已使用"的券，
+     * 后者还要把券模板的已用计数减回去。不吞异常：券没退回去就是会员白丢一张券。</p>
+     *
+     * @param orderSn 订单号，不能为 {@code null}
+     * @throws BaseException 券服务不可用时抛出
+     */
+    private void refundCoupon(String orderSn) {
+        R<Void> response;
+        try {
+            response = couponFeignService.refundCoupon(orderSn);
+        } catch (Exception e) {
+            log.error("退款时退回优惠券失败，orderSn={}", orderSn, e);
+            throw new BaseException(BaseCodeEnum.ORDER_COUPON_UNAVAILABLE);
+        }
+        if (response == null || response.getCode() != 0) {
+            throw new BaseException(
+                    response == null ? BaseCodeEnum.ORDER_COUPON_UNAVAILABLE.getCode() : response.getCode(),
+                    response == null ? BaseCodeEnum.ORDER_COUPON_UNAVAILABLE.getMsg() : response.getMsg());
+        }
+    }
+
+    /**
+     * 给售后申请填上类型与状态的文案。
+     *
+     * @param records 待填充的申请列表，可为空
+     */
+    private void fillAfterSaleTexts(List<OrderReturnApplyEntity> records) {
+        for (OrderReturnApplyEntity record : records) {
+            record.setTypeText(AfterSaleTypeEnum.textOf(record.getType()));
+            record.setStatusText(AfterSaleStatusEnum.textOf(record.getStatus()));
+        }
+    }
+
+    /**
+     * 给订单挂上售后申请，并算出两个"入口显不显示"的布尔值。
+     *
+     * <p>判据留在服务端：会员端只按 {@code canApplyRefund} / {@code canApplyReturn} 决定按钮显不显示，
+     * 不自己拼"状态对不对、有没有申请过"这两个条件 —— 前端拼的规则迟早会与后端的闸门分叉
+     * （与券列表每行回填 {@code allowedActions} 同源）。</p>
+     *
+     * <p>一次批量查完该页所有订单的申请再分组，不逐单查询。</p>
+     *
+     * @param orders 订单列表，可为空；调用方需保证订单项已装配
+     */
+    private void attachAfterSales(List<OrderEntity> orders) {
+        if (orders == null || orders.isEmpty()) {
+            return;
+        }
+
+        List<String> orderSns = orders.stream().map(OrderEntity::getOrderSn).collect(Collectors.toList());
+        Map<String, List<OrderReturnApplyEntity>> byOrderSn = orderReturnApplyService.list(
+                        new LambdaQueryWrapper<OrderReturnApplyEntity>()
+                                .in(OrderReturnApplyEntity::getOrderSn, orderSns)
+                                .orderByAsc(OrderReturnApplyEntity::getCreateTime)
+                                .orderByAsc(OrderReturnApplyEntity::getId))
+                .stream()
+                .collect(Collectors.groupingBy(OrderReturnApplyEntity::getOrderSn));
+
+        for (OrderEntity order : orders) {
+            List<OrderReturnApplyEntity> applies = byOrderSn.getOrDefault(order.getOrderSn(), List.of());
+            order.setAfterSaleList(applies.stream().map(this::toMemberAfterSaleVo).collect(Collectors.toList()));
+
+            // 退款是整单的：只要有一笔进行中的退款申请，入口就不再出现
+            boolean refundTaken = applies.stream().anyMatch(apply ->
+                    AfterSaleTypeEnum.isRefund(apply.getType()) && isActiveAfterSale(apply));
+            order.setCanApplyRefund(OrderStatusEnum.PAYED.getCode().equals(order.getStatus()) && !refundTaken);
+
+            // 退货是按项的：把已有进行中退货申请的 SKU 收成一个集合，逐项判
+            Set<Long> returnedSkuIds = applies.stream()
+                    .filter(apply -> !AfterSaleTypeEnum.isRefund(apply.getType()) && isActiveAfterSale(apply))
+                    .map(OrderReturnApplyEntity::getSkuId)
+                    .collect(Collectors.toSet());
+            boolean returnable = OrderStatusEnum.RECIEVED.getCode().equals(order.getStatus());
+            if (order.getOrderItemEntityList() != null) {
+                order.getOrderItemEntityList().forEach(item ->
+                        item.setCanApplyReturn(returnable && !returnedSkuIds.contains(item.getSkuId())));
+            }
+        }
+    }
+
+    /**
+     * 判断一条申请是不是"占着名额"：待处理、退货中、已完成三态都算；已拒绝不算。
+     *
+     * @param apply 申请，不能为 {@code null}
+     * @return 占着名额时为 {@code true}
+     */
+    private boolean isActiveAfterSale(OrderReturnApplyEntity apply) {
+        Integer status = apply.getStatus();
+        return AfterSaleStatusEnum.PENDING.getCode().equals(status)
+                || AfterSaleStatusEnum.RETURNING.getCode().equals(status)
+                || AfterSaleStatusEnum.FINISHED.getCode().equals(status);
+    }
+
+    /**
+     * 把申请单转成会员端看的投影。
+     *
+     * <p>刻意不直接把实体给会员端：实体上有 {@code handleMan}（处理这条申请的管理员用户名），
+     * 那是内部人员信息；而且直接回实体意味着以后给表加任何一列都会自动出现在会员端。</p>
+     *
+     * @param apply 申请，不能为 {@code null}
+     * @return 会员端投影，含类型与状态文案
+     */
+    private MemberAfterSaleVo toMemberAfterSaleVo(OrderReturnApplyEntity apply) {
+        MemberAfterSaleVo vo = new MemberAfterSaleVo();
+        vo.setId(apply.getId());
+        vo.setOrderSn(apply.getOrderSn());
+        vo.setType(apply.getType());
+        vo.setTypeText(AfterSaleTypeEnum.textOf(apply.getType()));
+        vo.setStatus(apply.getStatus());
+        vo.setStatusText(AfterSaleStatusEnum.textOf(apply.getStatus()));
+        vo.setReturnAmount(apply.getReturnAmount());
+        vo.setSkuId(apply.getSkuId());
+        vo.setSkuName(apply.getSkuName());
+        vo.setSkuImg(apply.getSkuImg());
+        vo.setSkuAttrsVals(apply.getSkuAttrsVals());
+        vo.setSkuCount(apply.getSkuCount());
+        vo.setReason(apply.getReason());
+        vo.setDescription(apply.getDescription());
+        vo.setDescPics(apply.getDescPics());
+        vo.setCreateTime(apply.getCreateTime());
+        vo.setHandleTime(apply.getHandleTime());
+        vo.setHandleNote(apply.getHandleNote());
+        vo.setCompanyAddress(apply.getCompanyAddress());
+        vo.setReceiveMan(apply.getReceiveMan());
+        vo.setReceivePhone(apply.getReceivePhone());
+        vo.setReceiveTime(apply.getReceiveTime());
+        vo.setReceiveNote(apply.getReceiveNote());
+        return vo;
     }
 
     /* ═══════════════════ 订单创建（内部） ═══════════════════ */

@@ -356,7 +356,7 @@ CREATE TABLE IF NOT EXISTS `oms_order` (
   `discount_amount` decimal(18,4) DEFAULT NULL COMMENT '后台调整订单使用的折扣金额',
   `pay_type` tinyint DEFAULT NULL COMMENT '支付方式【1->支付宝；2->微信；3->银联； 4->货到付款；】',
   `source_type` tinyint DEFAULT NULL COMMENT '订单来源[0->PC订单；1->app订单]',
-  `status` tinyint DEFAULT NULL COMMENT '订单状态【0->待付款；1->待发货；2->已发货；3->已完成；4->已关闭；5->无效订单】',
+  `status` tinyint DEFAULT NULL COMMENT '订单状态【0->待付款；1->已付款；2->已发货；3->已完成；4->已取消】',
   `delivery_company` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '物流公司(配送方式)',
   `delivery_sn` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '物流单号',
   `auto_confirm_day` int DEFAULT NULL COMMENT '自动确认时间（天）',
@@ -434,13 +434,14 @@ CREATE TABLE IF NOT EXISTS `oms_order_return_apply` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `order_id` bigint DEFAULT NULL,
   `sku_id` bigint DEFAULT NULL COMMENT '退货商品id',
-  `order_sn` char(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '订单编号',
+  `order_sn` char(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '订单编号',
+  `type` tinyint DEFAULT NULL COMMENT '售后类型[0->仅退款；1->退货退款]',
   `create_time` datetime DEFAULT NULL COMMENT '申请时间',
   `member_username` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '会员用户名',
   `return_amount` decimal(18,4) DEFAULT NULL COMMENT '退款金额',
   `return_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '退货人姓名',
   `return_phone` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '退货人电话',
-  `status` tinyint(1) DEFAULT NULL COMMENT '申请状态[0->待处理；1->退货中；2->已完成；3->已拒绝]',
+  `status` tinyint(1) DEFAULT NULL COMMENT '申请状态[0->待处理；1->退货中；2->已完成；3->已拒绝]。仅退款的单不经过 1（0 直接到 2 或 3），退货的单必经 1',
   `handle_time` datetime DEFAULT NULL COMMENT '处理时间',
   `sku_img` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '商品图片',
   `sku_name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '商品名称',
@@ -459,8 +460,9 @@ CREATE TABLE IF NOT EXISTS `oms_order_return_apply` (
   `receive_note` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '收货备注',
   `receive_phone` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '收货电话',
   `company_address` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '公司收货地址',
-  PRIMARY KEY (`id`) USING BTREE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='订单退货申请';
+  PRIMARY KEY (`id`) USING BTREE,
+  KEY `idx_order_sn` (`order_sn`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='订单售后申请（仅退款与退货退款共用，按 type 区分）';
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
@@ -473,6 +475,14 @@ CREATE TABLE IF NOT EXISTS `oms_order_return_reason` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='退货原因';
 /*!40101 SET character_set_client = @saved_cs_client */;
+-- 退货原因种子数据：会员提交售后申请时从这张表取下拉选项，表为空会让申请页没有原因可选。
+-- 与 ums_member_level 同源：用 INSERT IGNORE、主键固定，保证本脚本可以反复执行。
+INSERT IGNORE INTO `oms_order_return_reason` (`id`, `name`, `sort`, `status`, `create_time`) VALUES
+  (1, '质量问题', 1, 1, NOW()),
+  (2, '商品与描述不符', 2, 1, NOW()),
+  (3, '七天无理由退货', 3, 1, NOW()),
+  (4, '拍错了/不想要了', 4, 1, NOW()),
+  (5, '收到商品破损', 5, 1, NOW());
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 -- 【已删除】`oms_order_setting`（订单配置信息）。整表连同它的脚手架 CRUD、后台「等级规则」页与
@@ -503,13 +513,16 @@ CREATE TABLE IF NOT EXISTS `oms_payment_info` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
+-- 退款信息：一笔钱真的退出去了才写一行。它是资金台账而不是申请表 —— 申请人、申请时间与处理理由
+-- 都在 `oms_order_return_apply` 上，这里只记钱。`order_return_id` 指向产生这笔退款的售后申请，
+-- 仅退款与退货退款两条链都填：填不上的话这条流水就再也关联不回任何订单。
 CREATE TABLE IF NOT EXISTS `oms_refund_info` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `order_return_id` bigint DEFAULT NULL COMMENT '退款的订单',
   `refund` decimal(18,4) DEFAULT NULL COMMENT '退款金额',
   `refund_sn` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '退款交易流水号',
-  `refund_status` tinyint(1) DEFAULT NULL COMMENT '退款状态',
-  `refund_channel` tinyint DEFAULT NULL COMMENT '退款渠道[1-支付宝，2-微信，3-银联，4-汇款]',
+  `refund_status` tinyint(1) DEFAULT NULL COMMENT '退款状态[1->已退款]。本项目没有真实退款通道，平台的应答就是最终结果，因此只有这一个取值',
+  `refund_channel` tinyint DEFAULT NULL COMMENT '退款渠道[1-支付宝，2-微信，3-银联，4-汇款；9-测试支付]',
   `refund_content` varchar(5000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='退款信息';

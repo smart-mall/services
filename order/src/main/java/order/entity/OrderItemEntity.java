@@ -69,4 +69,13 @@ public class OrderItemEntity implements Serializable {
 	@TableField(exist = false)
 	private CommentBriefVo comment;
 
+	/**
+	 * 这一项现在能不能发起"退货退款"。
+	 *
+	 * <p>不落库，由服务端在装配订单时算好：判据是"订单已完成"加"这一项没有正在处理或已完成的退货申请"。
+	 * 与 {@link #comment} 同源，都是"入口显不显示由服务端说"，前端不自己拼条件。
+	 */
+	@TableField(exist = false)
+	private Boolean canApplyReturn;
+
 }

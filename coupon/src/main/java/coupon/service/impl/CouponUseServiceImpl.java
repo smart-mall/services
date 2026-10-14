@@ -264,6 +264,39 @@ public class CouponUseServiceImpl implements CouponUseService {
 
     /** {@inheritDoc} */
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void unlockUsed(String orderSn) {
+        CouponHistoryEntity used = findOneByOrderSn(orderSn, CouponUseStatusEnum.USED.getCode());
+        // 找不到就什么都不做：没用券的订单、以及退款的重复调用都会落到这里
+        if (used == null) {
+            return;
+        }
+
+        CouponEntity coupon = couponDao.selectById(used.getCouponId());
+        // 使用期间券已过期的，退回时直接置为已过期：置回未使用会得到一张显示可用、实际用不掉的券
+        int target = coupon != null && outOfUsePeriod(coupon, new Date())
+                ? CouponUseStatusEnum.EXPIRED.getCode()
+                : CouponUseStatusEnum.UNUSED.getCode();
+
+        boolean unlocked = couponHistoryService.update(new LambdaUpdateWrapper<CouponHistoryEntity>()
+                .set(CouponHistoryEntity::getUseType, target)
+                .setSql("order_id = NULL, order_sn = NULL, use_time = NULL")
+                .eq(CouponHistoryEntity::getId, used.getId())
+                .eq(CouponHistoryEntity::getUseType, CouponUseStatusEnum.USED.getCode()));
+        if (!unlocked) {
+            // 并发下已被另一次退款退回，等价于成功；计数也已由那一次减过，这里不能再减
+            return;
+        }
+
+        // 已核销计数只在真正发生状态跃迁时减一。GREATEST 夹住 0：计数是历史累计的统计列，
+        // 不该出现负数（与评价点赞用 GREATEST 同一个理由）。重复调用走上面的 return 分支
+        couponDao.update(null, new LambdaUpdateWrapper<CouponEntity>()
+                .setSql("use_count = GREATEST(COALESCE(use_count, 0) - 1, 0)")
+                .eq(CouponEntity::getId, used.getCouponId()));
+    }
+
+    /** {@inheritDoc} */
+    @Override
     public int expire() {
         Date now = new Date();
         int expiredTotal = 0;

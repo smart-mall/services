@@ -25,3 +25,12 @@ gl:
       # 平台转发回调时带的固定凭证，必须与 mock-pay/nginx.conf 里的值一致。
       # 它只表达"请求经由平台"，并不是对参数做的签名；商户侧真正的一次性判据仍然是票据。
       platform-sign: gulimall-mock-pay-platform-sign
+      # 模拟支付平台的服务地址（不含接口路径，路径写在 Feign 接口上 —— 与真实渠道一个形状：
+      # 换环境只换这个前缀，接口路径不变）。
+      # 这是"商户向第三方平台发起的对外调用"，方向与支付相反、不经过自家网关，所以用容器名直连
+      # （order 与 gl-mock-pay 在同一个 compose 网络上）。
+      platform-url: http://gl-mock-pay
+      # 商户身份凭证。真实渠道靠资质：微信要商户 API 证书做双向 TLS、支付宝要应用私钥签名，
+      # 个人根本申请不到 —— 平台替身用一个固定头表达同一件事，平台侧校验不通过直接 403。
+      # 必须与 mock-pay/nginx.conf 里的判断一致，改名要两边一起改。
+      merchant-sign: gulimall-mock-pay-merchant-sign

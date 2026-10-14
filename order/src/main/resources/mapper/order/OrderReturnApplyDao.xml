@@ -9,6 +9,7 @@
         <result property="orderId" column="order_id"/>
         <result property="skuId" column="sku_id"/>
         <result property="orderSn" column="order_sn"/>
+        <result property="type" column="type"/>
         <result property="createTime" column="create_time"/>
         <result property="memberUsername" column="member_username"/>
         <result property="returnAmount" column="return_amount"/>
@@ -35,5 +36,59 @@
         <result property="companyAddress" column="company_address"/>
     </resultMap>
 
+    <!-- 退货审核通过：待处理 0 -> 退货中 1，并把商家的退货地址与收货人下发到申请单上（会员照着寄回）。
+         带 type = 1 与 status = 0 两个条件：判断与写入是同一条 SQL，重复审核只有第一次会生效，
+         对仅退款的单也不会生效。退货地址来自 OrderConstant 的固定值，不由后台手填 -->
+    <update id="approveReturning">
+        UPDATE oms_order_return_apply
+        SET `status` = 1,
+            handle_time = NOW(),
+            handle_man = #{handleMan},
+            handle_note = #{handleNote},
+            company_address = #{companyAddress},
+            receive_man = #{receiveMan},
+            receive_phone = #{receivePhone}
+        WHERE id = #{id}
+          AND `type` = 1
+          AND `status` = 0
+    </update>
+
+    <!-- 仅退款通过：待处理 0 -> 已完成 2。带 type = 0 与 status = 0。
+         不经过"退货中"：货没发出去，没有等会员寄回这一段，钱退回去这一单就结束了 -->
+    <update id="finishRefund">
+        UPDATE oms_order_return_apply
+        SET `status` = 2,
+            handle_time = NOW(),
+            handle_man = #{handleMan},
+            handle_note = #{handleNote}
+        WHERE id = #{id}
+          AND `type` = 0
+          AND `status` = 0
+    </update>
+
+    <!-- 商家确认收到退货：退货中 1 -> 已完成 2，写入收货人、收货时间与收货备注。
+         带 type = 1 与 status = 1：没通过审核的单收不了货，重复点也只会更新 0 行 -->
+    <update id="finishReturn">
+        UPDATE oms_order_return_apply
+        SET `status` = 2,
+            receive_time = NOW(),
+            receive_man = #{receiveMan},
+            receive_note = #{receiveNote}
+        WHERE id = #{id}
+          AND `type` = 1
+          AND `status` = 1
+    </update>
+
+    <!-- 拒绝售后申请：待处理 0 -> 已拒绝 3，两条链共用。只认待处理 —— 已经通过的退货单不能再拒绝，
+         那时货可能已经在路上，把状态改成"已拒绝"会让会员钱货两空 -->
+    <update id="rejectApply">
+        UPDATE oms_order_return_apply
+        SET `status` = 3,
+            handle_time = NOW(),
+            handle_man = #{handleMan},
+            handle_note = #{handleNote}
+        WHERE id = #{id}
+          AND `status` = 0
+    </update>
 
 </mapper>

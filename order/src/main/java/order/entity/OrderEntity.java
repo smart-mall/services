@@ -134,4 +134,18 @@ public class OrderEntity implements Serializable {
 	@TableField(exist = false)
 	private String statusText;
 
+	/** 该订单的售后申请，按申请时间升序；查询时组装，不落库。 */
+	@TableField(exist = false)
+	private List<order.vo.MemberAfterSaleVo> afterSaleList;
+
+	/**
+	 * 现在能不能对这个订单发起"仅退款"。
+	 *
+	 * <p>不落库，由服务端在装配订单时算好：判据是"订单已付款且未发货"加"没有正在处理或已完成的退款申请"。
+	 * 两条规则都留在服务端，前端只按这个布尔值决定按不按出按钮 —— 与券列表每行回填 {@code allowedActions}
+	 * 同源：前端自己拼条件，迟早会与后端的闸门分叉。
+	 */
+	@TableField(exist = false)
+	private Boolean canApplyRefund;
+
 }

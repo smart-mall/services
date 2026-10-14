@@ -50,7 +50,7 @@ public class OrderVo {
     /** 订单来源[0->PC订单；1->app订单]。 */
     private Integer sourceType;
     /**
-     * 订单状态：0 待付款、1 已付款、2 已发货、3 已完成、4 已取消、5 售后中、6 售后完成，
+     * 订单状态：0 待付款、1 已付款、2 已发货、3 已完成、4 已取消，
      * 取值以 order 侧的订单状态枚举为准。
      */
     private Integer status;

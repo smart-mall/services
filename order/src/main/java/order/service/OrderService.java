@@ -6,6 +6,8 @@ import common.to.mq.SeckillOrderTo;
 import common.vo.PageVO;
 import common.vo.MemberResponseVo;
 import order.entity.OrderEntity;
+import order.entity.OrderReturnApplyEntity;
+import order.entity.OrderReturnReasonEntity;
 import order.vo.*;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -444,4 +446,125 @@ public interface OrderService extends IService<OrderEntity> {
      * @param memberId 会员 ID，不能为 {@code null}
      */
     void unmarkCommented(Long orderItemId, Long memberId);
+
+    /* ═══════════════════ 售后（仅退款 / 退货退款） ═══════════════════ */
+
+    /**
+     * 会员申请"仅退款"：付款之后、还没发货的订单，整单把钱退回去。
+     *
+     * <p><b>为什么只到"未发货"为止：</b>这一条退款要复用关单的善后动作 —— 释放锁定中的库存、
+     * 退回已核销的券、退回抵扣的积分。发货之后那批库存已经在出库时实扣，没有可解锁的东西，
+     * 券与积分的账也已经结了，那时该走退货。
+     *
+     * <p>金额取订单实付 {@code pay_amount}，不重算：下单那一刻券与积分的逐项分摊已经算定，
+     * 这里再算一遍只会与订单上的数字分叉。
+     *
+     * <p>只有"待处理"这一态没有别的入口，申请本身不改订单状态：钱退成功、后台审核通过时才作废订单。
+     *
+     * @param user 当前登录会员，不能为 {@code null}
+     * @param vo 申请参数，不能为 {@code null}；{@code orderSn} 与 {@code description} 不能为空
+     * @throws common.exception.BaseException 订单不存在或不属于该会员 {@code ORDER_NOT_FOUND}、
+     *         状态不是已付款 {@code ORDER_STATUS_INVALID}、已有进行中的退款申请
+     *         {@code ORDER_AFTER_SALE_APPLIED}
+     */
+    void applyRefund(MemberResponseVo user, RefundApplyVo vo);
+
+    /**
+     * 会员申请"退货退款"：确认收货之后，按订单项把某一件商品退回去。
+     *
+     * <p>入口是订单项而不是订单：一张订单买了三件，可以只退一件，金额按件算。订单号由订单项反查，
+     * 免得出现"订单项不属于这个订单"这种还要额外校验的组合。只允许订单处于"已完成"状态。
+     *
+     * <p>申请阶段钱一分不动，货也还在会员手上：要等后台审核通过、会员寄回、商家确认收到货，
+     * 才向平台发起退款。
+     *
+     * @param user 当前登录会员，不能为 {@code null}
+     * @param vo 申请参数，不能为 {@code null}；{@code orderItemId} 与 {@code reason} 不能为空
+     * @throws common.exception.BaseException 订单项不存在 {@code ORDER_ITEM_NOT_FOUND}、
+     *         订单不存在或不属于该会员 {@code ORDER_NOT_FOUND}、订单不是已完成状态
+     *         {@code ORDER_STATUS_INVALID}、这一项已有进行中的退货申请 {@code ORDER_AFTER_SALE_APPLIED}
+     */
+    void applyReturn(MemberResponseVo user, ReturnApplyVo vo);
+
+    /**
+     * 查询启用的退货原因，供会员提交退货申请时选。
+     *
+     * <p>只读。按 {@code sort} 升序、同一排序值按主键升序，保证下拉的次序稳定。</p>
+     *
+     * @return 启用的退货原因；一条都没有时为空列表
+     */
+    List<OrderReturnReasonEntity> listReturnReasons();
+
+    /**
+     * 查询售后申请的状态选项，供后台台账的状态筛选下拉框使用。
+     *
+     * <p>只读，不查库：取值就是 {@link order.enums.AfterSaleStatusEnum} 本身。文案由服务端下发，
+     * 前端再抄一份就多了一个会漂移的副本（与订单状态选项同源）。</p>
+     *
+     * @return 状态选项，顺序与枚举声明一致
+     */
+    List<OrderStatusOptionVo> listAfterSaleStatusOptions();
+
+    /**
+     * 分页查询售后申请，供后台两个台账页（退货单 / 退款单）使用。
+     *
+     * <p>每行的类型与状态文案由服务端填好，前端不再自己映射一份。</p>
+     *
+     * @param query 查询条件，不能为 {@code null}；{@code type} 区分两条链，{@code status} 收窄处理进度，
+     *              {@code key} 同时匹配订单号与申请会员名，时间区间按申请时间比较，均可为空
+     * @return 分页结果，无数据时 {@code rows} 为空列表
+     */
+    PageVO<OrderReturnApplyEntity> queryAfterSalePage(AfterSalePageQuery query);
+
+    /**
+     * 按主键查询一条售后申请，供后台详情弹窗使用。
+     *
+     * <p>只读。返回实体而不是会员端用的投影：后台要看得到处理人（谁批的、谁收的货）。
+     * 类型与状态文案随行填好。</p>
+     *
+     * @param id 申请单主键，不能为 {@code null}
+     * @return 售后申请；不存在时返回 {@code null}
+     */
+    OrderReturnApplyEntity getOrderReturnApply(Long id);
+
+    /**
+     * 后台审核售后申请：通过或拒绝。
+     *
+     * <p>两条链的"通过"不一样：<b>仅退款</b>是向模拟平台发起退款，拿到"钱确实退了"的应答后落退款流水、
+     * 作废订单并做善后（解锁库存、退回已核销的券、退回抵扣的积分）；<b>退货退款</b>只是同意退，
+     * 把商家的退货地址写进申请单，等会员寄回、商家确认收货时才退款。
+     *
+     * <p>拒绝必须写理由：会员要靠这句话判断能不能补齐材料再申请一次。拒绝只改申请单，
+     * 不动订单、库存、券与积分。
+     *
+     * <p>顺序上先向平台退款、再改本地：拿不到"钱确实退了"的应答就什么都不改（失败关闭）。
+     * 反过来先改状态，平台失败时会留下"订单已作废、钱没退"的账，那是会员受损的方向。
+     *
+     * @param vo 审核参数，不能为 {@code null}；{@code id} 与 {@code approve} 不能为空，
+     *           拒绝时 {@code handleNote} 不能为空
+     * @param operator 操作人（后台管理员用户名），取自网关注入的 {@code X-Admin} 头
+     * @throws common.exception.BaseException 申请不存在 {@code ORDER_AFTER_SALE_NOT_FOUND}、
+     *         拒绝时没写理由 {@code ORDER_AFTER_SALE_NOTE_REQUIRED}、申请已被处理过
+     *         {@code ORDER_AFTER_SALE_STATUS_INVALID}、平台退款失败 {@code ORDER_REFUND_FAILED}。
+     *         补一句：对<b>已完成的整单退款</b>再审核一次，会先撞上"订单已是已取消"
+     *         而返回 {@code ORDER_STATUS_INVALID}（订单先于申请单失效），这是对的 ——
+     *         订单都作废了，谈不上再退一次
+     */
+    void auditAfterSale(AfterSaleAuditVo vo, String operator);
+
+    /**
+     * 商家确认收到退货：把退货单置为已完成，收款人记为当前操作人，随后向平台发起退款。
+     *
+     * <p>只有"退货中"的单能收货：没通过审核的单收不了货，重复点也不会重复退款。
+     *
+     * <p>这一步<b>不加库存</b>：退回来的货不能当新货卖，所以可售库存不增加（判据见文档的决策记录）。
+     *
+     * @param id 申请单主键，不能为 {@code null}
+     * @param receiveNote 收货备注，可为 {@code null}
+     * @param operator 操作人（后台管理员用户名），取自网关注入的 {@code X-Admin} 头，同时作为收货人
+     * @throws common.exception.BaseException 申请不存在 {@code ORDER_AFTER_SALE_NOT_FOUND}、
+     *         申请不是"退货中" {@code ORDER_AFTER_SALE_STATUS_INVALID}、平台退款失败
+     *         {@code ORDER_REFUND_FAILED}
+     */
+    void receiveReturn(Long id, String receiveNote, String operator);
 }
