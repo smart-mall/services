@@ -10,11 +10,11 @@ import java.util.Map;
 /**
  * 订单确认页需要用的数据。六个金额都由后端算好，前端只负责显示和原样回传：
  * {@code totalAmount} = 各购物项 price × count 之和，{@code freightAmount} = 默认收货地址的运费
- * （换地址时调 {@code /order/front/jwt/fare} 重取），{@code promotionAmount} = 商品促销减免，
+ * （换地址时调 {@code /order/front/jwt/fare} 重取），{@code promotionAmount} = 商品优惠减免（含会员价），
  * {@code couponAmount} = 选中券的抵扣额，{@code integrationAmount} = 本单使用的积分抵掉的钱，
  * {@code payAmount} = 商品总额 + 运费 − 促销减免 − 券抵扣 − 积分抵扣，即提交时要回传的 {@code payPrice}。
  *
- * <p>运费、促销减免、券优惠与积分抵扣各有一份按商品拆分的明细（{@code fareItems}、
+ * <p>运费、商品优惠、券优惠与积分抵扣各有一份按商品拆分的明细（{@code fareItems}、
  * {@code promotionItems}、{@code couponItems} 与 {@code integrationItems}），
  * 前端逐行展示商品自己的费用与优惠，不必自己再算。
  *
@@ -57,7 +57,7 @@ public class OrderConfirmVo {
     /** 运费。 */
     private BigDecimal freightAmount;
 
-    /** 商品促销减免额；没有命中满减或阶梯价时为 0。 */
+    /** 商品优惠减免额（满减、阶梯价与会员价）；一项都没命中时为 0。 */
     private BigDecimal promotionAmount;
 
     /** 优惠券抵扣额；没有选券时为 0。 */
@@ -98,9 +98,9 @@ public class OrderConfirmVo {
     private List<FareItemVo> fareItems;
 
     /**
-     * 每个商品的促销减免明细，与 {@code items} 按 {@code skuId} 对应；前端逐行显示商品自己的促销。
+     * 每个商品的商品优惠明细，与 {@code items} 按 {@code skuId} 对应；前端逐行显示商品自己的优惠。
      *
-     * <p>没有命中促销时为空列表，不会为 {@code null}；只含命中满减或阶梯价的商品。
+     * <p>没有命中时为空列表，不会为 {@code null}；只含命中的商品（满减、阶梯价或会员价任一命中）。
      * 与 {@code promotionAmount} 出自同一次命中判定，两者必然自洽。
      */
     private List<PromotionDiscountItemVo> promotionItems;
@@ -120,6 +120,13 @@ public class OrderConfirmVo {
      * 与 {@code integrationAmount} 出自同一次分摊，两者必然自洽。
      */
     private List<IntegrationDiscountItemVo> integrationItems;
+
+    /**
+     * 商品优惠里来自会员价的那部分；没有会员价特权或没配过会员价时为 0。
+     *
+     * <p>只给前端拆分展示用：{@code promotionAmount} 是含会员价的合计，本字段是其中属于会员价的那一块。
+     */
+    private BigDecimal memberPriceAmount;
 
     /**
      * 本单可得的赠送积分，与下单入账用的是同一份算法（{@code common.utils.GiftCalculator}）。

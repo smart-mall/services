@@ -12,8 +12,8 @@ import common.query.KeyPageQuery;
 /**
  * 商品满减信息，对应 {@code sms_sku_full_reduction} 表。
  *
- * <p>继承 {@link IService}，通用增删改查由 MyBatis-Plus 提供；本接口补管理端分页查询，
- * 以及发布商品时一次写入满减、阶梯价、会员价三张表的入口。
+ * <p>继承 {@link IService}，通用增删改查由 MyBatis-Plus 提供；本接口补管理端分页查询、
+ * 按 skuId 批量读取促销与会员价规则，以及发布商品时一次写入满减、阶梯价、会员价三张表的入口。
  */
 public interface SkuFullReductionService extends IService<SkuFullReductionEntity> {
 
@@ -66,9 +66,11 @@ public interface SkuFullReductionService extends IService<SkuFullReductionEntity
      * <p>写入侧保证一个 SKU 一行，所以这里按 skuId 直接读，不做"取最新一行"这类筛选。
      *
      * @param skuIds SKU 标识集合；为 {@code null} 或空集合时直接返回空列表，不查库
-     * @return 每个配过促销的 SKU 一条记录，两段都没配的 SKU 不在结果里；不返回 {@code null}
+     * @param levelId 会员当前等级；为 {@code null} 表示调用方没有身份（详情页），
+     *                只回"最低会员价"供展示，不回该等级的价
+     * @return 每个配过促销或会员价的 SKU 一条记录，都没配的 SKU 不在结果里；不返回 {@code null}
      */
-    List<SkuPromotionVo> listBySkuIds(List<Long> skuIds);
+    List<SkuPromotionVo> listBySkuIds(List<Long> skuIds, Long levelId);
 
     /**
      * 按 skuId 批量删除满减、阶梯价与会员价三张表中的记录。

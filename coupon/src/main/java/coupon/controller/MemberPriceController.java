@@ -58,14 +58,15 @@ public class MemberPriceController {
     }
 
     /**
-     * 新增一条商品会员价。
+     * 保存一条商品会员价，同一个 SKU 的同一个等级只留一行。
      *
-     * @param memberPrice 会员价内容，主键留空时由数据库生成
+     * @param memberPrice 会员价内容，{@code skuId} 与 {@code memberLevelId} 必填；
+     *                    同一个 SKU 在同一个等级下已有的价会被覆盖
      * @return 统一成功响应，不含业务数据
      */
     @RequestMapping("/save")
     public R<Void> save(@RequestBody MemberPriceEntity memberPrice){
-		memberPriceService.save(memberPrice);
+		memberPriceService.saveMemberPrice(memberPrice);
 
         return R.ok();
     }

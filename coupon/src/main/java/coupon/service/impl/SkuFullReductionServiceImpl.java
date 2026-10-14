@@ -158,12 +158,12 @@ public class SkuFullReductionServiceImpl extends ServiceImpl<SkuFullReductionDao
 
     /** {@inheritDoc} */
     @Override
-    public List<SkuPromotionVo> listBySkuIds(List<Long> skuIds) {
+    public List<SkuPromotionVo> listBySkuIds(List<Long> skuIds, Long levelId) {
         if (skuIds == null || skuIds.isEmpty()) {
             return List.of();
         }
 
-        // 两张表各查一次再按 skuId 归并，不按 SKU 逐条查
+        // 三张表各查一次再按 skuId 归并，不按 SKU 逐条查
         Map<Long, SkuFullReductionEntity> reductions = new HashMap<>();
         for (SkuFullReductionEntity row : baseMapper.selectList(new LambdaQueryWrapper<SkuFullReductionEntity>()
                 .in(SkuFullReductionEntity::getSkuId, skuIds))) {
@@ -180,8 +180,23 @@ public class SkuFullReductionServiceImpl extends ServiceImpl<SkuFullReductionDao
             }
         }
 
+        // 会员价：所有等级里取最低价给详情页展示；指定等级的那条给算价用
+        Map<Long, BigDecimal> cheapestBySkuId = new HashMap<>();
+        Map<Long, BigDecimal> priceBySkuId = new HashMap<>();
+        for (MemberPriceEntity row : memberPriceDao.selectList(new LambdaQueryWrapper<MemberPriceEntity>()
+                .in(MemberPriceEntity::getSkuId, skuIds))) {
+            if (row.getSkuId() == null || row.getMemberPrice() == null) {
+                continue;
+            }
+            cheapestBySkuId.merge(row.getSkuId(), row.getMemberPrice(), BigDecimal::min);
+            if (levelId != null && levelId.equals(row.getMemberLevelId())) {
+                priceBySkuId.put(row.getSkuId(), row.getMemberPrice());
+            }
+        }
+
         Set<Long> configuredSkuIds = new LinkedHashSet<>(reductions.keySet());
         configuredSkuIds.addAll(ladders.keySet());
+        configuredSkuIds.addAll(cheapestBySkuId.keySet());
 
         return configuredSkuIds.stream().map(skuId -> {
             SkuPromotionVo vo = new SkuPromotionVo();
@@ -199,6 +214,9 @@ public class SkuFullReductionServiceImpl extends ServiceImpl<SkuFullReductionDao
                 vo.setDiscount(ladder.getDiscount());
                 vo.setLadderPrice(ladder.getPrice());
             }
+
+            vo.setMemberPrice(priceBySkuId.get(skuId));
+            vo.setMemberPriceFrom(cheapestBySkuId.get(skuId));
             return vo;
         }).toList();
     }

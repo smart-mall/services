@@ -399,14 +399,16 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
         // 金额四个数都由后端算好：前端自己算一遍会和提交时的校验算成两个数
         // 没有收货地址时运费记 0：此时页面本来就不可提交，不必为一个用不上的数去计费
+        MemberGrowthVo privileges = loadMemberPrivileges(memberId);
         FareVo fare = defaultAddress == null
                 ? zeroFare(sumItemAmount(confirmVo.getItems()))
-                : calcFare(defaultAddress, confirmVo.getItems(), isFreeFreight(memberId));
+                : calcFare(defaultAddress, confirmVo.getItems(), privileges);
         confirmVo.setTotalAmount(fare.getTotalAmount());
         confirmVo.setFreightAmount(fare.getFreightAmount());
         confirmVo.setFareItems(fare.getFareItems());
         confirmVo.setPromotionAmount(fare.getPromotionAmount());
         confirmVo.setPromotionItems(fare.getPromotionItems());
+        confirmVo.setMemberPriceAmount(fare.getMemberPriceAmount());
 
         // 券：先列出本车可用的，再按选中那张把优惠并进应付金额与逐项明细。
         // 抵扣额并进 payAmount 而不是让前端再减一次：前端只显示和原样回传这一个数
@@ -451,7 +453,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     public FareVo getFare(MemberResponseVo user, Long addrId, Long couponHistoryId, Integer useIntegration) {
         MemberAddressVo address = requireOwnAddress(addrId, memberAddresses(user));
         List<OrderItemVo> items = checkedCartItems();
-        FareVo fare = calcFare(address, items, isFreeFreight(user.getId()));
+        FareVo fare = calcFare(address, items, loadMemberPrivileges(user.getId()));
         // 换地址只该覆盖运费。这里不跟着减一次券与积分的话，前端换完地址拿到的应付金额会退回原价，
         // 提交时被 price 校验判成"商品价格已变动"
         applyCoupon(fare, user.getId(), toCouponCartItems(items, fare.getPromotionItems()), couponHistoryId);
@@ -477,16 +479,16 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
      * <p>购物项为空时不去问 ware：ware 对空清单返回的是参数校验错误，那种响应解不成运费对象。
      * 空车本来就允许出现，此时只算商品总额（为 0），运费与优惠都记 0。
      *
-     * <p>促销减免在这里算好并并进应付金额；券与积分两个字段留空，由 {@code applyCoupon} 与
-     * {@code applyIntegration} 按选中的券与积分数补。
+     * <p>商品优惠（阶梯价、会员价、满减）在这里算好并并进应付金额；券与积分两个字段留空，
+     * 由 {@code applyCoupon} 与 {@code applyIntegration} 按选中的券与积分数补。
      *
      * @param address 收货地址，必须属于当前会员，且带行政区划编码
      * @param items 已勾选的购物项，不能为 {@code null}；为空时不再计费
-     * @param freeFreight 当前会员的等级是否带免邮特权；为 {@code true} 时运费与逐项明细都记 0
+     * @param privileges 当前会员的等级与权益；没有等级或没有对应特权时按"不享受"处理
      * @return 商品总额、运费、应付总额、运费明细，以及为 0 的优惠金额与为空的优惠明细
      * @throws BaseException 地址没有行政区划编码、或 ware 算不出运费时抛出
      */
-    private FareVo calcFare(MemberAddressVo address, List<OrderItemVo> items, boolean freeFreight) {
+    private FareVo calcFare(MemberAddressVo address, List<OrderItemVo> items, MemberGrowthVo privileges) {
         if (address.getAreacode() == null || address.getAreacode().isBlank()) {
             // 区划编码是计费的入参；缺了它不是运费不准，而是整个结算页打不开，所以文案指向地址本身
             throw new BaseException(BaseCodeEnum.ORDER_FARE_FAILED, "收货地址缺少行政区划编码，请重新选择省市区");
@@ -503,10 +505,12 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
         // 会员等级带免邮特权时整单运费与逐项明细一起归零：只改总额会让前端
         // 按明细逐行显示的运费加起来不等于整单运费
+        boolean freeFreight = privileges.isFreeFreight();
         BigDecimal freightAmount = freeFreight ? BigDecimal.ZERO : wareFare.getTotalFare();
 
-        // 促销排在券与积分之前：它减的是商品金额本身，后两者的基数都要先扣掉它
-        List<PromotionDiscountItemVo> promotionItems = promote(items);
+        // 商品优惠（阶梯价、会员价、满减）排在券与积分之前：它减的是商品金额本身，
+        // 后两者的基数都要先扣掉它。等级带会员价特权时才把等级送去比价
+        List<PromotionDiscountItemVo> promotionItems = promote(items, memberLevelId(privileges));
         BigDecimal promotionAmount = sumDiscount(promotionItems);
 
         FareVo fareVo = new FareVo();
@@ -516,6 +520,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         fareVo.setPromotionItems(promotionItems);
         fareVo.setPayAmount(totalAmount.add(freightAmount).subtract(promotionAmount));
         fareVo.setFareItems(toFareItems(wareFare.getItems(), freeFreight));
+        fareVo.setMemberPriceAmount(sumMemberPrice(promotionItems));
         fareVo.setCouponAmount(BigDecimal.ZERO);
         fareVo.setCouponItems(List.of());
         return fareVo;
@@ -620,29 +625,42 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     }
 
     /**
-     * 查当前会员的等级是否带免邮特权。
+     * 取会员的等级与权益：免邮与会员价特权。
      *
-     * <p>失败开放：查不到时按不免邮算并记 warn。判据与促销同源 —— 确认页与提交走的是同一个方法，
-     * 两次都按不免邮算，会员看到的就是实际要付的；真出现两次结果不同（会员服务恢复），
-     * 提交会落到「价格已变动」，会员刷新结算页重试即可，不会按错价成交。
+     * <p><b>失败开放</b>：查不到时按"没有等级、没有任何权益"处理并记 warn。判据与商品优惠同源 ——
+     * 确认页与提交走的是同一个方法，两次都按没有权益算，会员看到的就是实际要付的；
+     * 真出现两次结果不同（会员服务恢复），提交会落到「价格已变动」，会员刷新结算页重试即可。
      *
      * @param memberId 会员 id，不能为 {@code null}
-     * @return {@code true} 表示当前等级免邮
+     * @return 会员的等级与权益；取不到时返回一份"没有任何权益"的空对象，不返回 {@code null}
      */
-    private boolean isFreeFreight(Long memberId) {
+    private MemberGrowthVo loadMemberPrivileges(Long memberId) {
         R<MemberGrowthVo> response;
         try {
             response = memberFeignService.growthLevel(memberId);
         } catch (Exception e) {
-            log.warn("查询会员等级权益失败，本单按不免邮处理: {}", e.getMessage());
-            return false;
+            log.warn("查询会员等级权益失败，本单按无权益处理: {}", e.getMessage());
+            return new MemberGrowthVo();
         }
 
         if (response == null || response.getCode() != 0 || response.getData() == null) {
-            log.warn("查询会员等级权益失败，本单按不免邮处理: {}", response == null ? "响应为空" : response.getMsg());
-            return false;
+            log.warn("查询会员等级权益失败，本单按无权益处理: {}", response == null ? "响应为空" : response.getMsg());
+            return new MemberGrowthVo();
         }
-        return response.getData().isFreeFreight();
+        return response.getData();
+    }
+
+    /**
+     * 取会员可用于比会员价的等级：等级没有会员价特权时返回 {@code null}。
+     *
+     * <p>特权判定收在这一处：库里可能给某个等级配了会员价，而那个等级的
+     * {@code priviledge_member_price} 是 0，这时不该享受。
+     *
+     * @param privileges 会员的等级与权益，不能为 {@code null}
+     * @return 会员等级主键；没有特权或没有等级时为 {@code null}
+     */
+    private Long memberLevelId(MemberGrowthVo privileges) {
+        return privileges.isMemberPricePrivilege() ? privileges.getLevelId() : null;
     }
 
     /* ═══════════════════ 提交订单 ═══════════════════ */
@@ -739,25 +757,25 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         return responseVo;
     }
 
-    /* ═══════════════════ 商品促销 ═══════════════════ */
+    /* ═══════════════════ 商品优惠 ═══════════════════ */
 
     /**
-     * 算出每个购物项命中的商品促销减免额。
+     * 算出每个购物项命中的商品优惠减免额：阶梯价、会员价与满减。
      *
-     * <p>促销由商品上的阶梯价与满减两段组成，规则存在 coupon 库、由券服务下发，
-     * 但命中哪一档要看本行的金额与件数，所以判定在这里做。
+     * <p>规则存在 coupon 库、由券服务下发，但命中哪一档要看本行的金额与件数，所以判定在这里做。
      *
-     * <p>两段的先后是阶梯价先改单价、满减再按折后行金额判：会员实际要付的是折后金额，
-     * 满减门槛用原价判会让"打完折已不满门槛"的订单也被减掉。
+     * <p>先后是"单价优惠先算、满减再按折后行金额判"：会员实际要付的是折后金额，满减门槛用原价判
+     * 会让"打完折已不满门槛"的订单也被减掉。
      *
-     * <p>取不到规则时按没有促销算并记 warn。判据是促销不是会员选中的凭证：确认页与提交
+     * <p>取不到规则时按没有优惠算并记 warn。判据是促销与会员价都不是会员选中的凭证：确认页与提交
      * 走的是同一个方法，两次都不命中，会员看到的就是实际要付的，不构成"页面显示减了、
      * 提交却按原价"；而券是会员明确选中的一张，静默不抵扣等于骗他，所以那边失败关闭。
      *
      * @param cartItems 已勾选的购物项，不能为 {@code null}
-     * @return 命中促销的购物项及其减免额；一项都没命中时为空列表，不返回 {@code null}
+     * @param levelId 会员当前等级，用于取该等级的会员价；没有会员价特权时传 {@code null}
+     * @return 命中优惠的购物项及其减免额；一项都没命中时为空列表，不返回 {@code null}
      */
-    private List<PromotionDiscountItemVo> promote(List<OrderItemVo> cartItems) {
+    private List<PromotionDiscountItemVo> promote(List<OrderItemVo> cartItems, Long levelId) {
         if (cartItems.isEmpty()) {
             return List.of();
         }
@@ -770,44 +788,41 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         if (skuIds.isEmpty()) {
             return List.of();
         }
-        Map<Long, SkuPromotionVo> rules = loadSkuPromotions(skuIds);
+        Map<Long, SkuPromotionVo> rules = loadSkuPromotions(skuIds, levelId);
 
         List<PromotionDiscountItemVo> hits = new ArrayList<>();
         for (OrderItemVo item : cartItems) {
             if (item.getPrice() == null || item.getCount() == null) {
                 continue;
             }
-            BigDecimal discount = promotionAmount(item, rules.get(item.getSkuId()));
-            if (discount.compareTo(BigDecimal.ZERO) <= 0) {
-                continue;
+            PromotionDiscountItemVo hit = promotionHit(item, rules.get(item.getSkuId()));
+            if (hit != null) {
+                hits.add(hit);
             }
-            PromotionDiscountItemVo hit = new PromotionDiscountItemVo();
-            hit.setSkuId(item.getSkuId());
-            hit.setDiscountAmount(discount);
-            hits.add(hit);
         }
         return hits;
     }
 
     /**
-     * 按 skuId 批量取促销规则。
+     * 按 skuId 批量取促销与会员价规则。
      *
      * <p>失败开放，判据见 {@link #promote}。
      *
      * @param skuIds SKU 标识集合，不能为空
-     * @return skuId 到规则的映射；没配过促销的 SKU 不在映射里，不返回 {@code null}
+     * @param levelId 会员当前等级，可以为 {@code null}
+     * @return skuId 到规则的映射；没配过的 SKU 不在映射里，不返回 {@code null}
      */
-    private Map<Long, SkuPromotionVo> loadSkuPromotions(List<Long> skuIds) {
+    private Map<Long, SkuPromotionVo> loadSkuPromotions(List<Long> skuIds, Long levelId) {
         R<List<SkuPromotionVo>> response;
         try {
-            response = couponFeignService.skuRules(skuIds);
+            response = couponFeignService.skuRules(skuIds, levelId);
         } catch (Exception e) {
-            log.warn("取商品促销规则失败，本单按无促销处理: {}", e.getMessage());
+            log.warn("取商品促销规则失败，本单按无优惠处理: {}", e.getMessage());
             return Map.of();
         }
 
         if (response == null || response.getCode() != 0 || response.getData() == null) {
-            log.warn("取商品促销规则失败，本单按无促销处理: {}", response == null ? "响应为空" : response.getMsg());
+            log.warn("取商品促销规则失败，本单按无优惠处理: {}", response == null ? "响应为空" : response.getMsg());
             return Map.of();
         }
 
@@ -817,46 +832,74 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     }
 
     /**
-     * 算一个购物项的促销减免：阶梯价的单价差额加上满减。
+     * 算一个购物项命中的商品优惠：单价优惠（阶梯价与会员价取孰低）加满减。
+     *
+     * <p><b>会员价与阶梯价取孰低而不是叠加</b>：两者都是"把这个 SKU 的单价改掉"，叠起来会变成
+     * "会员价上再打七五折"——没有任何地方配过这种规则，解释不清。取孰低是会员实际能拿到的最低价。
      *
      * @param item 购物项，单价与数量必须已判过非空
-     * @param rule 该 SKU 的规则；为 {@code null} 表示没配过促销
-     * @return 减免额，最小为 0，且不超过该项的原价总额
+     * @param rule 该 SKU 的规则；为 {@code null} 表示没配过
+     * @return 命中结果，含总减免额与其中来自会员价的部分；一项都没命中时返回 {@code null}
      */
-    private BigDecimal promotionAmount(OrderItemVo item, SkuPromotionVo rule) {
+    private PromotionDiscountItemVo promotionHit(OrderItemVo item, SkuPromotionVo rule) {
         if (rule == null) {
-            return BigDecimal.ZERO;
+            return null;
         }
 
+        BigDecimal unitPrice = item.getPrice();
+        BigDecimal bestUnitPrice = unitPrice;
+
+        BigDecimal ladderUnitPrice = ladderUnitPrice(item, rule);
+        if (ladderUnitPrice != null && ladderUnitPrice.compareTo(bestUnitPrice) < 0) {
+            bestUnitPrice = ladderUnitPrice;
+        }
+
+        BigDecimal memberUnitPrice = rule.getMemberPrice();
+        boolean memberPriceWins = memberUnitPrice != null && memberUnitPrice.compareTo(bestUnitPrice) < 0;
+        if (memberPriceWins) {
+            bestUnitPrice = memberUnitPrice;
+        }
+
+        BigDecimal unitDiscount = bestUnitPrice.compareTo(unitPrice) >= 0
+                ? BigDecimal.ZERO
+                : unitPrice.subtract(bestUnitPrice).multiply(BigDecimal.valueOf(item.getCount()));
+
         BigDecimal originAmount = itemAmount(item);
-        BigDecimal ladderOff = ladderDiscount(item, rule);
-        BigDecimal total = ladderOff.add(fullReduction(originAmount.subtract(ladderOff), rule));
-        return total.min(originAmount);
+        BigDecimal total = unitDiscount
+                .add(fullReduction(originAmount.subtract(unitDiscount), rule))
+                .min(originAmount);
+        if (total.compareTo(BigDecimal.ZERO) <= 0) {
+            return null;
+        }
+
+        PromotionDiscountItemVo hit = new PromotionDiscountItemVo();
+        hit.setSkuId(item.getSkuId());
+        hit.setDiscountAmount(total);
+        // 只有会员价真的把单价压下来时，这部分才算"会员价优惠"；被阶梯价压得更低时它没有贡献
+        hit.setMemberPriceAmount(memberPriceWins ? unitDiscount : BigDecimal.ZERO);
+        return hit;
     }
 
     /**
-     * 算阶梯价的减免：按件数命中档位后，用折后单价与原价的差额乘件数。
+     * 算阶梯价的折后单价：按件数命中档位后给出单价，没命中时返回 {@code null}。
      *
      * <p>折后单价优先取配置里的 {@code price}：那是后台直接填的折后价，比按折扣反算更具体；
      * 没填折后价才用 {@code discount} 乘原价，结果向下取到分。
      *
      * @param item 购物项，单价与数量必须已判过非空
      * @param rule 该 SKU 的规则，不能为 {@code null}
-     * @return 减免额；没配阶梯价、件数不到档、或折后价不低于原价时返回 0
+     * @return 折后单价；没配阶梯价、件数不到档、或折后价不低于原价时返回 {@code null}
      */
-    private BigDecimal ladderDiscount(OrderItemVo item, SkuPromotionVo rule) {
+    private BigDecimal ladderUnitPrice(OrderItemVo item, SkuPromotionVo rule) {
         if (rule.getFullCount() == null || rule.getFullCount() <= 0 || item.getCount() < rule.getFullCount()) {
-            return BigDecimal.ZERO;
+            return null;
         }
 
         BigDecimal unitPrice = item.getPrice();
         BigDecimal ladderUnitPrice = rule.getLadderPrice() != null
                 ? rule.getLadderPrice()
                 : ladderUnitPriceByDiscount(unitPrice, rule.getDiscount());
-        if (ladderUnitPrice == null || ladderUnitPrice.compareTo(unitPrice) >= 0) {
-            return BigDecimal.ZERO;
-        }
-        return unitPrice.subtract(ladderUnitPrice).multiply(BigDecimal.valueOf(item.getCount()));
+        return (ladderUnitPrice == null || ladderUnitPrice.compareTo(unitPrice) >= 0) ? null : ladderUnitPrice;
     }
 
     /**
@@ -891,9 +934,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     }
 
     /**
-     * 汇总各购物项的促销减免额。
+     * 汇总各购物项的商品优惠减免额。
      *
-     * @param promotionItems 命中促销的购物项，不能为 {@code null}
+     * @param promotionItems 命中商品优惠的购物项，不能为 {@code null}
      * @return 减免额合计；一项都没命中时为 0
      */
     private BigDecimal sumDiscount(List<PromotionDiscountItemVo> promotionItems) {
@@ -905,9 +948,26 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     }
 
     /**
-     * 把促销减免转成 skuId 到减免额的映射。
+     * 汇总商品优惠里来自会员价的那部分减免额。
      *
-     * @param promotionItems 命中促销的购物项，不能为 {@code null}
+     * <p>只给展示层拆分用：订单项与订单头上只有一个 {@code promotion_amount}（含会员价），
+     * 表结构不动。
+     *
+     * @param promotionItems 命中优惠的购物项，不能为 {@code null}
+     * @return 会员价那部分的合计；没有命中时为 0
+     */
+    private BigDecimal sumMemberPrice(List<PromotionDiscountItemVo> promotionItems) {
+        BigDecimal total = BigDecimal.ZERO;
+        for (PromotionDiscountItemVo item : promotionItems) {
+            total = total.add(item.getMemberPriceAmount() == null ? BigDecimal.ZERO : item.getMemberPriceAmount());
+        }
+        return total;
+    }
+
+    /**
+     * 把商品优惠减免转成 skuId 到减免额的映射。
+     *
+     * @param promotionItems 命中商品优惠的购物项，不能为 {@code null}
      * @return skuId 到减免额的映射；没有命中的 SKU 不在里面，不返回 {@code null}
      */
     private Map<Long, BigDecimal> promotionBySkuId(List<PromotionDiscountItemVo> promotionItems) {
@@ -919,11 +979,11 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     }
 
     /**
-     * 算一个购物项在促销之后的小计。
+     * 算一个购物项在商品优惠之后的小计。
      *
      * @param item 购物项，{@code price} 与 {@code count} 不能为 {@code null}
-     * @param promotionBySkuId 各购物项的促销减免额，不能为 {@code null}
-     * @return 小计减促销减免；减到负数时按 0
+     * @param promotionBySkuId 各购物项的商品优惠减免额，不能为 {@code null}
+     * @return 小计减商品优惠减免；减到负数时按 0
      */
     private BigDecimal afterPromotion(OrderItemVo item, Map<Long, BigDecimal> promotionBySkuId) {
         BigDecimal promotion = promotionBySkuId.get(item.getSkuId());
@@ -932,13 +992,13 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     }
 
     /**
-     * 把促销减免写到订单项上，并重算实付金额。
+     * 把商品优惠减免写到订单项上，并重算实付金额。
      *
      * <p>必须写到订单项而不是只记在订单头上：{@code computePrice} 把订单头的优惠金额算成
      * 各订单项 {@code promotionAmount} 的汇总，只写订单头会被那次汇总覆盖成 0。
      *
      * @param orderItems 待落库的订单项，不能为 {@code null}
-     * @param promotionItems 各购物项命中的促销减免，不能为 {@code null}，可以为空
+     * @param promotionItems 各购物项命中的商品优惠减免，不能为 {@code null}，可以为空
      */
     private void writePromotionToOrderItems(List<OrderItemEntity> orderItems,
                                             List<PromotionDiscountItemVo> promotionItems) {
@@ -2805,7 +2865,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         String orderSn = IdWorker.getTimeId();
 
         // 3. 按与确认页同一套逻辑重算运费与促销，两次算出的必须是同一个数
-        FareVo fare = calcFare(address, cartItems, isFreeFreight(user.getId()));
+        FareVo fare = calcFare(address, cartItems, loadMemberPrivileges(user.getId()));
         BigDecimal freightAmount = fare.getFreightAmount();
 
         // 4. 组装订单主表与订单项

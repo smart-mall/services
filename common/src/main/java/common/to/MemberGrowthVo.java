@@ -41,4 +41,12 @@ public class MemberGrowthVo {
      */
     private boolean freeFreight;
 
+    /**
+     * 当前等级是否带会员价特权，对应 {@code ums_member_level.priviledge_member_price}。
+     *
+     * <p>取值口径同 {@link #freeFreight}。有了它调用方才敢把 {@link #levelId} 送去比会员价 ——
+     * 没有这个特权的等级即使库里配了价，也不该享受。
+     */
+    private boolean memberPricePrivilege;
+
 }

@@ -6,7 +6,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * 结算金额，面向前端：商品总额、运费、促销优惠、券优惠、积分抵扣与应付六个金额、本单可得的赠送量，
+ * 结算金额，面向前端：商品总额、运费、商品优惠、券优惠、积分抵扣与应付六个金额、本单可得的赠送量，
  * 以及四份按商品的明细。
  *
  * <p>六个金额都由服务端算定，前端只负责显示并原样回传 {@code payAmount}。
@@ -28,7 +28,7 @@ public class FareVo {
     /** 整单运费。 */
     private BigDecimal freightAmount;
 
-    /** 整单商品促销减免；没有命中满减或阶梯价时为 0，不会为 {@code null}。 */
+    /** 整单商品优惠减免（满减、阶梯价与会员价）；一项都没命中时为 0，不会为 {@code null}。 */
     private BigDecimal promotionAmount;
 
     /** 整单优惠金额；没有用券时为 0，不会为 {@code null}。 */
@@ -53,9 +53,9 @@ public class FareVo {
     private List<FareItemVo> fareItems;
 
     /**
-     * 每个商品的促销减免明细，与 {@code fareItems} 同一形状，前端按它逐行展示促销。
+     * 每个商品的商品优惠明细，与 {@code fareItems} 同一形状，前端按它逐行展示。
      *
-     * <p>没有命中促销时为空列表，不会为 {@code null}；只含命中满减或阶梯价的商品。
+     * <p>没有命中时为空列表，不会为 {@code null}；只含命中的商品（满减、阶梯价或会员价任一命中）。
      */
     private List<PromotionDiscountItemVo> promotionItems;
 
@@ -72,6 +72,14 @@ public class FareVo {
      * <p>没有用积分时为空列表，不会为 {@code null}；积分没有适用范围，所以覆盖全部购物项。
      */
     private List<IntegrationDiscountItemVo> integrationItems;
+
+    /**
+     * 商品优惠里来自会员价的那部分；没有会员价特权或没配过会员价时为 0。
+     *
+     * <p>只给前端拆分展示用：{@code promotionAmount} 是含会员价的合计（与订单项上的
+     * {@code promotion_amount} 一致），本字段是其中属于会员价的那一块。
+     */
+    private BigDecimal memberPriceAmount;
 
     /**
      * 本单可得的赠送积分，与下单入账用的是同一份算法（{@code common.utils.GiftCalculator}）。

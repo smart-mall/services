@@ -25,5 +25,16 @@ public interface MemberPriceService extends IService<MemberPriceEntity> {
      * @throws BaseException 远程获取 SKU 名称失败时抛出
      */
     PageVO<MemberPriceEntity> queryPage(KeyPageQuery query);
+
+    /**
+     * 保存一条会员价，同一个 SKU 的同一个等级只留一行。
+     *
+     * <p>按 {@code (skuId, 会员等级)} 覆盖而不是直接插入：这个组合才是这张表的业务键 ——
+     * 一个 SKU 在不同等级下各有各的价，按 skuId 全删会把别的等级一起清掉。
+     *
+     * @param memberPrice 会员价内容，{@code skuId} 与 {@code memberLevelId} 必填；不能为 {@code null}
+     * @throws common.exception.BaseException 两个键有任一为空时抛出
+     */
+    void saveMemberPrice(MemberPriceEntity memberPrice);
 }
 

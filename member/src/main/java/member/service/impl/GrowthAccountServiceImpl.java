@@ -111,6 +111,7 @@ public class GrowthAccountServiceImpl implements GrowthAccountService {
             vo.setGrowthPoint(current.getGrowthPoint());
             // 等级权益只认 1，其余（0 与未配置）都按没有该权益处理
             vo.setFreeFreight(Integer.valueOf(1).equals(current.getPriviledgeFreeFreight()));
+            vo.setMemberPricePrivilege(Integer.valueOf(1).equals(current.getPriviledgeMemberPrice()));
         }
 
         // 下一级取门槛刚好高过当前等级的那一档。按存储的等级算而不是按成长值算：

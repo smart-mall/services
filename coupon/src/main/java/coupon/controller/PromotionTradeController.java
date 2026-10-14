@@ -8,6 +8,7 @@ import coupon.service.SpuBoundsService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -61,18 +62,20 @@ public class PromotionTradeController {
     }
 
     /**
-     * 按 skuId 批量查促销规则：满减与阶梯价。
+     * 按 skuId 批量查促销规则：满减、阶梯价与会员价。
      *
      * <p>下单算价与商品详情页展示都用它。回的是规则本身 —— 命中哪一档、折后单价怎么算、
      * 与满减怎么先后作用，都由调用方按自己的金额决定。
      *
      * @param skuIds SKU 标识集合，可以为空集合
-     * @return 统一响应；{@code code} 为 0 时 {@code data} 是配过促销的 SKU 的规则，
-     *         两段都没配的 SKU 不在结果里；{@code code} 非 0 时 {@code data} 为 {@code null}
+     * @param levelId 会员当前等级；详情页没有身份时不传，只回"最低会员价"供展示
+     * @return 统一响应；{@code code} 为 0 时 {@code data} 是配过促销或会员价的 SKU 的规则，
+     *         都没配的 SKU 不在结果里；{@code code} 非 0 时 {@code data} 为 {@code null}
      */
     @PostMapping("/sku-rules")
-    public R<List<SkuPromotionVo>> skuRules(@RequestBody List<Long> skuIds) {
-        return R.ok(skuFullReductionService.listBySkuIds(skuIds));
+    public R<List<SkuPromotionVo>> skuRules(@RequestBody List<Long> skuIds,
+                                            @RequestParam(value = "levelId", required = false) Long levelId) {
+        return R.ok(skuFullReductionService.listBySkuIds(skuIds, levelId));
     }
 
 }

@@ -212,11 +212,14 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
             try {
                 R<List<SkuPromotionVo>> rules = couponFeignService.skuRules(List.of(skuId));
                 if (rules.getCode() == 0 && rules.getData() != null && !rules.getData().isEmpty()) {
-                    skuItemVo.setPromotion(rules.getData().get(0));
+                    SkuPromotionVo rule = rules.getData().get(0);
+                    skuItemVo.setPromotion(rule);
+                    // 会员价展示的是"最低能到多少"，不需要身份，与具体按哪个等级成交无关
+                    skuItemVo.setMemberPriceFrom(rule.getMemberPriceFrom());
                 }
             } catch (Exception e) {
-                // 促销只是详情页上的一行标签，券服务异常不能让整页打不开
-                log.error("查询商品促销规则失败，skuId={}", skuId, e);
+                // 优惠规则只是详情页上的一行标签，券服务异常不能让整页打不开
+                log.error("查询商品优惠规则失败，skuId={}", skuId, e);
             }
         }, executor);
 
