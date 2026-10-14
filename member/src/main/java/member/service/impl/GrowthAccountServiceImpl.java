@@ -112,6 +112,7 @@ public class GrowthAccountServiceImpl implements GrowthAccountService {
             // 等级权益只认 1，其余（0 与未配置）都按没有该权益处理
             vo.setFreeFreight(Integer.valueOf(1).equals(current.getPriviledgeFreeFreight()));
             vo.setMemberPricePrivilege(Integer.valueOf(1).equals(current.getPriviledgeMemberPrice()));
+            vo.setBirthdayPrivilege(Integer.valueOf(1).equals(current.getPriviledgeBirthday()));
             // 免运费标准如实下发，由 order 结合上面那个开关判定；未配置时下发 null
             vo.setFreeFreightPoint(current.getFreeFreightPoint());
         }

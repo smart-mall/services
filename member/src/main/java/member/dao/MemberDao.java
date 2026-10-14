@@ -4,7 +4,10 @@ import member.entity.MemberEntity;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
+
+import java.util.List;
 
 /**
  * {@code ums_member} 表的 MyBatis-Plus Mapper，映射会员账号 {@link MemberEntity}。
@@ -68,5 +71,19 @@ public interface MemberDao extends BaseMapper<MemberEntity> {
      */
     @Update("UPDATE ums_member SET level_id = #{levelId} WHERE id = #{memberId}")
     int updateLevel(@Param("memberId") Long memberId, @Param("levelId") Long levelId);
+
+    /**
+     * 查今天生日的会员 id。
+     *
+     * <p>"今天"由数据库的 {@code NOW()} 判定，不由应用算好月日再传进来：应用与库的时区不一致时，
+     * 传进来的月日会与 {@code birth} 落在两套时间上。
+     *
+     * <p>{@code birth} 为 {@code null} 的会员不参与 —— 资料里没填生日就等于没有这份权益。
+     *
+     * @return 会员 id 列表；今天没有人过生日时为空列表
+     */
+    @Select("SELECT id FROM ums_member WHERE birth IS NOT NULL "
+            + "AND DATE_FORMAT(birth, '%m-%d') = DATE_FORMAT(NOW(), '%m-%d')")
+    List<Long> listBirthdayMemberIds();
 
 }

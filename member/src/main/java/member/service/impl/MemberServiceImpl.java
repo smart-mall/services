@@ -91,6 +91,12 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
 
     /** {@inheritDoc} */
     @Override
+    public List<Long> listBirthdayMemberIds() {
+        return getBaseMapper().listBirthdayMemberIds();
+    }
+
+    /** {@inheritDoc} */
+    @Override
     public void accountRegister(MemberUserRegisterVo vo) {
 
         // 账号被占用直接抛出，由 controller 统一转成 15001

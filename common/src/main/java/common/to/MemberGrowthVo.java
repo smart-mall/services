@@ -60,4 +60,12 @@ public class MemberGrowthVo {
      */
     private boolean memberPricePrivilege;
 
+    /**
+     * 当前等级是否带生日特权，对应 {@code ums_member_level.priviledge_birthday}。
+     *
+     * <p>取值口径同 {@link #freeFreight}。它只决定"这一档有没有生日福利"，具体发什么券由
+     * {@code sms_coupon.coupon_type} 与领取窗口决定，所以本类不携带券的信息。
+     */
+    private boolean birthdayPrivilege;
+
 }

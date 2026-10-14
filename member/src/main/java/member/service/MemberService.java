@@ -46,6 +46,16 @@ public interface MemberService extends IService<MemberEntity> {
     Map<Long, String> getMemberNames(List<Long> memberIds);
 
     /**
+     * 查今天生日的会员 ID。
+     *
+     * <p>供 coupon 的生日赠券任务经 Feign 调用。"今天"由数据库判定，口径见
+     * {@code MemberDao#listBirthdayMemberIds}：不按应用算出的月日比，避免两边时区不一致。
+     *
+     * @return 会员 ID 列表；今天没有人过生日时为空列表，不返回 {@code null}
+     */
+    List<Long> listBirthdayMemberIds();
+
+    /**
      * 以账号密码注册新会员。
      *
      * <p>只处理账号和密码：手机号、邮箱由各自的验证码链路负责。新账号取默认等级，

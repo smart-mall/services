@@ -56,4 +56,16 @@ public interface MemberFeignService {
      */
     @GetMapping("/member/trade/growth/levels")
     R<List<MemberLevelVo>> growthLevels();
+
+    /**
+     * 查询今天生日的会员 id，供生日赠券任务使用。
+     *
+     * <p>"今天"由 member 侧按库时间判定，本服务不传月日：两边时区不一致时，
+     * 传过去的月日会与 {@code ums_member.birth} 落在两套时间上。
+     *
+     * @return 统一响应；{@code code} 为 0 时 {@code data} 是会员 id 列表
+     *         （今天没有人过生日时为空列表），{@code code} 非 0 时 {@code data} 为 {@code null}
+     */
+    @GetMapping("/member/trade/member/birthday-members")
+    R<List<Long>> birthdayMemberIds();
 }
