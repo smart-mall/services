@@ -13,13 +13,14 @@ import java.util.List;
 
 
 /**
- * 会员服务的远程调用接口，覆盖收货地址与积分两件事。
+ * 会员服务的远程调用接口，覆盖收货地址、积分与成长值三件事。
  *
- * <p>两类接口的凭证口径不同，不要混着用：地址接口按 {@code memberId} 查或写，member 侧不做归属校验，
- * 调用方必须自己确认这个 id 是当前会员；积分接口在 {@code /member/trade/integration} 下，
- * 不经网关、没有会员凭证可带，会员身份同样由 {@code memberId} 显式传参。
+ * <p>几类接口的凭证口径不同，不要混着用：地址接口按 {@code memberId} 查或写，member 侧不做归属校验，
+ * 调用方必须自己确认这个 id 是当前会员；积分与成长值接口分别在 {@code /member/trade/integration}
+ * 与 {@code /member/trade/growth} 下，不经网关、没有会员凭证可带，
+ * 会员身份同样由 {@code memberId} 显式传参。
  *
- * <p>积分接口的重复调用按成功返回：member 侧的幂等由流水表的唯一索引保证，调用方不必自己去重。
+ * <p>两套赠送接口的重复调用都按成功返回：member 侧的幂等由流水表的唯一索引保证，调用方不必自己去重。
  */
 @FeignClient("member")
 public interface MemberFeignService {
@@ -103,5 +104,23 @@ public interface MemberFeignService {
     R<Void> grantIntegration(@RequestParam("memberId") Long memberId,
                              @RequestParam("orderSn") String orderSn,
                              @RequestParam("points") Integer points);
+
+    /**
+     * 支付成功时赠送成长值。
+     *
+     * <p>数量取自订单上的可得成长值：那是下单那一刻按商品原价算定的快照，
+     * 不随后续等级或规则变化重算。
+     *
+     * <p>幂等：支付回调重复投递时，已经赠送过的订单再次调用不会重复入账。
+     *
+     * @param memberId 会员 id，不能为 {@code null}
+     * @param orderSn 订单号，不能为 {@code null}
+     * @param points 赠送数量，必须为正数
+     * @return 统一响应
+     */
+    @PostMapping("/member/trade/growth/grant")
+    R<Void> grantGrowth(@RequestParam("memberId") Long memberId,
+                        @RequestParam("orderSn") String orderSn,
+                        @RequestParam("points") Integer points);
 
 }

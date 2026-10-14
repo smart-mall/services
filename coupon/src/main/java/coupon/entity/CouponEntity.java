@@ -105,10 +105,11 @@ public class CouponEntity implements Serializable {
 	@Size(max = 64, message = "优惠码不能超过 64 个字符")
 	private String code;
 	/**
-	 * 可领取的会员等级[0->不限等级，其他-对应等级]。
+	 * 可领取的会员等级[0->不限等级，其他-该等级及以上]。
 	 *
-	 * <p>会员等级体系尚未接通：等级只在注册时取一次默认值、之后不再变动，也不在登录凭证里，
-	 * 服务端取到的会员等级恒为 {@code null}。写入侧一律存 0；非 0 的存量行在领取时按不满足处理。
+	 * <p>"及以上"按门槛比：取该等级在 {@code ums_member_level} 里的 {@code growth_point}，
+	 * 与会员当前等级的门槛比较，不比等级主键 —— 主键大小与等级高低同序只是数据巧合。
+	 * 会员等级由 member 服务实时提供，不取登录凭证里的快照。
 	 */
 	private Integer memberLevel;
 	/** 发布状态[0-未发布，1-已发布]；只有已发布且在领取窗口内的券才能被领取。由发布/停发接口维护。 */

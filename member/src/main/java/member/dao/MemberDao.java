@@ -9,8 +9,9 @@ import org.apache.ibatis.annotations.Update;
 /**
  * {@code ums_member} 表的 MyBatis-Plus Mapper，映射会员账号 {@link MemberEntity}。
  *
- * <p>除通用增删改查外只声明积分的两条原子增减语句：判断与写入必须落在同一条 SQL 里，
- * 先查余额再写会出现"两个并发请求各自读到够用的余额、双双扣成功"的窗口。
+ * <p>除通用增删改查外只声明积分与成长值的几条原子增减语句，以及等级归属的写入：
+ * 判断与写入必须落在同一条 SQL 里，先查余额再写会出现"两个并发请求各自读到够用的余额、
+ * 双双扣成功"的窗口。
  */
 @Mapper
 public interface MemberDao extends BaseMapper<MemberEntity> {
@@ -41,5 +42,31 @@ public interface MemberDao extends BaseMapper<MemberEntity> {
      */
     @Update("UPDATE ums_member SET integration = COALESCE(integration, 0) + #{points} WHERE id = #{memberId}")
     int addIntegration(@Param("memberId") Long memberId, @Param("points") int points);
+
+    /**
+     * 增加成长值。
+     *
+     * <p>只按主键定位，不带条件：成长值没有"够不够"的概念，只有积分余额才有。
+     * {@code growth} 列允许为 {@code null}，统一按 0 参与运算。
+     *
+     * @param memberId 会员 id，不能为 {@code null}
+     * @param points 增加数量，必须为正数
+     * @return 受影响行数：1 表示入账成功，0 表示会员不存在
+     */
+    @Update("UPDATE ums_member SET growth = COALESCE(growth, 0) + #{points} WHERE id = #{memberId}")
+    int addGrowth(@Param("memberId") Long memberId, @Param("points") int points);
+
+    /**
+     * 把会员的等级改为指定等级。
+     *
+     * <p>只写 {@code level_id} 一列：等级归属由成长值门槛算出，别的列不参与。
+     * "只升不降"的判定在调用方，本方法不做比较。
+     *
+     * @param memberId 会员 id，不能为 {@code null}
+     * @param levelId 目标等级 id，不能为 {@code null}
+     * @return 受影响行数：1 表示改动成功，0 表示会员不存在
+     */
+    @Update("UPDATE ums_member SET level_id = #{levelId} WHERE id = #{memberId}")
+    int updateLevel(@Param("memberId") Long memberId, @Param("levelId") Long levelId);
 
 }

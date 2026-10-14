@@ -22,15 +22,32 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- ----------------------------
 -- Table structure for ums_growth_change_history
 -- ----------------------------
+-- 【注意】已部署的库里 `ums_growth_change_history` 只有主键，没有下面两列与唯一索引，`note` 也还是 varchar(0)。
+-- 建表语句对已存在的表整句跳过，下面五句都要手工改一次。顺序不能颠倒：
+-- 查重那一句依赖前两句加出来的两列，放在它们前面会报 Unknown column。
+--   ALTER TABLE `ums_growth_change_history` MODIFY COLUMN `note` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '备注';
+--   ALTER TABLE `ums_growth_change_history` ADD COLUMN `order_sn` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '关联订单号：下单赠送与评价赠送两类变动必填' AFTER `change_count`;
+--   ALTER TABLE `ums_growth_change_history` ADD COLUMN `change_type` tinyint(4) NULL DEFAULT NULL COMMENT '变动类型[1->下单赠送；2->评价赠送]；非订单变动为 NULL' AFTER `order_sn`;
+--   SELECT `order_sn`, `change_type`, COUNT(*) FROM `ums_growth_change_history` WHERE `order_sn` IS NOT NULL GROUP BY `order_sn`, `change_type` HAVING COUNT(*) > 1;
+--   ALTER TABLE `ums_growth_change_history` ADD UNIQUE INDEX `uk_order_change` (`order_sn`, `change_type`);
+-- uk_order_change 是「一张订单的每类变动最多一条」的硬约束：下单赠送与评价赠送各一条，
+-- 支付回调重投或评价重试撞上唯一键，即说明这一次变动已经落过账，据此实现幂等，
+-- 不必依赖调用方只调一次。两列同时为 NULL 的变动（管理员手工调整这类没有订单来源的）不受约束 ——
+-- 唯一索引允许多个 NULL，有重复会让加索引直接失败。
+-- note 由 varchar(0) 放宽到 varchar(255)：赠送流水要往这一列写"下单赠送""评价赠送"，
+-- 而 varchar(0) 除空串外什么都存不下，写入会直接报 Data too long。
 DROP TABLE IF EXISTS `ums_growth_change_history`;
 CREATE TABLE `ums_growth_change_history`  (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `member_id` bigint(20) NULL DEFAULT NULL,
   `create_time` datetime(0) NULL DEFAULT NULL,
   `change_count` int(11) NULL DEFAULT NULL COMMENT '改变的值（正负计数）',
-  `note` varchar(0) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '备注',
+  `order_sn` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '关联订单号：下单赠送与评价赠送两类变动必填',
+  `change_type` tinyint(4) NULL DEFAULT NULL COMMENT '变动类型[1->下单赠送；2->评价赠送]；非订单变动为 NULL',
+  `note` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '备注',
   `source_type` tinyint(4) NULL DEFAULT NULL COMMENT '积分来源[0-购物，1-管理员修改]',
-  PRIMARY KEY (`id`) USING BTREE
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_order_change` (`order_sn`, `change_type`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '成长值变化历史记录' ROW_FORMAT = Dynamic;
 
 -- ----------------------------

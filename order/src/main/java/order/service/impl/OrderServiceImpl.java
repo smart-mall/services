@@ -1263,6 +1263,36 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         }
     }
 
+    /**
+     * 支付成功时赠送成长值。
+     *
+     * <p>不吞异常：支付平台收到非成功应答会重新通知，而赠送是幂等的，重试安全；
+     * 反过来吞掉异常会让会员白白少拿成长值，且没有任何地方会再补一次。
+     *
+     * @param memberId 会员主键，不能为 {@code null}
+     * @param orderSn 订单号，不能为 {@code null}
+     * @param points 赠送的成长值数；{@code null} 或非正数表示这一单没有可得成长值，直接返回
+     * @throws BaseException 会员成长值服务不可用时抛出
+     */
+    private void grantGrowth(Long memberId, String orderSn, Integer points) {
+        if (points == null || points <= 0) {
+            return;
+        }
+
+        R<Void> response;
+        try {
+            response = memberFeignService.grantGrowth(memberId, orderSn, points);
+        } catch (Exception e) {
+            log.error("赠送成长值失败，orderSn={}, points={}", orderSn, points, e);
+            throw new BaseException(BaseCodeEnum.ORDER_GROWTH_UNAVAILABLE);
+        }
+        if (response == null || response.getCode() != 0) {
+            throw new BaseException(
+                    response == null ? BaseCodeEnum.ORDER_GROWTH_UNAVAILABLE.getCode() : response.getCode(),
+                    response == null ? BaseCodeEnum.ORDER_GROWTH_UNAVAILABLE.getMsg() : response.getMsg());
+        }
+    }
+
     /* ═══════════════════ 我的订单 ═══════════════════ */
 
     /**
@@ -2136,6 +2166,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         // member 侧按订单号与变动类型做了幂等
         grantIntegration(order.getMemberId(), orderSn, order.getIntegration());
 
+        // 赠送成长值：口径与积分一致，同样排在改状态之前
+        grantGrowth(order.getMemberId(), orderSn, order.getGrowth());
+
         int affected = this.updateOrderStatus(orderSn, OrderStatusEnum.PAYED.getCode(), PayConstant.ALIPAY,
                 "支付宝支付成功");
         if (affected == 0) {
@@ -2310,6 +2343,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         // 赠送积分：与核销券同一位置、同一理由，失败时整个事务回滚，重投能补上
         grantIntegration(orderEntity.getMemberId(), orderSn, orderEntity.getIntegration());
 
+        // 赠送成长值：与积分同一位置、同一理由
+        grantGrowth(orderEntity.getMemberId(), orderSn, orderEntity.getGrowth());
+
         // 5. 修改订单支付状态
         this.updateOrderStatus(orderSn, OrderStatusEnum.PAYED.getCode(), PayConstant.WXPAY, "微信支付成功");
 
@@ -2364,6 +2400,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
         // 5. 赠送积分，同样排在改状态之前
         grantIntegration(order.getMemberId(), orderSn, order.getIntegration());
+
+        // 赠送成长值，与积分同一位置
+        grantGrowth(order.getMemberId(), orderSn, order.getGrowth());
 
         // 6. 置为已付款
         updateOrderStatus(orderSn, OrderStatusEnum.PAYED.getCode(), PayConstant.MOCK, "测试支付成功");

@@ -18,6 +18,7 @@ import product.dao.CommentReplayDao;
 import product.dao.SpuCommentDao;
 import product.entity.CommentReplayEntity;
 import product.entity.SpuCommentEntity;
+import product.feign.MemberFeignService;
 import product.feign.OrderFeignService;
 import product.service.SpuCommentService;
 import product.vo.CommentAuditReplyVo;
@@ -45,6 +46,9 @@ import common.query.PageQuery;
  * <p>会员端：{@link #submitComment} 先向订单服务核对来源再落库；{@link #queryMyComments}、
  * {@link #deleteComment} 按评价行的 {@code member_id} 判归属；{@link #replyComment} 与
  * {@link #likeComment}/{@link #unlikeComment} 面向评论区的公开内容（评价与回复），同样要求登录。
+ *
+ * <p>{@link #submitComment} 落库后向会员服务赠送成长值：赠送失败只记日志，不回滚评价 ——
+ * 评价本身已经成立，而 member 侧按订单号幂等，照日志重放一次就能补上。
  *
  * <p>公开接口：{@link #querySpuComments} 与 {@link #summaryOfSpu} 按 SPU 聚合，共同过滤
  * {@code show_status = 1} 与 {@code comment_type = 0}，对外只给公开投影
@@ -80,16 +84,21 @@ public class SpuCommentServiceImpl extends ServiceImpl<SpuCommentDao, SpuComment
 
     private final OrderFeignService orderFeignService;
 
+    private final MemberFeignService memberFeignService;
+
     private final CommentReplayDao commentReplayDao;
 
     /**
-     * 由 Spring 注入订单服务客户端与回复关系 Mapper，创建后即可直接调用。
+     * 由 Spring 注入订单服务客户端、会员服务客户端与回复关系 Mapper，创建后即可直接调用。
      *
      * @param orderFeignService 订单服务客户端
+     * @param memberFeignService 会员服务客户端，用于评价成功后赠送成长值
      * @param commentReplayDao 回复关系 Mapper
      */
-    public SpuCommentServiceImpl(OrderFeignService orderFeignService, CommentReplayDao commentReplayDao) {
+    public SpuCommentServiceImpl(OrderFeignService orderFeignService, MemberFeignService memberFeignService,
+                                 CommentReplayDao commentReplayDao) {
         this.orderFeignService = orderFeignService;
+        this.memberFeignService = memberFeignService;
         this.commentReplayDao = commentReplayDao;
     }
 
@@ -210,6 +219,14 @@ public class SpuCommentServiceImpl extends ServiceImpl<SpuCommentDao, SpuComment
             orderFeignService.markCommented(target.getOrderSn(), memberId);
         } catch (Exception e) {
             log.error("登记订单评价时间失败，orderSn={}", target.getOrderSn(), e);
+        }
+
+        // 5. 赠送成长值，同样失败只记日志：评价已经落库，member 侧按订单号幂等，
+        // 日志里留了订单号就能照着重放一次
+        try {
+            memberFeignService.grantGrowthByComment(memberId, target.getOrderSn());
+        } catch (Exception e) {
+            log.error("赠送评价成长值失败，orderSn={}", target.getOrderSn(), e);
         }
     }
 

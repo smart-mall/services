@@ -12,6 +12,9 @@ import lombok.Data;
  * 成长值变动流水，对应 {@code ums_growth_change_history} 表。
  *
  * <p>会员成长值每增减一次落一条记录，{@code changeCount} 的正负即增减方向。
+ *
+ * <p>{@code orderSn} 与 {@code changeType} 一起构成唯一索引 {@code uk_order_change}：
+ * 一张订单的每类变动最多一条，支付回调或评价重投时靠它判定这一次变动是否已经落过账。
  */
 @Data
 @TableName("ums_growth_change_history")
@@ -27,9 +30,26 @@ public class GrowthChangeHistoryEntity implements Serializable {
 	private Date createTime;
 	/** 变动值，正数表示增加、负数表示扣减。 */
 	private Integer changeCount;
+	/**
+	 * 关联订单号。
+	 *
+	 * <p>下单赠送与评价赠送都由订单驱动，必定带值；管理员手工调整这类没有订单来源的变动为 {@code null}。
+	 */
+	private String orderSn;
+	/**
+	 * 变动类型，取值见 {@link member.enums.GrowthChangeTypeEnum}。
+	 *
+	 * <p>非订单变动为 {@code null} —— 与 {@code orderSn} 同时为 {@code null} 时不参与唯一索引约束。
+	 */
+	private Integer changeType;
 	/** 备注。 */
 	private String note;
-	/** 成长值来源 [0-购物，1-管理员修改]。 */
+	/**
+	 * 成长值来源 [0-购物，1-管理员修改]。
+	 *
+	 * <p>取值沿用建表注释，两类赠送都写 0；区分"哪一类变动"由 {@code changeType} 承担，
+	 * 本列不参与判定与展示。
+	 */
 	private Integer sourceType;
 
 }

@@ -1,5 +1,6 @@
 package member.web;
 
+import common.to.MemberGrowthVo;
 import common.utils.JwtUtils;
 import common.utils.LoginUserUtils;
 import common.utils.R;
@@ -8,12 +9,15 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import member.entity.MemberEntity;
 import member.entity.MemberReceiveAddressEntity;
+import member.service.GrowthAccountService;
+import member.service.GrowthChangeHistoryService;
 import member.service.IntegrationAccountService;
 import member.service.IntegrationChangeHistoryService;
 import member.service.MemberLoginLogService;
 import member.service.MemberReceiveAddressService;
 import member.service.MemberService;
 import member.vo.AddressSaveVo;
+import member.vo.GrowthHistoryVo;
 import member.vo.IntegrationHistoryVo;
 import member.vo.MemberProfileUpdateVo;
 import org.springframework.beans.BeanUtils;
@@ -34,7 +38,7 @@ import common.vo.PageVO;
 import member.entity.MemberLoginLogEntity;
 import common.query.PageQuery;
 /**
- * 会员中心的前台接口：资料修改、收货地址管理、本人登录记录与积分查询。
+ * 会员中心的前台接口：资料修改、收货地址管理、本人登录记录，以及积分与成长值查询。
  *
  * <p>路径在 {@code /front/jwt} 下，会员 id 只取自网关注入的 {@code X-Member-Claims}，不接受前端传参；
  * 改资料会重签 token，返回形状与 auth 的登录接口一致。
@@ -48,6 +52,8 @@ public class MemberFrontController {
     private final MemberLoginLogService memberLoginLogService;
     private final IntegrationAccountService integrationAccountService;
     private final IntegrationChangeHistoryService integrationChangeHistoryService;
+    private final GrowthAccountService growthAccountService;
+    private final GrowthChangeHistoryService growthChangeHistoryService;
     private final JwtUtils jwtUtils;
 
     /**
@@ -58,6 +64,8 @@ public class MemberFrontController {
      * @param memberLoginLogService 会员登录记录服务
      * @param integrationAccountService 会员积分账户服务
      * @param integrationChangeHistoryService 会员积分流水查询服务
+     * @param growthAccountService 会员成长值账户服务
+     * @param growthChangeHistoryService 会员成长值流水查询服务
      * @param jwtUtils 会员登录态签发工具
      */
     public MemberFrontController(MemberService memberService,
@@ -65,12 +73,16 @@ public class MemberFrontController {
                                  MemberLoginLogService memberLoginLogService,
                                  IntegrationAccountService integrationAccountService,
                                  IntegrationChangeHistoryService integrationChangeHistoryService,
+                                 GrowthAccountService growthAccountService,
+                                 GrowthChangeHistoryService growthChangeHistoryService,
                                  JwtUtils jwtUtils) {
         this.memberService = memberService;
         this.memberReceiveAddressService = memberReceiveAddressService;
         this.memberLoginLogService = memberLoginLogService;
         this.integrationAccountService = integrationAccountService;
         this.integrationChangeHistoryService = integrationChangeHistoryService;
+        this.growthAccountService = growthAccountService;
+        this.growthChangeHistoryService = growthChangeHistoryService;
         this.jwtUtils = jwtUtils;
     }
 
@@ -204,6 +216,36 @@ public class MemberFrontController {
     @GetMapping("/integration/history")
     public R<PageVO<IntegrationHistoryVo>> integrationHistory(PageQuery query, HttpServletRequest request) {
         return R.ok(integrationChangeHistoryService.queryMine(
+                LoginUserUtils.requireCurrentUser(request).getId(), query));
+    }
+
+    /* ═══════════════════ 成长值 ═══════════════════ */
+
+    /**
+     * 查询当前登录会员的成长值、所属等级与该等级的门槛。
+     *
+     * <p>等级与成长值都不在登录凭证里，页面要展示当前等级只能取实时值。
+     *
+     * @param request 当前请求，会员身份从它携带的 {@code X-Member-Claims} 头解析
+     * @return 成长状态；会员没有等级时等级相关字段为 {@code null}，成长值归一到 0
+     */
+    @GetMapping("/growth")
+    public R<MemberGrowthVo> growth(HttpServletRequest request) {
+        return R.ok(growthAccountService.snapshot(LoginUserUtils.requireCurrentUser(request).getId()));
+    }
+
+    /**
+     * 分页查询当前登录会员自己的成长值变动流水，按变动时间倒序。
+     *
+     * <p>只返回本人流水：会员维度取自登录态，不接受前端传参。
+     *
+     * @param query 分页参数，{@code page} 为页码、{@code limit} 为每页条数
+     * @param request 当前请求，会员身份从它携带的 {@code X-Member-Claims} 头解析
+     * @return 分页结果，{@code rows} 为成长值流水
+     */
+    @GetMapping("/growth/history")
+    public R<PageVO<GrowthHistoryVo>> growthHistory(PageQuery query, HttpServletRequest request) {
+        return R.ok(growthChangeHistoryService.queryMine(
                 LoginUserUtils.requireCurrentUser(request).getId(), query));
     }
 

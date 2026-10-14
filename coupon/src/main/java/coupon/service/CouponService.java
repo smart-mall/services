@@ -100,7 +100,7 @@ public interface CouponService extends IService<CouponEntity> {
      * @param couponId 优惠券主键，不能为 {@code null}
      * @param memberIds 目标会员主键列表，不能为 {@code null} 或空集合；元素为 {@code null} 时跳过
      * @return 实际发出成功的张数，可能为 0
-     * @throws BaseException 券不存在、当前不可领取，或券限定了会员等级时抛出
+     * @throws BaseException 券不存在、当前不可领取，或券限定的等级在等级表里不存在时抛出
      */
     int grant(Long couponId, List<Long> memberIds);
 
@@ -116,15 +116,17 @@ public interface CouponService extends IService<CouponEntity> {
      *
      * @param couponId 优惠券主键，不能为 {@code null}
      * @param user 当前登录会员，{@code id} 必填，昵称用于写领取记录
-     * @throws BaseException 券不存在、当前不可领取、已领完、超出每人限领，或券限定了会员等级时抛出
+     * @throws BaseException 券不存在、当前不可领取、已领完、超出每人限领，或会员等级不满足时抛出
      */
     void receive(Long couponId, MemberResponseVo user);
 
     /**
      * 列出当前会员可领取的券，供券中心的"可领取"一档展示。
      *
-     * <p>只列此刻真的领得到的券：已发布、在领取窗口内、还有余量，且没限定会员等级 ——
-     * 等级体系未接通，限等级的券领一次失败一次，列出来只会误导。
+     * <p>只列此刻真的领得到的券：已发布、在领取窗口内、还有余量，且会员等级够得着 ——
+     * 限等级且够不着的券不列，那个按钮点下去必然被领取闸门拒绝。
+     *
+     * <p>取不到会员等级信息时退化为只列不限等级的券：券中心不该整页打不开，但也不给出领不到的入口。
      *
      * <p>已被该会员领满的券仍然列出：前端要把它显示成"已领取"而不是从列表里消失。
      *

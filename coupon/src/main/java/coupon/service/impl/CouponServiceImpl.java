@@ -7,6 +7,8 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
 import common.query.KeyPageQuery;
+import common.to.MemberGrowthVo;
+import common.to.MemberLevelVo;
 import common.utils.R;
 import common.vo.MemberResponseVo;
 import common.vo.PageVO;
@@ -30,6 +32,7 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -129,8 +132,8 @@ public class CouponServiceImpl extends ServiceImpl<CouponDao, CouponEntity> impl
         coupon.setPublish(0);
         coupon.setReceiveCount(0);
         coupon.setUseCount(0);
-        // 会员等级体系未接通，写入侧统一存 0，避免存下一个永远匹配不上的值
-        coupon.setMemberLevel(0);
+        // 0 表示不限等级；null 归一为 0，库里不留 NULL（判定与展示都按 0 处理）
+        coupon.setMemberLevel(coupon.getMemberLevel() == null ? 0 : coupon.getMemberLevel());
 
         this.save(coupon);
 
@@ -160,7 +163,8 @@ public class CouponServiceImpl extends ServiceImpl<CouponDao, CouponEntity> impl
         coupon.setPublish(existing.getPublish());
         coupon.setReceiveCount(existing.getReceiveCount());
         coupon.setUseCount(existing.getUseCount());
-        coupon.setMemberLevel(0);
+        // 等级是领取资格的一部分，取值由管理端提交；null 归一为 0，库里不留 NULL
+        coupon.setMemberLevel(coupon.getMemberLevel() == null ? 0 : coupon.getMemberLevel());
 
         this.updateById(coupon);
 
@@ -241,14 +245,20 @@ public class CouponServiceImpl extends ServiceImpl<CouponDao, CouponEntity> impl
 
         Date now = new Date();
         assertReceivable(coupon, now);
-        assertMemberLevel(coupon);
+
+        // 限等级的券先筛掉不达标的会员，且排在扣发行量之前：扣了额度就拿着券行的排他锁，
+        // 在那之后做远程调用会让同券的领取请求一起等待
+        List<Long> eligibleMemberIds = filterByMemberLevel(coupon, memberIds);
+        if (eligibleMemberIds.isEmpty()) {
+            return 0;
+        }
 
         // 昵称只用于展示，查不到不该挡住发券，所以这里失败不抛异常、留空继续
-        Map<Long, String> nicknames = fetchMemberNicknames(memberIds);
+        Map<Long, String> nicknames = fetchMemberNicknames(eligibleMemberIds);
 
         int perLimit = coupon.getPerLimit() == null ? 0 : coupon.getPerLimit();
         int granted = 0;
-        for (Long memberId : memberIds) {
+        for (Long memberId : eligibleMemberIds) {
             if (memberId == null) {
                 continue;
             }
@@ -281,7 +291,7 @@ public class CouponServiceImpl extends ServiceImpl<CouponDao, CouponEntity> impl
 
         Date now = new Date();
         assertReceivable(coupon, now);
-        assertMemberLevel(coupon);
+        assertMemberLevel(coupon, user.getId());
 
         // 顺序不能颠倒：先扣发行量拿到 sms_coupon 行的排他锁，同券领取请求才被串行化。
         // 光有锁不够：本方法跑在 READ_COMMITTED 下，锁之后那次计数才读得到已提交的记录
@@ -305,18 +315,21 @@ public class CouponServiceImpl extends ServiceImpl<CouponDao, CouponEntity> impl
     public List<CouponReceivableVo> listReceivable(Long memberId) {
         Date now = new Date();
         List<CouponEntity> inStock = this.list(new LambdaQueryWrapper<CouponEntity>()
-                // 未发布、不在领取窗口内、限会员等级的都不进券中心：领了也过不了领取闸门
+                // 未发布、不在领取窗口内的都不进券中心：领了也过不了领取闸门
                 .eq(CouponEntity::getPublish, 1)
                 .le(CouponEntity::getEnableStartTime, now)
                 .gt(CouponEntity::getEnableEndTime, now)
-                .and(inner -> inner.isNull(CouponEntity::getMemberLevel)
-                        .or()
-                        .eq(CouponEntity::getMemberLevel, 0))
                 // 已领完的券在 SQL 里就筛掉，不捞回来再在内存里过滤；两个计数列都允许为
                 // NULL，必须 COALESCE，否则 NULL 参与比较恒为假、一张券都出不来
                 .apply("COALESCE(receive_count, 0) < COALESCE(publish_count, 0)")
                 // 面额大的排前面：会员进券中心第一眼想看到的是最值钱的那张
                 .orderByDesc(CouponEntity::getAmount));
+        if (inStock.isEmpty()) {
+            return List.of();
+        }
+
+        // 限等级的券够不够得着要问 member：等级表在那边，这条筛选在 SQL 里做不到
+        inStock = filterReceivableByLevel(memberId, inStock);
         if (inStock.isEmpty()) {
             return List.of();
         }
@@ -569,6 +582,8 @@ public class CouponServiceImpl extends ServiceImpl<CouponDao, CouponEntity> impl
                 || !Objects.equals(existing.getPerLimit(), submitted.getPerLimit())
                 || !Objects.equals(existing.getPublishCount(), submitted.getPublishCount())
                 || !Objects.equals(existing.getUseType(), submitted.getUseType())
+                // 改等级等于改领取资格：券可能已经在会员名下，悄悄放开或收紧都会与领取时的判定分叉
+                || !Objects.equals(existing.getMemberLevel(), submitted.getMemberLevel())
                 || !Objects.equals(existing.getStartTime(), submitted.getStartTime())
                 || !Objects.equals(existing.getEndTime(), submitted.getEndTime())
                 || !Objects.equals(existing.getEnableStartTime(), submitted.getEnableStartTime())
@@ -612,15 +627,172 @@ public class CouponServiceImpl extends ServiceImpl<CouponDao, CouponEntity> impl
     /**
      * 校验会员等级满足券的限定。
      *
-     * <p>限等级的券在等级体系接通前一律拒绝：服务端拿不到会员等级，放行等于把限定范围作废。
+     * <p>券的 {@code memberLevel} 表示"该等级及以上"：把券上的等级换算成 {@code growth_point} 门槛，
+     * 再与会员当前等级的门槛比较，不比等级主键 —— 主键大小与等级高低同序只是数据巧合。
+     * 等级表与会员等级都在 member 库，本服务按 {@link MemberFeignService} 取，不读别人的表。
+     *
+     * <p>取不到等级信息时失败关闭：放行等于把限定范围作废。
      *
      * @param coupon 券，不能为 {@code null}
-     * @throws BaseException 券限定了会员等级时抛出
+     * @param memberId 领券会员 id，不能为 {@code null}
+     * @throws BaseException 等级不满足或券指向的等级在等级表里不存在（22009）、
+     *                       会员服务不可用（22020）时抛出
      */
-    private void assertMemberLevel(CouponEntity coupon) {
-        if (coupon.getMemberLevel() != null && coupon.getMemberLevel() != 0) {
+    private void assertMemberLevel(CouponEntity coupon, Long memberId) {
+        if (!isLevelRestricted(coupon)) {
+            return;
+        }
+
+        Integer requiredPoint = fetchLevelGrowthPoints().get(coupon.getMemberLevel().longValue());
+        if (requiredPoint == null) {
+            log.warn("券限定的会员等级在等级表里不存在，拒绝领取：couponId={}, memberLevel={}",
+                    coupon.getId(), coupon.getMemberLevel());
             throw new BaseException(BaseCodeEnum.COUPON_MEMBER_LEVEL_MISMATCH);
         }
+        if (!reaches(fetchLevelPoint(memberId), requiredPoint)) {
+            throw new BaseException(BaseCodeEnum.COUPON_MEMBER_LEVEL_MISMATCH);
+        }
+    }
+
+    /**
+     * 从待发券的会员里筛出等级达标的人，不达标的跳过，而不是让整批发不出去。
+     *
+     * <p>远程调用次数等于选中的会员数：本方法只服务于后台定向发券，人数由管理端多选的规模决定。
+     *
+     * @param coupon 券，不能为 {@code null}
+     * @param memberIds 待发券的会员 id，不能为 {@code null}
+     * @return 等级达标的会员 id；券不限等级时原样返回入参
+     * @throws BaseException 券指向的等级在等级表里不存在（22009）、会员服务不可用（22020）时抛出
+     */
+    private List<Long> filterByMemberLevel(CouponEntity coupon, List<Long> memberIds) {
+        if (!isLevelRestricted(coupon)) {
+            return memberIds;
+        }
+
+        Integer requiredPoint = fetchLevelGrowthPoints().get(coupon.getMemberLevel().longValue());
+        if (requiredPoint == null) {
+            // 指向不存在的等级：放行等于把限定范围作废，整批都不发
+            log.warn("券限定的会员等级在等级表里不存在，拒绝发放：couponId={}, memberLevel={}",
+                    coupon.getId(), coupon.getMemberLevel());
+            throw new BaseException(BaseCodeEnum.COUPON_MEMBER_LEVEL_MISMATCH);
+        }
+
+        List<Long> eligible = new ArrayList<>();
+        for (Long memberId : memberIds) {
+            if (memberId != null && reaches(fetchLevelPoint(memberId), requiredPoint)) {
+                eligible.add(memberId);
+            }
+        }
+        if (eligible.size() < memberIds.size()) {
+            log.info("部分会员等级不满足券限定，已跳过：couponId={}, memberLevel={}, 选中={}, 达标={}",
+                    coupon.getId(), coupon.getMemberLevel(), memberIds.size(), eligible.size());
+        }
+        return eligible;
+    }
+
+    /**
+     * 按会员等级过滤券中心的可领取券。
+     *
+     * <p>拿不到等级信息时退化为"只展示不限等级的券"：券中心只是结算之外的一个页面，
+     * 不该整页打不开；但也不能把够不着的券列出来 —— 那个按钮点下去必然被领取闸门拒绝。
+     *
+     * @param memberId 当前会员 id，不能为 {@code null}
+     * @param coupons 券中心捞到的券，不能为 {@code null}
+     * @return 够得着的券；券全部不限等级时原样返回入参
+     */
+    private List<CouponEntity> filterReceivableByLevel(Long memberId, List<CouponEntity> coupons) {
+        if (coupons.stream().noneMatch(this::isLevelRestricted)) {
+            return coupons;
+        }
+
+        Integer memberPoint;
+        Map<Long, Integer> growthPoints;
+        try {
+            memberPoint = fetchLevelPoint(memberId);
+            growthPoints = fetchLevelGrowthPoints();
+        } catch (Exception e) {
+            log.error("取会员等级信息失败，券中心只展示不限等级的券：memberId={}", memberId, e);
+            return coupons.stream().filter(coupon -> !isLevelRestricted(coupon)).toList();
+        }
+
+        return coupons.stream()
+                .filter(coupon -> !isLevelRestricted(coupon)
+                        || reaches(memberPoint, growthPoints.get(coupon.getMemberLevel().longValue())))
+                .toList();
+    }
+
+    /**
+     * 判断券是否限定了会员等级。
+     *
+     * @param coupon 券，不能为 {@code null}
+     * @return {@code true} 表示券要求会员达到某个等级
+     */
+    private boolean isLevelRestricted(CouponEntity coupon) {
+        return coupon.getMemberLevel() != null && coupon.getMemberLevel() != 0;
+    }
+
+    /**
+     * 判断会员所在的等级是否达到券要求的等级。
+     *
+     * <p>两边都是某个等级的 {@code growth_point}：互相比较就是"哪个等级更高"，与等级主键无关，
+     * 也不受会员成长值与所在等级暂时不一致的影响。
+     *
+     * @param memberPoint 会员当前等级的门槛；会员没有等级时为 {@code null}
+     * @param requiredPoint 券上等级对应的门槛；等级在等级表里不存在时为 {@code null}
+     * @return {@code true} 表示够得着；任一侧取不到门槛时返回 {@code false}，即不满足
+     */
+    private boolean reaches(Integer memberPoint, Integer requiredPoint) {
+        return memberPoint != null && requiredPoint != null && memberPoint >= requiredPoint;
+    }
+
+    /**
+     * 取会员当前等级的门槛。
+     *
+     * <p>等级不在登录凭证里，只能向 member 取实时值：凭证是登录那一刻的快照，升级之后就不准了。
+     * 取等级门槛而不是成长值，理由见 {@link #reaches}。
+     *
+     * @param memberId 会员 id，不能为 {@code null}
+     * @return 会员当前等级的门槛；会员没有等级时为 {@code null}
+     * @throws BaseException 会员服务不可用（22020）或会员不存在时抛出
+     */
+    private Integer fetchLevelPoint(Long memberId) {
+        R<MemberGrowthVo> response;
+        try {
+            response = memberFeignService.growthLevel(memberId);
+        } catch (Exception e) {
+            log.error("取会员等级失败，memberId={}", memberId, e);
+            throw new BaseException(BaseCodeEnum.COUPON_MEMBER_UNAVAILABLE);
+        }
+        if (response == null || response.getCode() != 0 || response.getData() == null) {
+            if (response != null && response.getCode() != 0) {
+                // 原样转发 member 的码：会员不存在与"服务不可用"要给人不同的排查方向
+                throw new BaseException(response.getCode(), response.getMsg());
+            }
+            throw new BaseException(BaseCodeEnum.COUPON_MEMBER_UNAVAILABLE);
+        }
+        return response.getData().getGrowthPoint();
+    }
+
+    /**
+     * 取全部等级的门槛，用于把券上的等级换算成可比较的成长值。
+     *
+     * @return 等级 id 到成长值门槛的映射；门槛为 {@code null} 的等级不进映射
+     * @throws BaseException 会员服务不可用（22020）时抛出
+     */
+    private Map<Long, Integer> fetchLevelGrowthPoints() {
+        R<List<MemberLevelVo>> response;
+        try {
+            response = memberFeignService.growthLevels();
+        } catch (Exception e) {
+            log.error("取会员等级定义失败", e);
+            throw new BaseException(BaseCodeEnum.COUPON_MEMBER_UNAVAILABLE);
+        }
+        if (response == null || response.getCode() != 0 || response.getData() == null) {
+            throw new BaseException(BaseCodeEnum.COUPON_MEMBER_UNAVAILABLE);
+        }
+        return response.getData().stream()
+                .filter(level -> level.getId() != null && level.getGrowthPoint() != null)
+                .collect(Collectors.toMap(MemberLevelVo::getId, MemberLevelVo::getGrowthPoint, (first, second) -> first));
     }
 
     /**
