@@ -32,7 +32,6 @@ import product.vo.SkuHasStockVo;
 import product.vo.SpuSelectVO;
 import product.vo.SpuVO;
 
-import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -256,23 +255,47 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
                 }).toList();
                 skuSaleAttrValueDao.insert(skuSaleAttrValueEntityStream);
 
-                // 6.4 sku 优惠信息：两个优惠字段都没填就不发远程请求
+                // 6.4 sku 优惠信息：写哪几样由 coupon 侧逐段判断，这里不预先筛 ——
+                // 调用端筛一次就是对端判定的一份副本，漏掉一段（如会员价）就会静默写不进去
                 SkuReductionTo skuReductionTo = new SkuReductionTo();
                 BeanUtils.copyProperties(sku, skuReductionTo);
                 skuReductionTo.setSkuId(skuInfoEntity.getSkuId());
+                // 会员价逐项搬，不能交给 BeanUtils：两边的 MemberPrice 是两个类，
+                // 集合元素泛型不一致时它静默跳过这个属性，表现为"配了会员价却写不进去"
+                skuReductionTo.setMemberPrice(toMemberPrices(sku.getMemberPrice()));
 
-                if (skuReductionTo.getFullCount() > 0 || skuReductionTo.getFullPrice().compareTo(new BigDecimal("0")) > 0) {
-                    R<Void> r = couponFeignService.saveSkuReduction(skuReductionTo);
-                    if (r.getCode() != 0) {
-                        // 不回滚本地事务：优惠数据在 coupon 侧，缺了不影响商品本身
-                        log.error("保存sku优惠信息失败");
-                    }
+                R<Void> r = couponFeignService.saveSkuReduction(skuReductionTo);
+                if (r.getCode() != 0) {
+                    // 不回滚本地事务：优惠数据在 coupon 侧，缺了不影响商品本身
+                    log.error("保存sku优惠信息失败");
                 }
             });
 
         }
 
 
+    }
+
+    /**
+     * 把商品表单里的会员价逐项转成 coupon 侧契约。
+     *
+     * <p>不靠 {@code BeanUtils.copyProperties} 搬这一栏：源与目标集合的元素是两个不同的类，
+     * 泛型类型不一致时它<b>静默跳过</b>这个属性 —— 不抛异常也不记日志，表现为"填了会员价却没写进去"。
+     *
+     * @param memberPrices 表单里的会员价，可以为 {@code null}
+     * @return coupon 侧的会员价列表；入参为 {@code null} 时返回空列表
+     */
+    private List<SkuReductionTo.MemberPrice> toMemberPrices(List<SpuVO.MemberPrice> memberPrices) {
+        if (memberPrices == null) {
+            return List.of();
+        }
+        return memberPrices.stream().map(memberPrice -> {
+            SkuReductionTo.MemberPrice to = new SkuReductionTo.MemberPrice();
+            to.setId(memberPrice.getId());
+            to.setName(memberPrice.getName());
+            to.setPrice(memberPrice.getPrice());
+            return to;
+        }).toList();
     }
 
     /** {@inheritDoc} */
