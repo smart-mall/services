@@ -8,14 +8,15 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 订单确认页需要用的数据。五个金额都由后端算好，前端只负责显示和原样回传：
+ * 订单确认页需要用的数据。六个金额都由后端算好，前端只负责显示和原样回传：
  * {@code totalAmount} = 各购物项 price × count 之和，{@code freightAmount} = 默认收货地址的运费
- * （换地址时调 {@code /order/front/jwt/fare} 重取），{@code couponAmount} = 选中券的抵扣额，
- * {@code integrationAmount} = 本单使用的积分抵掉的钱，
- * {@code payAmount} = 商品总额 + 运费 − 券抵扣 − 积分抵扣，即提交时要回传的 {@code payPrice}。
+ * （换地址时调 {@code /order/front/jwt/fare} 重取），{@code promotionAmount} = 商品促销减免，
+ * {@code couponAmount} = 选中券的抵扣额，{@code integrationAmount} = 本单使用的积分抵掉的钱，
+ * {@code payAmount} = 商品总额 + 运费 − 促销减免 − 券抵扣 − 积分抵扣，即提交时要回传的 {@code payPrice}。
  *
- * <p>运费、券优惠与积分抵扣各有一份按商品拆分的明细（{@code fareItems}、{@code couponItems} 与
- * {@code integrationItems}），前端逐行展示商品自己的费用与优惠，不必自己再算。
+ * <p>运费、促销减免、券优惠与积分抵扣各有一份按商品拆分的明细（{@code fareItems}、
+ * {@code promotionItems}、{@code couponItems} 与 {@code integrationItems}），
+ * 前端逐行展示商品自己的费用与优惠，不必自己再算。
  *
  * <p>{@code couponHistoryId} 与 {@code useIntegration} 是"当前选中的优惠"，由调用方在请求里指定。
  * 这两个参数变了就要重新请求本接口或 {@code /fare}：抵扣额必须由后端算，
@@ -53,13 +54,16 @@ public class OrderConfirmVo {
     /** 运费。 */
     private BigDecimal freightAmount;
 
+    /** 商品促销减免额；没有命中满减或阶梯价时为 0。 */
+    private BigDecimal promotionAmount;
+
     /** 优惠券抵扣额；没有选券时为 0。 */
     private BigDecimal couponAmount;
 
     /** 积分抵扣额；没有使用积分时为 0。 */
     private BigDecimal integrationAmount;
 
-    /** 应付总额 = 商品总额 + 运费 - 优惠券抵扣额 - 积分抵扣额。 */
+    /** 应付总额 = 商品总额 + 运费 - 促销减免 - 优惠券抵扣额 - 积分抵扣额。 */
     private BigDecimal payAmount;
 
     /**
@@ -89,6 +93,14 @@ public class OrderConfirmVo {
      * 前端求和与后端汇总的舍入方式一旦不同就会差几分钱。
      */
     private List<FareItemVo> fareItems;
+
+    /**
+     * 每个商品的促销减免明细，与 {@code items} 按 {@code skuId} 对应；前端逐行显示商品自己的促销。
+     *
+     * <p>没有命中促销时为空列表，不会为 {@code null}；只含命中满减或阶梯价的商品。
+     * 与 {@code promotionAmount} 出自同一次命中判定，两者必然自洽。
+     */
+    private List<PromotionDiscountItemVo> promotionItems;
 
     /**
      * 每个商品的优惠明细，与 {@code items} 按 {@code skuId} 对应；前端逐行显示商品自己的优惠。

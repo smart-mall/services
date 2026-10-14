@@ -71,14 +71,14 @@ public class SkuFullReductionController {
     }
 
     /**
-     * 新增一条商品满减记录。
+     * 保存一条商品满减，同一个 SKU 只留一行。
      *
-     * @param skuFullReduction 满减内容，主键留空时由数据库生成
+     * @param skuFullReduction 满减内容，{@code skuId} 必填；同一个 SKU 已有的满减会被覆盖
      * @return 统一成功响应，不含业务数据
      */
     @RequestMapping("/save")
     public R<Void> save(@RequestBody SkuFullReductionEntity skuFullReduction){
-		skuFullReductionService.save(skuFullReduction);
+		skuFullReductionService.saveFullReduction(skuFullReduction);
 
         return R.ok();
     }

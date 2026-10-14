@@ -3,7 +3,9 @@ package coupon.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
+import common.to.SkuPromotionVo;
 import common.to.SkuReductionTo;
 import common.vo.PageVO;
 import common.utils.R;
@@ -20,14 +22,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 
 import common.query.KeyPageQuery;
 /**
- * 商品满减信息的分页查询，以及发布商品时满减、阶梯价、会员价三张表的一次性写入与按 SKU 删除。
+ * 商品满减信息的分页查询、按 skuId 批量读取促销规则，以及发布商品时满减、阶梯价、会员价
+ * 三张表的一次性写入与按 SKU 删除。
  *
  * <p>无状态，线程安全。
  */
@@ -101,6 +107,12 @@ public class SkuFullReductionServiceImpl extends ServiceImpl<SkuFullReductionDao
     @Override
     @Transactional
     public void saveSkuReduction(SkuReductionTo skuReductionTo) {
+        if (skuReductionTo == null || skuReductionTo.getSkuId() == null) {
+            throw new BaseException(BaseCodeEnum.VALID_EXCEPTION, "商品优惠信息必须指定 SKU");
+        }
+        // 先清掉这个 SKU 在三张表里的旧配置：写入的语义是"这份配置覆盖旧的"，不是"再追加一份"
+        deleteBySkuIds(List.of(skuReductionTo.getSkuId()));
+
         if (skuReductionTo.getFullCount() > 0) {
             SkuLadderEntity skuLadderEntity = new SkuLadderEntity();
             BeanUtils.copyProperties(skuReductionTo, skuLadderEntity);
@@ -130,6 +142,65 @@ public class SkuFullReductionServiceImpl extends ServiceImpl<SkuFullReductionDao
             }).filter( item -> item.getMemberPrice().compareTo(new BigDecimal("0")) > 0).toList();
             memberPriceDao.insert(memberPriceEntityList);
         }
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    @Transactional
+    public void saveFullReduction(SkuFullReductionEntity skuFullReduction) {
+        if (skuFullReduction == null || skuFullReduction.getSkuId() == null) {
+            throw new BaseException(BaseCodeEnum.VALID_EXCEPTION, "满减必须指定 SKU");
+        }
+        baseMapper.delete(new LambdaQueryWrapper<SkuFullReductionEntity>()
+                .eq(SkuFullReductionEntity::getSkuId, skuFullReduction.getSkuId()));
+        baseMapper.insert(skuFullReduction);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public List<SkuPromotionVo> listBySkuIds(List<Long> skuIds) {
+        if (skuIds == null || skuIds.isEmpty()) {
+            return List.of();
+        }
+
+        // 两张表各查一次再按 skuId 归并，不按 SKU 逐条查
+        Map<Long, SkuFullReductionEntity> reductions = new HashMap<>();
+        for (SkuFullReductionEntity row : baseMapper.selectList(new LambdaQueryWrapper<SkuFullReductionEntity>()
+                .in(SkuFullReductionEntity::getSkuId, skuIds))) {
+            if (row.getSkuId() != null) {
+                reductions.put(row.getSkuId(), row);
+            }
+        }
+
+        Map<Long, SkuLadderEntity> ladders = new HashMap<>();
+        for (SkuLadderEntity row : skuLadderDao.selectList(new LambdaQueryWrapper<SkuLadderEntity>()
+                .in(SkuLadderEntity::getSkuId, skuIds))) {
+            if (row.getSkuId() != null) {
+                ladders.put(row.getSkuId(), row);
+            }
+        }
+
+        Set<Long> configuredSkuIds = new LinkedHashSet<>(reductions.keySet());
+        configuredSkuIds.addAll(ladders.keySet());
+
+        return configuredSkuIds.stream().map(skuId -> {
+            SkuPromotionVo vo = new SkuPromotionVo();
+            vo.setSkuId(skuId);
+
+            SkuFullReductionEntity reduction = reductions.get(skuId);
+            if (reduction != null) {
+                vo.setFullPrice(reduction.getFullPrice());
+                vo.setReducePrice(reduction.getReducePrice());
+            }
+
+            SkuLadderEntity ladder = ladders.get(skuId);
+            if (ladder != null) {
+                vo.setFullCount(ladder.getFullCount());
+                vo.setDiscount(ladder.getDiscount());
+                vo.setLadderPrice(ladder.getPrice());
+            }
+            return vo;
+        }).toList();
     }
 
     /** {@inheritDoc} */

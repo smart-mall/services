@@ -1,6 +1,7 @@
 package product.vo;
 
 
+import common.to.SkuPromotionVo;
 import lombok.Data;
 import lombok.ToString;
 import product.entity.SkuImagesEntity;
@@ -12,7 +13,7 @@ import java.util.List;
 
 
 /**
- * 商品详情页的完整出参：sku 基本信息、库存、图集、销售属性、商品介绍、规格参数与秒杀优惠。
+ * 商品详情页的完整出参：sku 基本信息、库存、图集、销售属性、商品介绍、规格参数、秒杀优惠与商品促销。
  *
  * <p>由 {@code SkuInfoServiceImpl#item} 并行组装，是 {@code /product/front/item/{skuId}} 的出参；
  * 除 {@code info} 外的各数据块都可能为 {@code null}（远程服务失败或数据未维护）。
@@ -41,5 +42,8 @@ public class SkuItemVo {
 
     /** 秒杀优惠信息；该 sku 不参与秒杀或秒杀已结束时为 {@code null}。 */
     private SeckillSkuVo seckillSkuVo;
+
+    /** 该 sku 的商品促销规则（满减与阶梯价）；两段都没配时为 {@code null}。 */
+    private SkuPromotionVo promotion;
 
 }

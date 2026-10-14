@@ -1,5 +1,6 @@
 package order.feign;
 
+import common.to.MemberGrowthVo;
 import common.utils.R;
 import order.vo.MemberAddressVo;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -122,5 +123,18 @@ public interface MemberFeignService {
     R<Void> grantGrowth(@RequestParam("memberId") Long memberId,
                         @RequestParam("orderSn") String orderSn,
                         @RequestParam("points") Integer points);
+
+    /**
+     * 查询会员的成长状态与等级权益。
+     *
+     * <p>结算时要按等级权益免运费，而等级与权益都在会员库：调用方不读别人的表。
+     * 不能用登录凭证里的等级代替 —— 凭证是登录那一刻的快照，升级之后就不准了。
+     *
+     * @param memberId 会员 id，不能为 {@code null}
+     * @return 统一响应；{@code code} 为 0 时 {@code data} 是会员的成长状态（{@code freeFreight}
+     *         表示当前等级是否带免邮特权），{@code code} 非 0 时 {@code data} 为 {@code null}
+     */
+    @GetMapping("/member/trade/growth/level")
+    R<MemberGrowthVo> growthLevel(@RequestParam("memberId") Long memberId);
 
 }

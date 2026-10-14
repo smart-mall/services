@@ -67,15 +67,15 @@ public class SpuBoundsController {
     }
 
     /**
-     * 新增一条 SPU 积分设置。
+     * 保存一条 SPU 积分设置，同一个 SPU 只留一行。
      *
-     * @param spuBounds 积分设置内容，主键留空时由数据库生成
+     * @param spuBounds 积分设置内容，{@code spuId} 必填；同一个 SPU 已有的配置会被覆盖
      * @return 统一成功响应，不含业务数据
      */
     @RequestMapping("/save")
     public R<Void> save(@RequestBody SpuBoundsEntity spuBounds){
         log.info("保存spuBounds：{}", JSON.toJSONString(spuBounds, SerializerFeature.PrettyFormat));
-		spuBoundsService.save(spuBounds);
+		spuBoundsService.saveSpuBounds(spuBounds);
 
         return R.ok();
     }

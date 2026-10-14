@@ -1,6 +1,7 @@
 package coupon.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import common.to.SkuPromotionVo;
 import common.to.SkuReductionTo;
 import common.vo.PageVO;
 import coupon.entity.SkuFullReductionEntity;
@@ -36,12 +37,38 @@ public interface SkuFullReductionService extends IService<SkuFullReductionEntity
      * 写满减（{@code sms_sku_full_reduction}），{@code memberPrice} 非空时把其中价格大于 0 的条目
      * 写会员价（{@code sms_member_price}）；三张表的写入在同一事务内，一起成功或一起回滚。
      *
-     * <p>非幂等：全部是 INSERT，没有按 {@code skuId} 覆盖或先去重，重复调用会产生重复行。
+     * <p>按 {@code skuId} 覆盖而不是追加：同一个 SKU 在这三张表里各只留一行，反复保存商品不会攒出
+     * 重复的优惠行。写入与 {@link #deleteBySkuIds} 认的是同一个业务键。
      *
      * @param skuReductionTo 优惠信息，不能为 {@code null}；{@code skuId}、{@code fullCount}、
      *                       {@code fullPrice} 也不能为 {@code null}，{@code memberPrice} 可以为 {@code null}
+     * @throws common.exception.BaseException {@code skuId} 为空时抛出
      */
     void saveSkuReduction(SkuReductionTo skuReductionTo);
+
+    /**
+     * 保存一条商品满减，同一个 SKU 只留一行。
+     *
+     * <p>后台新增走这里，与商品保存路径同一套"按 skuId 覆盖"的写法：否则后台连点两次新增
+     * 就会给同一个 SKU 造出两条满减，算价时两条都命中。
+     *
+     * @param skuFullReduction 满减内容，{@code skuId} 必填；不能为 {@code null}
+     * @throws common.exception.BaseException {@code skuId} 为空时抛出
+     */
+    void saveFullReduction(SkuFullReductionEntity skuFullReduction);
+
+    /**
+     * 按 skuId 批量取促销规则：满减与阶梯价，供下单算价与详情页展示。
+     *
+     * <p>只给规则、不给算好的减免额：命中哪一档、折后单价怎么算、与满减怎么先后作用，
+     * 都由算价的一方决定。
+     *
+     * <p>写入侧保证一个 SKU 一行，所以这里按 skuId 直接读，不做"取最新一行"这类筛选。
+     *
+     * @param skuIds SKU 标识集合；为 {@code null} 或空集合时直接返回空列表，不查库
+     * @return 每个配过促销的 SKU 一条记录，两段都没配的 SKU 不在结果里；不返回 {@code null}
+     */
+    List<SkuPromotionVo> listBySkuIds(List<Long> skuIds);
 
     /**
      * 按 skuId 批量删除满减、阶梯价与会员价三张表中的记录。

@@ -1,6 +1,7 @@
 package coupon.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import common.to.SpuBoundsVo;
 import common.vo.PageVO;
 import coupon.entity.SpuBoundsEntity;
 
@@ -26,6 +27,29 @@ public interface SpuBoundsService extends IService<SpuBoundsEntity> {
      * @throws BaseException 远程获取 SPU 名称失败时抛出
      */
     PageVO<SpuBoundsEntity> queryPage(KeyPageQuery query);
+
+    /**
+     * 保存一个 SPU 的积分设置，同一个 SPU 只留一行。
+     *
+     * <p>按 {@code spuId} 覆盖而不是直接插入：商品保存与后台新增都走这里，
+     * 不覆盖的话每保存一次商品就多一行，同一个 SPU 会同时存在好几份配置。
+     *
+     * <p>与 {@link #deleteBySpuIds} 同源：写入与删除都认业务键 {@code spuId}，不认这张表的行 id。
+     *
+     * @param spuBounds 积分设置内容，{@code spuId} 必填；不能为 {@code null}
+     * @throws common.exception.BaseException {@code spuId} 为空时抛出
+     */
+    void saveSpuBounds(SpuBoundsEntity spuBounds);
+
+    /**
+     * 按 spuId 批量取积分设置，供下单时算赠送量。
+     *
+     * <p>写入侧保证一个 SPU 一行，所以这里按 spuId 直接读，不做"取最新一行"这类筛选。
+     *
+     * @param spuIds 商品 SPU 标识集合；为 {@code null} 或空集合时直接返回空列表，不查库
+     * @return 每个配置过的 SPU 一条记录，没配置的 SPU 不在结果里；不返回 {@code null}
+     */
+    List<SpuBoundsVo> listBySpuIds(List<Long> spuIds);
 
     /**
      * 按 spuId 批量删除积分设置。

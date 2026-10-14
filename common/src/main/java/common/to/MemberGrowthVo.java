@@ -34,4 +34,11 @@ public class MemberGrowthVo {
     /** 下一等级的成长值门槛；已是最高等级或等级表为空时为 {@code null}。 */
     private Integer nextGrowthPoint;
 
+    /**
+     * 当前等级是否带免邮特权，对应 {@code ums_member_level.priviledge_free_freight}。
+     *
+     * <p>只有取 1 才算有；为 0、未配置或会员没有等级时都是 {@code false}，调用方不必再判 {@code null}。
+     */
+    private boolean freeFreight;
+
 }

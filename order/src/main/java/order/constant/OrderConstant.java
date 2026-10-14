@@ -1,6 +1,8 @@
 package order.constant;
 
-/** 订单服务的常量：防重令牌、测试支付票据、订单来源与自动确认天数。 */
+import java.math.BigDecimal;
+
+/** 订单服务的常量：防重令牌、测试支付票据、订单来源、自动确认天数与赠送比例。 */
 public class OrderConstant {
 
     /** 防重令牌的 Redis 键前缀，实际键为前缀拼接 memberId。 */
@@ -65,5 +67,15 @@ public class OrderConstant {
      * 申请被拒绝时不写流水（没有钱出去），因此也不需要"已拒绝"这一档。
      */
     public static final int REFUND_STATUS_SUCCESS = 1;
+
+    /**
+     * 下单赠送积分与成长值的基础比例：订单项原价总额的 10%。
+     *
+     * <p>这是"下单算好、付款入账"的那份基础量；商品上另可用 {@code sms_spu_bounds} 配一份
+     * 固定加量，两者在下单时相加写进订单项快照。没配过积分设置的商品只拿这一份，不额外加量。
+     *
+     * <p>取整一律向下，与本项目既有的 {@code intValue()} 口径一致。
+     */
+    public static final BigDecimal GIFT_BASE_RATE = new BigDecimal("0.1");
 
 }

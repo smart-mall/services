@@ -3,7 +3,9 @@ package coupon.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
+import common.to.SpuBoundsVo;
 import common.vo.PageVO;
 import common.utils.R;
 import coupon.dao.SpuBoundsDao;
@@ -21,7 +23,7 @@ import java.util.Objects;
 
 import common.query.KeyPageQuery;
 /**
- * 商品 SPU 积分设置的分页查询与按 spuId 批量删除实现。
+ * 商品 SPU 积分设置的分页查询、按 spuId 批量读取与覆盖保存。
  *
  * <p>无状态，线程安全。
  */
@@ -83,6 +85,46 @@ public class SpuBoundsServiceImpl extends ServiceImpl<SpuBoundsDao, SpuBoundsEnt
         PageVO<SpuBoundsEntity> pageUtils = new PageVO<>(page.getTotal(), page.getRecords());
         pageUtils.setRows(collect);
         return pageUtils;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>删除与插入在同一个事务内：中途失败时旧配置不会被先删掉。
+     */
+    @Override
+    @Transactional
+    public void saveSpuBounds(SpuBoundsEntity spuBounds) {
+        if (spuBounds == null || spuBounds.getSpuId() == null) {
+            throw new BaseException(BaseCodeEnum.VALID_EXCEPTION, "积分设置必须指定 SPU");
+        }
+        deleteBySpuIds(List.of(spuBounds.getSpuId()));
+        this.save(spuBounds);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>只读，不校验、不抛业务异常：查不到配置就是"这个 SPU 没有加量"，对下单而言是完全正常的情况。
+     */
+    @Override
+    public List<SpuBoundsVo> listBySpuIds(List<Long> spuIds) {
+        if (spuIds == null || spuIds.isEmpty()) {
+            return List.of();
+        }
+
+        return this.list(new LambdaQueryWrapper<SpuBoundsEntity>()
+                        .in(SpuBoundsEntity::getSpuId, spuIds))
+                .stream()
+                .filter(row -> row.getSpuId() != null)
+                .map(row -> {
+                    SpuBoundsVo vo = new SpuBoundsVo();
+                    vo.setSpuId(row.getSpuId());
+                    vo.setBuyBounds(row.getBuyBounds());
+                    vo.setGrowBounds(row.getGrowBounds());
+                    return vo;
+                })
+                .toList();
     }
 
     /**

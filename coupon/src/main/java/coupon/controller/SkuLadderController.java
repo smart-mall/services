@@ -55,14 +55,14 @@ public class SkuLadderController {
     }
 
     /**
-     * 新增一条商品阶梯价。
+     * 保存一条商品阶梯价，同一个 SKU 只留一行。
      *
-     * @param skuLadder 阶梯价内容，主键留空时由数据库生成
+     * @param skuLadder 阶梯价内容，{@code skuId} 必填；同一个 SKU 已有的阶梯价会被覆盖
      * @return 统一成功响应，不含业务数据
      */
     @RequestMapping("/save")
     public R<Void> save(@RequestBody SkuLadderEntity skuLadder){
-		skuLadderService.save(skuLadder);
+		skuLadderService.saveLadder(skuLadder);
 
         return R.ok();
     }

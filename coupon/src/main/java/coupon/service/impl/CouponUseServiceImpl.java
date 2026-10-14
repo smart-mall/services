@@ -469,6 +469,10 @@ public class CouponUseServiceImpl implements CouponUseService {
      * <p>全场券就是整单；指定分类与指定商品只留下命中关联明细的那几项 ——
      * 否则"满 100 减 20、仅限图书"会在买 1 本书加 200 元电器时也被放行。
      *
+     * <p>累计的是<b>促销后金额</b>（{@link CouponCartItemVo#netSubtotal()}）而不是原价小计：
+     * 先满减再用券，门槛比的是会员实际要付的那部分。order 摊券额用的是同一个基数，
+     * 一处用原价、另一处用净额会让各项之和与抵扣额对不上。
+     *
      * @param coupon 券模板，不能为 {@code null}
      * @param items 购物项，不能为 {@code null}
      * @param skuScopes skuId 到商品层级归属的映射，不能为 {@code null}
@@ -479,7 +483,7 @@ public class CouponUseServiceImpl implements CouponUseService {
                                Map<Long, SkuScopeVo> skuScopes, ScopeIndex scopeIndex) {
         if (CouponScopeEnum.ALL.matches(coupon.getUseType())) {
             BigDecimal sum = items.stream()
-                    .map(CouponCartItemVo::subtotal)
+                    .map(CouponCartItemVo::netSubtotal)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
             return new Scope(sum, items);
         }
@@ -502,7 +506,7 @@ public class CouponUseServiceImpl implements CouponUseService {
             }
             Long key = byCategory ? itemScope.getCatalogId() : itemScope.getSpuId();
             if (key != null && allowed.contains(key)) {
-                sum = sum.add(item.subtotal());
+                sum = sum.add(item.netSubtotal());
                 matched.add(item);
             }
         }

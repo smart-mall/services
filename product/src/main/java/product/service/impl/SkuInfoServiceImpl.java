@@ -3,6 +3,7 @@ package product.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import common.to.SkuPromotionVo;
 import common.to.SkuScopeVo;
 import common.vo.PageVO;
 import common.utils.R;
@@ -14,6 +15,7 @@ import product.entity.SkuImagesEntity;
 import product.entity.SkuInfoEntity;
 import product.entity.SpuInfoDescEntity;
 import product.entity.SpuInfoEntity;
+import product.feign.CouponFeignService;
 import product.feign.SeckillFeignService;
 import product.feign.WareFeignService;
 import product.service.*;
@@ -34,8 +36,8 @@ import product.vo.SkuInfoPageQuery;
 /**
  * sku 服务的默认实现，基于 MyBatis-Plus 的 {@code ServiceImpl} 读写 {@code pms_sku_info}。
  *
- * <p>商品详情页的数据组装走构造器注入的线程池：本地查询与秒杀、库存两个远程调用并行；库存服务
- * 异常只记日志，按默认的「有货」返回。
+ * <p>商品详情页的数据组装走构造器注入的线程池：本地查询与秒杀、库存、促销三个远程调用并行；
+ * 库存服务异常只记日志，按默认的「有货」返回，促销取不到按没有促销返回。
  */
 @Slf4j
 @Service("skuInfoService")
@@ -45,28 +47,31 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
     private final SkuSaleAttrValueService skuSaleAttrValueService;
     private final SeckillFeignService seckillFeignService;
     private final WareFeignService wareFeignService;
+    private final CouponFeignService couponFeignService;
     private final ThreadPoolExecutor executor;
     private final SkuImagesService skuImagesService;
     private final SpuInfoDao spuInfoDao;
 
     /**
-     * 由容器注入详情页各数据源、两个远程客户端与线程池构造。
+     * 由容器注入详情页各数据源、三个远程客户端与线程池构造。
      *
      * @param spuInfoDescService spu 介绍服务，取商品描述图
      * @param attrGroupService 属性分组服务，取规格参数分组及取值
      * @param skuSaleAttrValueService sku 销售属性值服务，取销售属性组合
      * @param seckillFeignService 秒杀服务客户端，查当前 sku 是否参与秒杀
      * @param wareFeignService 库存服务客户端，查当前 sku 是否有货
+     * @param couponFeignService 优惠券服务客户端，查当前 sku 的商品促销规则
      * @param executor 详情页并行加载各数据块用的线程池
      * @param skuImagesService sku 图片服务，取 sku 图集
      * @param spuInfoDao spu 主表数据访问，按 spu 批量取所属分类
      */
-    public SkuInfoServiceImpl(SpuInfoDescService spuInfoDescService, AttrGroupService attrGroupService, SkuSaleAttrValueService skuSaleAttrValueService, SeckillFeignService seckillFeignService, WareFeignService wareFeignService, ThreadPoolExecutor executor, SkuImagesService skuImagesService, SpuInfoDao spuInfoDao) {
+    public SkuInfoServiceImpl(SpuInfoDescService spuInfoDescService, AttrGroupService attrGroupService, SkuSaleAttrValueService skuSaleAttrValueService, SeckillFeignService seckillFeignService, WareFeignService wareFeignService, CouponFeignService couponFeignService, ThreadPoolExecutor executor, SkuImagesService skuImagesService, SpuInfoDao spuInfoDao) {
         this.spuInfoDescService = spuInfoDescService;
         this.attrGroupService = attrGroupService;
         this.skuSaleAttrValueService = skuSaleAttrValueService;
         this.seckillFeignService = seckillFeignService;
         this.wareFeignService = wareFeignService;
+        this.couponFeignService = couponFeignService;
         this.executor = executor;
         this.skuImagesService = skuImagesService;
         this.spuInfoDao = spuInfoDao;
@@ -119,8 +124,8 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
      * {@inheritDoc}
      *
      * <p>只有 sku 基本信息是串行的：主线程 {@code join} 等它返回，拿到 {@code spuId} 才能发起
-     * 后面的查询，商品不存在时也靠它提前返回。其余六段在线程池里并行 —— 图集、秒杀、库存三段
-     * 不依赖基本信息；销售属性、商品介绍、规格参数三段挂在基本信息完成后执行。
+     * 后面的查询，商品不存在时也靠它提前返回。其余七段在线程池里并行 —— 图集、秒杀、库存、
+     * 促销四段不依赖基本信息；销售属性、商品介绍、规格参数三段挂在基本信息完成后执行。
      */
     @Override
     public SkuItemVo item(Long skuId) throws ExecutionException, InterruptedException {
@@ -159,7 +164,7 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
         }, executor);
 
 
-        // 3. 不依赖基本信息的三段，与上面并行：sku 图集、秒杀、库存
+        // 3. 不依赖基本信息的四段，与上面并行：sku 图集、秒杀、库存、商品促销
         CompletableFuture<Void> imageFuture = CompletableFuture.runAsync(() -> {
             List<SkuImagesEntity> imagesEntities = skuImagesService.getImagesBySkuId(skuId);
             skuItemVo.setImages(imagesEntities);
@@ -198,9 +203,22 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
         }, executor);
 
 
+        CompletableFuture<Void> promotionFuture = CompletableFuture.runAsync(() -> {
+            try {
+                R<List<SkuPromotionVo>> rules = couponFeignService.skuRules(List.of(skuId));
+                if (rules.getCode() == 0 && rules.getData() != null && !rules.getData().isEmpty()) {
+                    skuItemVo.setPromotion(rules.getData().get(0));
+                }
+            } catch (Exception e) {
+                // 促销只是详情页上的一行标签，券服务异常不能让整页打不开
+                log.error("查询商品促销规则失败，skuId={}", skuId, e);
+            }
+        }, executor);
+
+
         // 4. 等全部任务结束；任一段抛出的异常都在这里以 ExecutionException 冒给调用方
         CompletableFuture
-                .allOf(saleAttrFuture,descFuture,baseAttrFuture,imageFuture,seckillFuture,stockFuture)
+                .allOf(saleAttrFuture,descFuture,baseAttrFuture,imageFuture,seckillFuture,stockFuture,promotionFuture)
                 .get();
 
         return skuItemVo;
