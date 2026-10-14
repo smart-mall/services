@@ -209,29 +209,6 @@ INSERT INTO `ums_member_receive_address` VALUES (2, 2, 'sentinel', '18173516102'
 INSERT INTO `ums_member_receive_address` VALUES (3, 3, 'firenayfly', '15421564125', NULL, '陕西', '西安', NULL, '新城区', NULL, 1);
 
 -- ----------------------------
--- Table structure for ums_member_statistics_info
--- ----------------------------
-DROP TABLE IF EXISTS `ums_member_statistics_info`;
-CREATE TABLE `ums_member_statistics_info`  (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `member_id` bigint(20) NULL DEFAULT NULL COMMENT '会员id',
-  `consume_amount` decimal(18, 4) NULL DEFAULT NULL COMMENT '累计消费金额',
-  `coupon_amount` decimal(18, 4) NULL DEFAULT NULL COMMENT '累计优惠金额',
-  `order_count` int(11) NULL DEFAULT NULL COMMENT '订单数量',
-  `coupon_count` int(11) NULL DEFAULT NULL COMMENT '优惠券数量',
-  `comment_count` int(11) NULL DEFAULT NULL COMMENT '评价数',
-  `return_order_count` int(11) NULL DEFAULT NULL COMMENT '退货数量',
-  `login_count` int(11) NULL DEFAULT NULL COMMENT '登录次数',
-  `attend_count` int(11) NULL DEFAULT NULL COMMENT '关注数量',
-  `fans_count` int(11) NULL DEFAULT NULL COMMENT '粉丝数量',
-  `collect_product_count` int(11) NULL DEFAULT NULL COMMENT '收藏的商品数量',
-  `collect_subject_count` int(11) NULL DEFAULT NULL COMMENT '收藏的专题活动数量',
-  `collect_comment_count` int(11) NULL DEFAULT NULL COMMENT '收藏的评论数量',
-  `invite_friend_count` int(11) NULL DEFAULT NULL COMMENT '邀请的朋友数量',
-  PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '会员统计信息' ROW_FORMAT = Dynamic;
-
--- ----------------------------
 -- Table structure for undo_log
 -- ----------------------------
 DROP TABLE IF EXISTS `undo_log`;

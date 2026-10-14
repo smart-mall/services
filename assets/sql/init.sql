@@ -975,27 +975,6 @@ CREATE TABLE IF NOT EXISTS `ums_member_receive_address` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE IF NOT EXISTS `ums_member_statistics_info` (
-  `id` bigint NOT NULL AUTO_INCREMENT,
-  `member_id` bigint DEFAULT NULL COMMENT '会员id',
-  `consume_amount` decimal(18,4) DEFAULT NULL COMMENT '累计消费金额',
-  `coupon_amount` decimal(18,4) DEFAULT NULL COMMENT '累计优惠金额',
-  `order_count` int DEFAULT NULL COMMENT '订单数量',
-  `coupon_count` int DEFAULT NULL COMMENT '优惠券数量',
-  `comment_count` int DEFAULT NULL COMMENT '评价数',
-  `return_order_count` int DEFAULT NULL COMMENT '退货数量',
-  `login_count` int DEFAULT NULL COMMENT '登录次数',
-  `attend_count` int DEFAULT NULL COMMENT '关注数量',
-  `fans_count` int DEFAULT NULL COMMENT '粉丝数量',
-  `collect_product_count` int DEFAULT NULL COMMENT '收藏的商品数量',
-  `collect_subject_count` int DEFAULT NULL COMMENT '收藏的专题活动数量',
-  `collect_comment_count` int DEFAULT NULL COMMENT '收藏的评论数量',
-  `invite_friend_count` int DEFAULT NULL COMMENT '邀请的朋友数量',
-  PRIMARY KEY (`id`) USING BTREE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='会员统计信息';
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `undo_log` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `branch_id` bigint NOT NULL,
