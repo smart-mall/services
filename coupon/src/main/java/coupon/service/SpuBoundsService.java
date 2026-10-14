@@ -1,7 +1,7 @@
 package coupon.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import common.to.SpuBoundsVo;
+import common.to.SkuBoundsVo;
 import common.vo.PageVO;
 import coupon.entity.SpuBoundsEntity;
 
@@ -42,14 +42,16 @@ public interface SpuBoundsService extends IService<SpuBoundsEntity> {
     void saveSpuBounds(SpuBoundsEntity spuBounds);
 
     /**
-     * 按 spuId 批量取积分设置，供下单时算赠送量。
+     * 按 skuId 批量取积分设置，供商品详情页展示与结算页试算。
      *
-     * <p>写入侧保证一个 SPU 一行，所以这里按 spuId 直接读，不做"取最新一行"这类筛选。
+     * <p>与 {@link #listBySpuIds} 的区别只在入参：积分设置挂在 SPU 上，而这两个调用方手里只有
+     * skuId，归属由本方法内部向商品服务取，免得每个调用方各查一次商品归属。
      *
-     * @param spuIds 商品 SPU 标识集合；为 {@code null} 或空集合时直接返回空列表，不查库
-     * @return 每个配置过的 SPU 一条记录，没配置的 SPU 不在结果里；不返回 {@code null}
+     * @param skuIds SKU 标识集合；为 {@code null} 或空集合时直接返回空列表，不查库
+     * @return 每个配过积分设置的 SKU 一条记录，没配置的 SKU 不在结果里；不返回 {@code null}
+     * @throws common.exception.BaseException 商品服务不可用、取不到 SKU 归属时抛出
      */
-    List<SpuBoundsVo> listBySpuIds(List<Long> spuIds);
+    List<SkuBoundsVo> listBySkuIds(List<Long> skuIds);
 
     /**
      * 按 spuId 批量删除积分设置。

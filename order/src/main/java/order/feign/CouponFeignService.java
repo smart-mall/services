@@ -2,8 +2,8 @@ package order.feign;
 
 import common.to.CouponCartItemVo;
 import common.to.CouponUsableVo;
+import common.to.SkuBoundsVo;
 import common.to.SkuPromotionVo;
-import common.to.SpuBoundsVo;
 import common.utils.R;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -111,16 +111,17 @@ public interface CouponFeignService {
     R<Void> refundCoupon(@RequestParam("orderSn") String orderSn);
 
     /**
-     * 按 spuId 批量取商品积分设置，用于下单时算赠送的购物积分与成长值。
+     * 按 skuId 批量取商品积分设置，用于下单时算赠送的购物积分与成长值。
      *
-     * <p>取到的是"规则"而不是"算好的数量"：按件相乘、向下取整、与基础赠送量怎么相加都在 order 侧。
+     * <p>取到的是"规则"而不是"算好的数量"：基础倍率、按件相乘、向下取整都归
+     * {@code common.utils.GiftCalculator}，与商品详情页展示用的是同一份实现。
      *
-     * @param spuIds 商品 SPU 标识集合，不能为 {@code null}，可以为空集合
-     * @return 统一响应；{@code code} 为 0 时 {@code data} 是配置过的 SPU 的积分设置，
-     *         没配置的 SPU 不在结果里；{@code code} 非 0 时 {@code data} 为 {@code null}
+     * @param skuIds SKU 标识集合，不能为 {@code null}，可以为空集合
+     * @return 统一响应；{@code code} 为 0 时 {@code data} 是配过积分设置的 SKU 的记录，
+     *         没配置的 SKU 不在结果里；{@code code} 非 0 时 {@code data} 为 {@code null}
      */
-    @PostMapping("/coupon/trade/promotion/spu-bounds")
-    R<List<SpuBoundsVo>> spuBounds(@RequestBody List<Long> spuIds);
+    @PostMapping("/coupon/trade/promotion/sku-bounds")
+    R<List<SkuBoundsVo>> skuBounds(@RequestBody List<Long> skuIds);
 
     /**
      * 按 skuId 批量取商品促销规则：满减与阶梯价。

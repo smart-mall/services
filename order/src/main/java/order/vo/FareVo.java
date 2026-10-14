@@ -6,7 +6,8 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * 结算金额，面向前端：商品总额、运费、促销优惠、券优惠、积分抵扣与应付六个金额，以及四份按商品的明细。
+ * 结算金额，面向前端：商品总额、运费、促销优惠、券优惠、积分抵扣与应付六个金额、本单可得的赠送量，
+ * 以及四份按商品的明细。
  *
  * <p>六个金额都由服务端算定，前端只负责显示并原样回传 {@code payAmount}。
  * 前端若自己按「商品总额 + 运费 − 促销优惠 − 券优惠 − 积分抵扣」再算一遍，服务端一改加价规则就会算出两个数，
@@ -71,4 +72,14 @@ public class FareVo {
      * <p>没有用积分时为空列表，不会为 {@code null}；积分没有适用范围，所以覆盖全部购物项。
      */
     private List<IntegrationDiscountItemVo> integrationItems;
+
+    /**
+     * 本单可得的赠送积分，与下单入账用的是同一份算法（{@code common.utils.GiftCalculator}）。
+     *
+     * <p>只用于展示：真正的数额在下单那一刻按订单项算定并写进快照，付款时才入账。
+     */
+    private Integer giftIntegration;
+
+    /** 本单可得的成长值，口径同 {@link #giftIntegration}。 */
+    private Integer giftGrowth;
 }

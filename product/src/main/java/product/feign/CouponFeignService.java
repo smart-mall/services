@@ -1,5 +1,6 @@
 package product.feign;
 
+import common.to.SkuBoundsVo;
 import common.to.SkuPromotionVo;
 import common.to.SkuReductionTo;
 import common.to.SpuBoundTo;
@@ -51,4 +52,17 @@ public interface CouponFeignService {
      */
     @PostMapping("/coupon/trade/promotion/sku-rules")
     R<List<SkuPromotionVo>> skuRules(@RequestBody List<Long> skuIds);
+
+    /**
+     * 按 skuId 批量取商品积分设置：购买该 SKU 时可获得的购物积分与成长积分。
+     *
+     * <p>详情页展示"每件预计可得多少"用。取到的是配置值，数量由详情页按 1 件试算 ——
+     * 算的是 {@code common.utils.GiftCalculator}，与下单入账是同一份实现。
+     *
+     * @param skuIds SKU 标识集合，不能为 {@code null}，可以为空集合
+     * @return 统一响应体；{@code code} 为 0 时 {@code data} 是配过积分设置的 SKU 的记录，
+     *         没配置的 SKU 不在结果里；非 0 的 {@code code} 表示下游读取失败
+     */
+    @PostMapping("/coupon/trade/promotion/sku-bounds")
+    R<List<SkuBoundsVo>> skuBounds(@RequestBody List<Long> skuIds);
 }

@@ -18,6 +18,9 @@ import java.util.Map;
  * {@code promotionItems}、{@code couponItems} 与 {@code integrationItems}），
  * 前端逐行展示商品自己的费用与优惠，不必自己再算。
  *
+ * <p>{@code giftIntegration} 与 {@code giftGrowth} 是本单可得的赠送量，只用于展示：
+ * 与下单入账用的是同一份算法，而真正的数额在下单那一刻按订单项算定并写进快照。
+ *
  * <p>{@code couponHistoryId} 与 {@code useIntegration} 是"当前选中的优惠"，由调用方在请求里指定。
  * 这两个参数变了就要重新请求本接口或 {@code /fare}：抵扣额必须由后端算，
  * 前端自己减会与提交时的校验算成两个数。
@@ -117,6 +120,16 @@ public class OrderConfirmVo {
      * 与 {@code integrationAmount} 出自同一次分摊，两者必然自洽。
      */
     private List<IntegrationDiscountItemVo> integrationItems;
+
+    /**
+     * 本单可得的赠送积分，与下单入账用的是同一份算法（{@code common.utils.GiftCalculator}）。
+     *
+     * <p>只用于展示：真正的数额在下单那一刻按订单项算定并写进快照，付款时才入账。
+     */
+    private Integer giftIntegration;
+
+    /** 本单可得的成长值，口径同 {@link #giftIntegration}。 */
+    private Integer giftGrowth;
 
     /**
      * 商品总件数。

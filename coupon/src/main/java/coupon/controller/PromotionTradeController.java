@@ -1,7 +1,7 @@
 package coupon.controller;
 
+import common.to.SkuBoundsVo;
 import common.to.SkuPromotionVo;
-import common.to.SpuBoundsVo;
 import common.utils.R;
 import coupon.service.SkuFullReductionService;
 import coupon.service.SpuBoundsService;
@@ -46,18 +46,18 @@ public class PromotionTradeController {
     }
 
     /**
-     * 按 spuId 批量查积分设置。
+     * 按 skuId 批量查积分设置。
      *
-     * <p>下单时由 order 调用：它手里只有购物项上的 spuId，没有这张表的行 id，
-     * 也不读 coupon 的表。请求体是裸 {@code List} —— 只收一个 id 列表，再包一层对象没有信息量。
+     * <p>商品详情页与结算页都用它：这两处手里只有 skuId，而积分设置挂在 SPU 上，
+     * skuId 到 spuId 的归属由本服务向商品服务取，调用方不必自己查一遍商品归属。
      *
-     * @param spuIds 商品 SPU 标识集合，可以为空集合
-     * @return 统一响应；{@code code} 为 0 时 {@code data} 是配置过的 SPU 的积分设置，
-     *         没配置的 SPU 不在结果里；{@code code} 非 0 时 {@code data} 为 {@code null}
+     * @param skuIds SKU 标识集合，可以为空集合
+     * @return 统一响应；{@code code} 为 0 时 {@code data} 是配过积分设置的 SKU 的记录，
+     *         没配置的 SKU 不在结果里；{@code code} 非 0 时 {@code data} 为 {@code null}
      */
-    @PostMapping("/spu-bounds")
-    public R<List<SpuBoundsVo>> spuBounds(@RequestBody List<Long> spuIds) {
-        return R.ok(spuBoundsService.listBySpuIds(spuIds));
+    @PostMapping("/sku-bounds")
+    public R<List<SkuBoundsVo>> skuBounds(@RequestBody List<Long> skuIds) {
+        return R.ok(spuBoundsService.listBySkuIds(skuIds));
     }
 
     /**

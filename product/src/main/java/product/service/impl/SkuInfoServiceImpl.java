@@ -3,9 +3,11 @@ package product.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import common.to.SkuBoundsVo;
 import common.to.SkuPromotionVo;
 import common.to.SkuScopeVo;
 import common.vo.PageVO;
+import common.utils.GiftCalculator;
 import common.utils.R;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,6 +23,7 @@ import product.feign.WareFeignService;
 import product.service.*;
 import product.vo.*;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +31,7 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 
@@ -36,8 +40,8 @@ import product.vo.SkuInfoPageQuery;
 /**
  * sku 服务的默认实现，基于 MyBatis-Plus 的 {@code ServiceImpl} 读写 {@code pms_sku_info}。
  *
- * <p>商品详情页的数据组装走构造器注入的线程池：本地查询与秒杀、库存、促销三个远程调用并行；
- * 库存服务异常只记日志，按默认的「有货」返回，促销取不到按没有促销返回。
+ * <p>商品详情页的数据组装走构造器注入的线程池：本地查询与秒杀、库存、促销、积分设置四个远程调用
+ * 并行；库存服务异常只记日志，按默认的「有货」返回，促销与积分设置取不到都按"没有"返回。
  */
 @Slf4j
 @Service("skuInfoService")
@@ -124,8 +128,9 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
      * {@inheritDoc}
      *
      * <p>只有 sku 基本信息是串行的：主线程 {@code join} 等它返回，拿到 {@code spuId} 才能发起
-     * 后面的查询，商品不存在时也靠它提前返回。其余七段在线程池里并行 —— 图集、秒杀、库存、
-     * 促销四段不依赖基本信息；销售属性、商品介绍、规格参数三段挂在基本信息完成后执行。
+     * 后面的查询，商品不存在时也靠它提前返回。其余八段在线程池里并行 —— 图集、秒杀、库存、
+     * 促销、积分设置五段不依赖基本信息；销售属性、商品介绍、规格参数三段挂在基本信息完成后执行。
+     * 按件试算的赠送量放在最后串行算：它要用已经取回的秒杀信息决定基数取秒杀价还是原价。
      */
     @Override
     public SkuItemVo item(Long skuId) throws ExecutionException, InterruptedException {
@@ -215,13 +220,55 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoDao, SkuInfoEntity> i
             }
         }, executor);
 
+        // 积分设置先取回来，等秒杀信息也到齐后再按 1 件试算：秒杀进行中的基数要取秒杀价
+        AtomicReference<SkuBoundsVo> boundsRef = new AtomicReference<>();
+        CompletableFuture<Void> boundsFuture = CompletableFuture.runAsync(() -> {
+            try {
+                R<List<SkuBoundsVo>> bounds = couponFeignService.skuBounds(List.of(skuId));
+                if (bounds.getCode() == 0 && bounds.getData() != null && !bounds.getData().isEmpty()) {
+                    boundsRef.set(bounds.getData().get(0));
+                }
+            } catch (Exception e) {
+                // 赠送量只是详情页上的一行提示，券服务异常不能让整页打不开
+                log.error("查询商品积分设置失败，skuId={}", skuId, e);
+            }
+        }, executor);
+
 
         // 4. 等全部任务结束；任一段抛出的异常都在这里以 ExecutionException 冒给调用方
         CompletableFuture
-                .allOf(saleAttrFuture,descFuture,baseAttrFuture,imageFuture,seckillFuture,stockFuture,promotionFuture)
+                .allOf(saleAttrFuture,descFuture,baseAttrFuture,imageFuture,seckillFuture,stockFuture,
+                        promotionFuture,boundsFuture)
                 .get();
 
+        // 5. 赠送量按 1 件试算回给前端：串行放在最后，才能用上已经取回的秒杀信息
+        GiftCalculator.Amount unitGift = GiftCalculator.of(detailUnitPrice(skuItemVo), 1, boundsRef.get());
+        skuItemVo.setUnitGiftIntegration(unitGift.integration());
+        skuItemVo.setUnitGiftGrowth(unitGift.growth());
+
         return skuItemVo;
+    }
+
+    /**
+     * 取详情页试算赠送量用的单价：秒杀进行中取秒杀价，其余（未开始、已结束、无场次）取 sku 原价。
+     *
+     * <p>必须与下单那一刻的基数一致：秒杀单的赠送量按下单时的秒杀价算，而没在进行的场次
+     * 下单时也走原价。两边取值不同的话，详情页承诺的数就与付款后到账的数对不上。
+     *
+     * @param skuItemVo 已组装完的详情，{@code info} 不能为 {@code null}
+     * @return 试算用的单价
+     */
+    private BigDecimal detailUnitPrice(SkuItemVo skuItemVo) {
+        SeckillSkuVo seckill = skuItemVo.getSeckillSkuVo();
+        if (seckill == null || seckill.getSeckillPrice() == null
+                || seckill.getStartTime() == null || seckill.getEndTime() == null) {
+            return skuItemVo.getInfo().getPrice();
+        }
+
+        long now = System.currentTimeMillis();
+        return now >= seckill.getStartTime() && now <= seckill.getEndTime()
+                ? seckill.getSeckillPrice()
+                : skuItemVo.getInfo().getPrice();
     }
 
     /** {@inheritDoc} */

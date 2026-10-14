@@ -19,11 +19,12 @@ import common.to.CouponCartItemVo;
 import common.to.CouponUsableVo;
 import common.to.MemberGrowthVo;
 import common.to.OrderTo;
+import common.to.SkuBoundsVo;
 import common.to.SkuPromotionVo;
-import common.to.SpuBoundsVo;
 import common.to.mq.OrderDeliveredTo;
 import common.to.mq.SeckillOrderTo;
 import common.vo.PageVO;
+import common.utils.GiftCalculator;
 import common.utils.R;
 import common.vo.MemberResponseVo;
 import lombok.extern.slf4j.Slf4j;
@@ -428,6 +429,11 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         // 应付金额必须在券与积分都并进去之后再取，否则前端拿到的价与提交时的校验对不上
         confirmVo.setPayAmount(fare.getPayAmount());
 
+        // 本单可得的赠送量：与下单入账用的是同一份算法，这里只用于展示
+        GiftCalculator.Amount gift = totalGift(confirmVo.getItems());
+        confirmVo.setGiftIntegration(gift.integration());
+        confirmVo.setGiftGrowth(gift.growth());
+
         // 防重令牌
         String orderToken = UUID.randomUUID().toString().replace("-", "");
         redisTemplate.opsForValue().set(
@@ -452,6 +458,11 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         // 与确认页同一套：余额查不到按 0 降级，只影响这一栏的展示
         fare.setIntegrationLimit(
                 applyIntegration(fare, items, optionalIntegrationBalance(user.getId()), useIntegration));
+
+        // 与确认页同一份：换地址不该让"本单可得"那一行消失
+        GiftCalculator.Amount gift = totalGift(items);
+        fare.setGiftIntegration(gift.integration());
+        fare.setGiftGrowth(gift.growth());
         return fare;
     }
 
@@ -3055,12 +3066,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     /**
      * 填充每个订单项的赠送购物积分与成长值。
      *
-     * <p>口径是"基础 + 商品配置"：基础量取订单项原价总额的 {@link OrderConstant#GIFT_BASE_RATE}
-     * 向下取整，商品配置量取该 SPU 在 {@code sms_spu_bounds} 上的设置乘件数向下取整；
-     * 没配过积分设置的商品只拿基础那份，不会因为"没配置"就一点也不送。
-     *
-     * <p>购物积分与成长值分开算：基础量对两者相同，配置量分别取 {@code buy_bounds} 与
-     * {@code grow_bounds} —— 这两个值本来就可以不一样，用同一个数会抹掉后台的配置。
+     * <p>算法在 {@link GiftCalculator} 里，与商品详情页展示"买它可得多少"是同一份 ——
+     * 各写一份必然分叉，页面显示的数与下单实际得到的数一旦对不上，会员看到的就是"说好的没给"。
      *
      * <p>算好写进订单项即成快照，付款时 member 侧按这份快照入账，不在付款时重算：
      * 之后改配置、改倍率都不会动到已经下过的单。
@@ -3072,17 +3079,17 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
             return;
         }
 
-        List<Long> spuIds = orderItems.stream()
-                .map(OrderItemEntity::getSpuId)
+        List<Long> skuIds = orderItems.stream()
+                .map(OrderItemEntity::getSkuId)
                 .filter(Objects::nonNull)
                 .toList();
-        Map<Long, SpuBoundsVo> boundsMap = loadSpuBounds(spuIds);
+        Map<Long, SkuBoundsVo> boundsMap = loadSkuBounds(skuIds);
 
         for (OrderItemEntity orderItem : orderItems) {
             BigDecimal originAmount = orderItem.getSkuPrice()
                     .multiply(BigDecimal.valueOf(orderItem.getSkuQuantity()));
-            GiftAmount gift = giftAmount(originAmount, orderItem.getSkuQuantity(),
-                    boundsMap.get(orderItem.getSpuId()));
+            GiftCalculator.Amount gift = GiftCalculator.of(originAmount, orderItem.getSkuQuantity(),
+                    boundsMap.get(orderItem.getSkuId()));
 
             orderItem.setGiftIntegration(gift.integration());
             orderItem.setGiftGrowth(gift.growth());
@@ -3090,23 +3097,23 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     }
 
     /**
-     * 按 spuId 批量取积分设置。
+     * 按 skuId 批量取积分设置。
      *
      * <p><b>失败开放</b>：赠送是下单的附带动作，取不到配置时按"没配置"处理并记 warn，
      * 只送基础那一份。判据与券列表同源 —— 它不并进金额、不决定这笔单能不能下，
      * 让它挡住整笔下单，代价远大于少送一份配置量。
      *
-     * @param spuIds 商品 SPU 标识集合，可以为空集合
-     * @return spuId 到积分设置的映射；取不到或没有配置过的 SPU 不在映射里，不返回 {@code null}
+     * @param skuIds SKU 标识集合，可以为空集合
+     * @return skuId 到积分设置的映射；取不到或没有配置过的 SKU 不在映射里，不返回 {@code null}
      */
-    private Map<Long, SpuBoundsVo> loadSpuBounds(List<Long> spuIds) {
-        if (spuIds.isEmpty()) {
+    private Map<Long, SkuBoundsVo> loadSkuBounds(List<Long> skuIds) {
+        if (skuIds.isEmpty()) {
             return Map.of();
         }
 
-        R<List<SpuBoundsVo>> r;
+        R<List<SkuBoundsVo>> r;
         try {
-            r = couponFeignService.spuBounds(spuIds);
+            r = couponFeignService.skuBounds(skuIds);
         } catch (Exception e) {
             log.warn("取商品积分设置失败，本单按未配置处理: {}", e.getMessage());
             return Map.of();
@@ -3118,40 +3125,43 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         }
 
         return r.getData().stream()
-                .filter(bounds -> bounds.getSpuId() != null)
-                .collect(Collectors.toMap(SpuBoundsVo::getSpuId, bounds -> bounds, (first, second) -> second));
+                .filter(bounds -> bounds.getSkuId() != null)
+                .collect(Collectors.toMap(SkuBoundsVo::getSkuId, bounds -> bounds, (first, second) -> second));
     }
 
     /**
-     * 算一个订单项的赠送量：基础部分加商品配置部分。
+     * 算本单可得的赠送积分与成长值，供确认页与换地址后的重算展示。
      *
-     * @param originAmount 该项的原价总额（单价 × 件数），不能为 {@code null}
-     * @param count 购买件数，不能为 {@code null}
-     * @param bounds 该 SPU 的积分设置，未配置时为 {@code null}
-     * @return 购物积分与成长值两份整数；未配置时两份都只含基础部分
+     * <p>算法与下单入账的是同一份（{@link GiftCalculator}），所以页面显示的数就是付款后到账的数；
+     * 区别只在于下单时它被写进订单项快照，这里只回给前端显示。
+     *
+     * <p>失败开放，判据见 {@link #loadSkuBounds}。
+     *
+     * @param cartItems 已勾选的购物项，不能为 {@code null}
+     * @return 本单可得的购物积分与成长值；购物车为空时两份都是 0
      */
-    private GiftAmount giftAmount(BigDecimal originAmount, Integer count, SpuBoundsVo bounds) {
-        int base = originAmount.multiply(OrderConstant.GIFT_BASE_RATE).intValue();
+    private GiftCalculator.Amount totalGift(List<OrderItemVo> cartItems) {
+        List<Long> skuIds = cartItems.stream()
+                .map(OrderItemVo::getSkuId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        Map<Long, SkuBoundsVo> boundsMap = loadSkuBounds(skuIds);
 
-        return new GiftAmount(
-                base + configuredGift(bounds == null ? null : bounds.getBuyBounds(), count),
-                base + configuredGift(bounds == null ? null : bounds.getGrowBounds(), count));
+        int integration = 0;
+        int growth = 0;
+        for (OrderItemVo cartItem : cartItems) {
+            if (cartItem.getPrice() == null || cartItem.getCount() == null) {
+                continue;
+            }
+            GiftCalculator.Amount gift = GiftCalculator.of(itemAmount(cartItem), cartItem.getCount(),
+                    boundsMap.get(cartItem.getSkuId()));
+            integration += gift.integration();
+            growth += gift.growth();
+        }
+        return new GiftCalculator.Amount(integration, growth);
     }
 
-    /**
-     * 把商品上配置的积分值换算成整数：配置值 × 件数后向下取整。
-     *
-     * <p>先乘再取整，而不是先把配置值取整再乘：{@code 150.5 × 2} 应当是 301 而不是 300。
-     *
-     * @param configured 配置值，可以为 {@code null}（未配置）
-     * @param count 购买件数
-     * @return 换算后的整数；未配置时为 0
-     */
-    private int configuredGift(BigDecimal configured, Integer count) {
-        return configured == null ? 0 : configured.multiply(BigDecimal.valueOf(count)).intValue();
-    }
-
-    /** 一个订单项的赠送量：购物积分与成长值分开，因为两者的配置来源不同。 */
     private record GiftAmount(int integration, int growth) {
     }
 
@@ -3551,8 +3561,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         // 订单主表上的"可得积分/成长值"必须在落库前算好，赠送量还要按 spuId 取商品的积分设置
         R<SpuInfoVo> spuInfo = productFeignService.getSpuInfoBySkuId(orderTo.getSkuId());
         SpuInfoVo spuInfoData = spuInfo.getData();
-        GiftAmount gift = giftAmount(totalPrice, orderTo.getNum(),
-                loadSpuBounds(List.of(spuInfoData.getId())).get(spuInfoData.getId()));
+        GiftCalculator.Amount gift = GiftCalculator.of(totalPrice, orderTo.getNum(),
+                loadSkuBounds(List.of(orderTo.getSkuId())).get(orderTo.getSkuId()));
 
         // 与普通下单同一套口径：总额是商品金额、应付 = 总额 + 运费；
         // 秒杀单不收运费、不参与用券与积分抵扣，那几列写 0 而不是留 NULL
