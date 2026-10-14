@@ -28,6 +28,14 @@ public class FareVo {
     /** 整单运费。 */
     private BigDecimal freightAmount;
 
+    /**
+     * 整单运费是否被会员的免邮权益抵掉；为 {@code true} 时 {@link #freightAmount} 必为 0。
+     *
+     * <p>只用于结算页标注"会员免邮"。{@code freightAmount} 为 0 有两种来源 —— 会员免邮，或计费结果
+     * 本来就是 0 —— 前端凭金额分不出来，标注只能靠这个字段。
+     */
+    private boolean memberFreeFreight;
+
     /** 整单商品优惠减免（满减、阶梯价与会员价）；一项都没命中时为 0，不会为 {@code null}。 */
     private BigDecimal promotionAmount;
 

@@ -405,6 +405,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
                 : calcFare(defaultAddress, confirmVo.getItems(), privileges);
         confirmVo.setTotalAmount(fare.getTotalAmount());
         confirmVo.setFreightAmount(fare.getFreightAmount());
+        confirmVo.setMemberFreeFreight(fare.isMemberFreeFreight());
         confirmVo.setFareItems(fare.getFareItems());
         confirmVo.setPromotionAmount(fare.getPromotionAmount());
         confirmVo.setPromotionItems(fare.getPromotionItems());
@@ -503,19 +504,19 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
         WareFareVo wareFare = requestWareFare(address.getAreacode(), items);
 
-        // 会员等级带免邮特权时整单运费与逐项明细一起归零：只改总额会让前端
-        // 按明细逐行显示的运费加起来不等于整单运费
-        boolean freeFreight = privileges.isFreeFreight();
-        BigDecimal freightAmount = freeFreight ? BigDecimal.ZERO : wareFare.getTotalFare();
-
-        // 商品优惠（阶梯价、会员价、满减）排在券与积分之前：它减的是商品金额本身，
-        // 后两者的基数都要先扣掉它。等级带会员价特权时才把等级送去比价
+        // 商品优惠（阶梯价、会员价、满减）排在券与积分之前：它减的是商品金额本身，后两者的基数
+        // 都要先扣掉它；免邮门槛同样按优惠后金额比。等级带会员价特权时才把等级送去比价
         List<PromotionDiscountItemVo> promotionItems = promote(items, memberLevelId(privileges));
         BigDecimal promotionAmount = sumDiscount(promotionItems);
+
+        // 免邮时整单运费与逐项明细一起归零：只改总额会让前端按明细逐行显示的运费加起来不等于整单运费
+        boolean freeFreight = isFreeFreight(privileges, totalAmount.subtract(promotionAmount));
+        BigDecimal freightAmount = freeFreight ? BigDecimal.ZERO : wareFare.getTotalFare();
 
         FareVo fareVo = new FareVo();
         fareVo.setTotalAmount(totalAmount);
         fareVo.setFreightAmount(freightAmount);
+        fareVo.setMemberFreeFreight(freeFreight);
         fareVo.setPromotionAmount(promotionAmount);
         fareVo.setPromotionItems(promotionItems);
         fareVo.setPayAmount(totalAmount.add(freightAmount).subtract(promotionAmount));
@@ -625,7 +626,27 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     }
 
     /**
-     * 取会员的等级与权益：免邮与会员价特权。
+     * 判断本单是否免邮：等级带免邮特权，且商品优惠后金额达到该等级的免运费标准。
+     *
+     * <p>两个条件都要。特权回答的是"这一档有没有免邮权益"，{@code free_freight_point} 回答的是
+     * "有这份权益时满多少才免"；只看门槛会让 {@code priviledge_free_freight} 为 0 的等级照样免邮。
+     *
+     * <p>比较用商品优惠后金额，与券门槛同源。门槛未配置时按"没有门槛"处理，即特权开了就免邮。
+     *
+     * @param privileges 会员的等级与权益，不能为 {@code null}
+     * @param netAmount 商品优惠后金额，不能为 {@code null}
+     * @return {@code true} 表示本单免邮
+     */
+    private boolean isFreeFreight(MemberGrowthVo privileges, BigDecimal netAmount) {
+        if (!privileges.isFreeFreight()) {
+            return false;
+        }
+        BigDecimal point = privileges.getFreeFreightPoint();
+        return point == null || netAmount.compareTo(point) >= 0;
+    }
+
+    /**
+     * 取会员的等级与权益：免邮（含免运费标准）与会员价特权。
      *
      * <p><b>失败开放</b>：查不到时按"没有等级、没有任何权益"处理并记 warn。判据与商品优惠同源 ——
      * 确认页与提交走的是同一个方法，两次都按没有权益算，会员看到的就是实际要付的；

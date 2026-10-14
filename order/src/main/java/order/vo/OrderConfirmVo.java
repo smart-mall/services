@@ -57,6 +57,13 @@ public class OrderConfirmVo {
     /** 运费。 */
     private BigDecimal freightAmount;
 
+    /**
+     * 运费是否被会员的免邮权益抵掉，口径与 {@link FareVo#memberFreeFreight} 一致。
+     *
+     * <p>只用于结算页标注"会员免邮"：计费结果本来就是 0 时它也是 {@code false}。
+     */
+    private boolean memberFreeFreight;
+
     /** 商品优惠减免额（满减、阶梯价与会员价）；一项都没命中时为 0。 */
     private BigDecimal promotionAmount;
 

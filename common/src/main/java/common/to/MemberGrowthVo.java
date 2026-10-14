@@ -2,16 +2,18 @@ package common.to;
 
 import lombok.Data;
 
+import java.math.BigDecimal;
+
 /**
  * 会员成长状态快照：当前成长值、所属等级与该等级的门槛。
  *
- * <p>放在 {@code common/to} 是它是 member 与 coupon 之间的契约。等级与成长值都不进登录凭证，
+ * <p>放在 {@code common/to} 是因为它是 member 与 coupon、order 之间的契约。等级与成长值都不进登录凭证，
  * 需要判定的服务按 {@code memberId} 向 member 取实时值 —— 凭证是登录那一刻的快照，
  * 升级之后就不再是当前等级。
  *
  * <p>判定等级高低要比 {@code growthPoint} 而不是 {@code growth}：等级是记在 {@code ums_member.level_id}
  * 上的，且只升不降，门槛被调高时会员仍留在原等级，此时按成长值推出来的档会低于他实际所在的档。
- * 两个门槛都是某个等级的 {@code growth_point}，互相比较才是"哪个等级更高"。
+ * 参与比较的两个值都是某个等级的 {@code growth_point}，互相比较才是"哪个等级更高"。
  */
 @Data
 public class MemberGrowthVo {
@@ -40,6 +42,15 @@ public class MemberGrowthVo {
      * <p>只有取 1 才算有；为 0、未配置或会员没有等级时都是 {@code false}，调用方不必再判 {@code null}。
      */
     private boolean freeFreight;
+
+    /**
+     * 当前等级的免运费标准，对应 {@code ums_member_level.free_freight_point}：本单商品优惠后金额
+     * 达到它才免邮。
+     *
+     * <p>它只在 {@link #freeFreight} 为 {@code true} 时有意义 —— 没有免邮特权的等级不该按门槛免邮。
+     * 会员没有等级或该列未配置时为 {@code null}，此时按"没有门槛"处理，即特权开了就免邮。
+     */
+    private BigDecimal freeFreightPoint;
 
     /**
      * 当前等级是否带会员价特权，对应 {@code ums_member_level.priviledge_member_price}。
