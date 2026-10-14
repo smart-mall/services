@@ -19,6 +19,13 @@ services:
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
       MYSQL_ROOT_PASSWORD: root
+      # 库的墙钟必须与各服务 JVM（TZ=Asia/Shanghai）一致：oms_order 里 payment_time、
+      # delivery_time 等由 SQL 的 NOW() 写入，create_time 由 Java 的 new Date() 写入，
+      # 两边不同钟会让同一张表里"支付时间"比"下单时间"早 8 小时。
+      TZ: Asia/Shanghai
+    # 显式钉住会话时区，不依赖镜像内是否装了 tzdata；用 +08:00 偏移而非 Asia/Shanghai
+    # 字面量，是因为后者要求 mysql 时区表已导入。
+    command: ["--default-time-zone=+08:00"]
     ports:
       - "53306:3306"
     volumes:
