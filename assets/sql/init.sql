@@ -150,7 +150,8 @@ CREATE TABLE IF NOT EXISTS `pms_sku_images` (
   `img_url` varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '图片地址',
   `img_sort` int DEFAULT NULL COMMENT '排序',
   `default_img` int DEFAULT NULL COMMENT '默认图[0 - 不是默认图，1 - 是默认图]',
-  /* 追加在末列：本表在 gulimall_pms.sql 里的数据行 INSERT 不带列名，插在中间会让既有数据整体错位 */
+  /* 保持末列：历史上是为了对齐 gulimall_pms.sql 那种不带列名的整表 INSERT（该转储文件已随本脚本统一而删除），
+     也为了与已建库的列序保持一致 —— 重排列序是没有收益的 DDL 变更 */
   `img_name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '图片名',
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=70 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='sku图片';
