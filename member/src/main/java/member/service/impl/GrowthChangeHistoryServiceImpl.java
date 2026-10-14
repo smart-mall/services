@@ -10,6 +10,7 @@ import member.enums.GrowthChangeTypeEnum;
 import member.service.GrowthChangeHistoryService;
 import member.service.MemberService;
 import member.vo.GrowthHistoryAdminVo;
+import member.vo.GrowthHistoryPageQuery;
 import member.vo.GrowthHistoryVo;
 import org.springframework.stereotype.Service;
 
@@ -40,10 +41,11 @@ public class GrowthChangeHistoryServiceImpl extends ServiceImpl<GrowthChangeHist
 
     /** {@inheritDoc} */
     @Override
-    public PageVO<GrowthHistoryAdminVo> queryPage(PageQuery query) {
+    public PageVO<GrowthHistoryAdminVo> queryPage(GrowthHistoryPageQuery query) {
         // 按 create_time 排序时同秒的行次序不定，再按主键兜一层，翻页才不会漏行或重复
         IPage<GrowthChangeHistoryEntity> page = this.page(query.toPage(),
                 new LambdaQueryWrapper<GrowthChangeHistoryEntity>()
+                        .eq(query.getMemberId() != null, GrowthChangeHistoryEntity::getMemberId, query.getMemberId())
                         .orderByDesc(GrowthChangeHistoryEntity::getCreateTime)
                         .orderByDesc(GrowthChangeHistoryEntity::getId));
 

@@ -5,6 +5,7 @@ import common.utils.R;
 import coupon.entity.CouponEntity;
 import coupon.service.CouponService;
 import coupon.vo.CouponGrantVO;
+import coupon.vo.CouponReceivableVo;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -146,6 +147,20 @@ public class CouponController {
         List<Long> memberIds = vo.getMemberIds();
 
         return R.ok(couponService.grant(id, memberIds));
+    }
+
+    /**
+     * 查询可以定向发给指定会员的券，供「送券」弹窗做候选。
+     *
+     * <p>候选口径与 {@code /{id}/grant} 的闸门同源：不在领取窗口内、已领完、等级不够，
+     * 或该会员已达每人限领的券都不会出现在结果里。
+     *
+     * @param memberId 目标会员主键
+     * @return 可发放的券列表；一张都发不出去时为空列表
+     */
+    @GetMapping("/grantable/{memberId}")
+    public R<List<CouponReceivableVo>> listGrantable(@PathVariable("memberId") Long memberId){
+        return R.ok(couponService.listGrantable(memberId));
     }
 
 }

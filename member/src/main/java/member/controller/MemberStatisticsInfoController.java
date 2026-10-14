@@ -21,6 +21,11 @@ import common.query.PageQuery;
  *
  * <p>路径不在 {@code /front} 下，经网关访问时按管理端接口鉴权。
  */
+// TODO: 这整套脚手架（entity / dao / service / controller）是代码生成器产物，没有任何数据源 ——
+//       全仓没有一处往 ums_member_statistics_info 写，表里恒为 0 行，管理端菜单
+//       （sys_menu 的「统计信息」/ member/statistics）也已摘掉，应整块删除；
+//       在此之前不要在这里补业务逻辑。要做真统计得在下单、领券、评价等写入路径上累加，
+//       那是新开一条纵向链路，不该挂在这套 CRUD 上
 @RestController
 @RequestMapping("member/memberstatisticsinfo")
 public class MemberStatisticsInfoController {

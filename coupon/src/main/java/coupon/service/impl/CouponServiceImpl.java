@@ -356,6 +356,37 @@ public class CouponServiceImpl extends ServiceImpl<CouponDao, CouponEntity> impl
         }).toList();
     }
 
+    /** {@inheritDoc} */
+    @Override
+    public List<CouponReceivableVo> listGrantable(Long memberId) {
+        // 判定不在这里重写：可领口径已经算过发布状态、领取窗口、余量与等级门槛，
+        // 抄一遍就多出一处会与 grant 的闸门分叉的地方
+        return listReceivable(memberId).stream()
+                // 排掉已达每人限领的券，与 grant 里 countMemberReceived(...) >= perLimit 是同一个判断
+                .filter(vo -> receivedOf(vo) < perLimitOf(vo))
+                .toList();
+    }
+
+    /**
+     * 读取可领券视图上的"该会员已领张数"。
+     *
+     * @param vo 可领券视图，不能为 {@code null}
+     * @return 已领张数；字段为空时按 0 处理
+     */
+    private static int receivedOf(CouponReceivableVo vo) {
+        return vo.getReceivedCount() == null ? 0 : vo.getReceivedCount();
+    }
+
+    /**
+     * 读取可领券视图上的每人限领张数。
+     *
+     * @param vo 可领券视图，不能为 {@code null}
+     * @return 每人限领张数；字段为空时按 0 处理，与 grant 的取值口径一致
+     */
+    private static int perLimitOf(CouponReceivableVo vo) {
+        return vo.getPerLimit() == null ? 0 : vo.getPerLimit();
+    }
+
     /* ═══════════════════ 内部 ═══════════════════ */
 
     /**

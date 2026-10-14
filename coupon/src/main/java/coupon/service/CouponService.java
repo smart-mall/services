@@ -134,4 +134,19 @@ public interface CouponService extends IService<CouponEntity> {
      * @return 可领取的券，面额大的排前面；一张都没有时为空列表，不返回 {@code null}
      */
     List<CouponReceivableVo> listReceivable(Long memberId);
+
+    /**
+     * 列出可以定向发给指定会员的券，供管理端「送券」弹窗做候选。
+     *
+     * <p>与 {@link #listReceivable(Long)} 同源（发布状态、领取窗口、余量、等级门槛），差别只有一条：
+     * **已达每人限领的券不列**。券中心那边要把它显示成"已领取"所以留着，而"发不出去还让人挑"
+     * 正是这里要消掉的东西。
+     *
+     * <p>判定必须与 {@link #grant(Long, List)} 的闸门一致，否则候选集与发放结果会分叉 ——
+     * 所以规则不在这里重写，直接复用可领口径。
+     *
+     * @param memberId 目标会员主键，不能为 {@code null}
+     * @return 可发放的券，面额大的排前面；一张都发不出去时为空列表，不返回 {@code null}
+     */
+    List<CouponReceivableVo> listGrantable(Long memberId);
 }

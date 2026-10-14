@@ -7,12 +7,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import member.entity.IntegrationChangeHistoryEntity;
 import member.service.IntegrationChangeHistoryService;
+import member.vo.IntegrationHistoryAdminVo;
+import member.vo.IntegrationHistoryPageQuery;
 import common.vo.PageVO;
 import common.utils.R;
 
-
-
-import common.query.PageQuery;
 /**
  * 会员积分变化记录的后台查询接口：分页列表与详情。
  *
@@ -28,14 +27,14 @@ public class IntegrationChangeHistoryController {
     private IntegrationChangeHistoryService integrationChangeHistoryService;
 
     /**
-     * 分页查询会员积分变化记录。
+     * 分页查询会员积分变化记录，每行带上会员昵称。
      *
-     * @param query 分页参数，{@code page} 为页码、{@code limit} 为每页条数
+     * @param query 分页与筛选条件，{@code memberId} 不传则返回全部会员的流水、传入则只看该会员
      * @return 分页结果，{@code rows} 为变化记录列表
      */
     @RequestMapping("/list")
-    public R<PageVO<IntegrationChangeHistoryEntity>> list(PageQuery query){
-        PageVO<IntegrationChangeHistoryEntity> page = integrationChangeHistoryService.queryPage(query);
+    public R<PageVO<IntegrationHistoryAdminVo>> list(IntegrationHistoryPageQuery query){
+        PageVO<IntegrationHistoryAdminVo> page = integrationChangeHistoryService.queryPage(query);
 
         return R.ok(page);
     }

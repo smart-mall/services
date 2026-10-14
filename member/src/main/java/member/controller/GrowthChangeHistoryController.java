@@ -8,12 +8,10 @@ import org.springframework.web.bind.annotation.RestController;
 import member.entity.GrowthChangeHistoryEntity;
 import member.service.GrowthChangeHistoryService;
 import member.vo.GrowthHistoryAdminVo;
+import member.vo.GrowthHistoryPageQuery;
 import common.vo.PageVO;
 import common.utils.R;
 
-
-
-import common.query.PageQuery;
 /**
  * 会员成长值变化记录的后台查询接口：分页列表与详情。
  *
@@ -29,13 +27,13 @@ public class GrowthChangeHistoryController {
     private GrowthChangeHistoryService growthChangeHistoryService;
 
     /**
-     * 分页查询会员成长值变化记录。
+     * 分页查询会员成长值变化记录，每行带上会员昵称。
      *
-     * @param query 分页参数，{@code page} 为页码、{@code limit} 为每页条数
+     * @param query 分页与筛选条件，{@code memberId} 不传则返回全部会员的流水、传入则只看该会员
      * @return 分页结果，{@code rows} 为变化记录列表
      */
     @RequestMapping("/list")
-    public R<PageVO<GrowthHistoryAdminVo>> list(PageQuery query){
+    public R<PageVO<GrowthHistoryAdminVo>> list(GrowthHistoryPageQuery query){
         PageVO<GrowthHistoryAdminVo> page = growthChangeHistoryService.queryPage(query);
 
         return R.ok(page);

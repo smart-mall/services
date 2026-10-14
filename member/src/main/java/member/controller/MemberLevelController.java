@@ -11,14 +11,16 @@ import member.vo.MemberSelectVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Arrays;
 import java.util.List;
 
 
 
 import common.query.KeyPageQuery;
 /**
- * 会员等级的后台管理接口：下拉选项查询，以及分页列表、详情、新增、修改、删除。
+ * 会员等级的后台管理接口：下拉选项查询，以及分页列表、详情、新增、修改。
+ *
+ * <p>没有删除接口：等级是券门槛与「评价赠送成长值」两处判定的基准，删掉一个等级会让
+ * {@code ums_member.level_id} 悬空、券门槛取不到值，因此只允许新增与修改。
  *
  * <p>路径不在 {@code /front} 下，经网关访问时按管理端接口鉴权。
  */
@@ -95,20 +97,6 @@ public class MemberLevelController {
     public R<Void> update(@RequestBody MemberLevelEntity memberLevel){
         log.info("修改会员等级: {}", JSON.toJSONString(memberLevel, SerializerFeature.PrettyFormat));
 		memberLevelService.updateById(memberLevel);
-
-        return R.ok();
-    }
-
-    /**
-     * 按主键批量删除会员等级。
-     *
-     * @param ids 待删除的等级主键数组
-     * @return 统一成功响应，不含业务数据
-     */
-    @RequestMapping("/delete")
-    public R<Void> delete(@RequestBody Long[] ids){
-        log.info("删除会员等级: {}", JSON.toJSONString(ids, SerializerFeature.PrettyFormat));
-		memberLevelService.removeByIds(Arrays.asList(ids));
 
         return R.ok();
     }
