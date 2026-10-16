@@ -685,19 +685,6 @@ CREATE TABLE IF NOT EXISTS `sms_seckill_session` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE IF NOT EXISTS `sms_seckill_sku_notice` (
-  `id` bigint NOT NULL AUTO_INCREMENT,
-  `member_id` bigint DEFAULT NULL,
-  `sku_id` bigint DEFAULT NULL,
-  `session_id` bigint DEFAULT NULL COMMENT '活动场次id',
-  `subscribe_time` datetime DEFAULT NULL COMMENT '订阅时间',
-  `send_time` datetime DEFAULT NULL COMMENT '发送时间',
-  `notice_type` tinyint(1) DEFAULT NULL COMMENT '通知方式[0-短信，1-邮件]',
-  PRIMARY KEY (`id`) USING BTREE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='秒杀商品通知订阅';
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `sms_seckill_sku_relation` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `promotion_id` bigint DEFAULT NULL COMMENT '活动id',
