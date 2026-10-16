@@ -660,42 +660,28 @@ CREATE TABLE IF NOT EXISTS `sms_member_price` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE IF NOT EXISTS `sms_seckill_promotion` (
-  `id` bigint NOT NULL AUTO_INCREMENT,
-  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '活动标题',
-  `start_time` datetime DEFAULT NULL COMMENT '开始日期',
-  `end_time` datetime DEFAULT NULL COMMENT '结束日期',
-  `status` tinyint DEFAULT NULL COMMENT '上下线状态',
-  `create_time` datetime DEFAULT NULL COMMENT '创建时间',
-  `user_id` bigint DEFAULT NULL COMMENT '创建人',
-  PRIMARY KEY (`id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='秒杀活动';
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `sms_seckill_session` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '场次名称',
-  `start_time` datetime DEFAULT NULL COMMENT '每日开始时间',
-  `end_time` datetime DEFAULT NULL COMMENT '每日结束时间',
+  `start_time` datetime DEFAULT NULL COMMENT '开始时间',
+  `end_time` datetime DEFAULT NULL COMMENT '结束时间',
   `status` tinyint(1) DEFAULT NULL COMMENT '启用状态',
   `create_time` datetime DEFAULT NULL COMMENT '创建时间',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='秒杀活动场次';
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='秒杀场次';
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `sms_seckill_sku_relation` (
   `id` bigint NOT NULL AUTO_INCREMENT,
-  `promotion_id` bigint DEFAULT NULL COMMENT '活动id',
-  `promotion_session_id` bigint DEFAULT NULL COMMENT '活动场次id',
+  `promotion_session_id` bigint DEFAULT NULL COMMENT '秒杀场次id',
   `sku_id` bigint DEFAULT NULL COMMENT '商品id',
   `seckill_price` decimal(10,0) DEFAULT NULL COMMENT '秒杀价格',
   `seckill_count` decimal(10,0) DEFAULT NULL COMMENT '秒杀总量',
   `seckill_limit` decimal(10,0) DEFAULT NULL COMMENT '每人限购数量',
   `seckill_sort` int DEFAULT NULL COMMENT '排序',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='秒杀活动商品关联';
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='秒杀场次商品关联';
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;

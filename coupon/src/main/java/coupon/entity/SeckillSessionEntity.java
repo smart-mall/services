@@ -11,9 +11,9 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * 秒杀活动场次，对应 {@code sms_seckill_session} 表：把一天切成若干可抢购的时间段，供秒杀商品挂载。
+ * 秒杀场次，对应 {@code sms_seckill_session} 表：一场就是一段具体的起止时刻，起点到终点之间可抢购。
  *
- * <p>场次下的商品列表由查询时装配到 {@code relationSkus}，不落库。
+ * <p>它是秒杀唯一的归属层：场次下的商品列表由查询时装配到 {@code relationSkus}，不落库。
  */
 @Data
 @TableName("sms_seckill_session")
@@ -25,9 +25,9 @@ public class SeckillSessionEntity implements Serializable {
 	private Long id;
 	/** 场次名称。 */
 	private String name;
-	/** 每日开始时间。 */
+	/** 开始时间。 */
 	private Date startTime;
-	/** 每日结束时间。 */
+	/** 结束时间。 */
 	private Date endTime;
 	/** 启用状态。 */
 	private Integer status;

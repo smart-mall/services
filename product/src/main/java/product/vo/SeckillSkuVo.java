@@ -14,8 +14,6 @@ import java.math.BigDecimal;
 @Data
 public class SeckillSkuVo {
 
-    /** 秒杀活动 ID。 */
-    private Long promotionId;
     /** 秒杀场次 ID。 */
     private Long promotionSessionId;
     /** 参与秒杀的 sku ID。 */

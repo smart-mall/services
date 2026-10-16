@@ -11,7 +11,7 @@ import lombok.Data;
 /**
  * 秒杀活动商品关联，对应 {@code sms_seckill_sku_relation} 表：指定某个场次下参与秒杀的 SKU、秒杀价、放量与本场限购数。
  *
- * <p>活动与场次分别由 {@link SeckillPromotionEntity} 和 {@link SeckillSessionEntity} 描述。
+ * <p>归属只到场次一层：一条记录是某个场次下的一个商品配置，场次由 {@link SeckillSessionEntity} 描述。
  */
 @Data
 @TableName("sms_seckill_sku_relation")
@@ -21,8 +21,6 @@ public class SeckillSkuRelationEntity implements Serializable {
 	/** 主键。 */
 	@TableId
 	private Long id;
-	/** 所属秒杀活动 ID。 */
-	private Long promotionId;
 	/** 所属秒杀场次 ID。 */
 	private Long promotionSessionId;
 	/** 参与秒杀的商品 SKU ID。 */

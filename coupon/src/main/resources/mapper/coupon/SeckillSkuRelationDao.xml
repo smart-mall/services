@@ -6,7 +6,6 @@
 	<!-- 可根据自己的需求，是否要使用 -->
     <resultMap type="coupon.entity.SeckillSkuRelationEntity" id="seckillSkuRelationMap">
         <result property="id" column="id"/>
-        <result property="promotionId" column="promotion_id"/>
         <result property="promotionSessionId" column="promotion_session_id"/>
         <result property="skuId" column="sku_id"/>
         <result property="seckillPrice" column="seckill_price"/>

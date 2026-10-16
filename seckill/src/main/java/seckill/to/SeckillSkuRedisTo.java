@@ -14,9 +14,6 @@ import java.math.BigDecimal;
 @Data
 public class SeckillSkuRedisTo {
 
-    /** 秒杀活动 ID。 */
-    private Long promotionId;
-
     /** 秒杀场次 ID。 */
     private Long promotionSessionId;
 

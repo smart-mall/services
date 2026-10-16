@@ -15,9 +15,6 @@ public class SeckillSkuVo {
     /** 关联记录 ID。 */
     private Long id;
 
-    /** 秒杀活动 ID。 */
-    private Long promotionId;
-
     /** 秒杀场次 ID。 */
     private Long promotionSessionId;
 
