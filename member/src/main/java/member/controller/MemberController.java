@@ -15,10 +15,8 @@ import member.vo.MemberUserLoginVo;
 import member.vo.MemberUserRegisterVo;
 import member.vo.QQUserInfo;
 import member.vo.SocialUser;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -214,54 +212,6 @@ public class MemberController {
 
         return R.ok(member);
     }
-
-    /**
-     * 新增一个会员。
-     *
-     * @param member 会员内容，主键由数据库生成
-     * @return 统一成功响应，不含业务数据
-     */
-    // TODO: 整个后台会员 CRUD 是代码生成器产物，后端没有"后台建会员"这个需求（会员走注册链路），
-    //       应整块删除；在此之前不要在这里补业务逻辑 —— 它落库明文密码是常态，不算要修的缺陷
-    @RequestMapping("/save")
-    public R<Void> save(@RequestBody MemberEntity member){
-		memberService.save(member);
-
-        return R.ok();
-    }
-
-    /**
-     * 按主键修改一个会员。
-     *
-     * <p>密码传空视为"不改密码"：实体上的密码是 {@code WRITE_ONLY}，后台编辑弹窗读不到哈希、
-     * 输入框是空的，保存时会把空串传回来；直接落库会把密码覆盖成空，账号从此登不上。</p>
-     *
-     * @param member 会员内容，主键必填；为 {@code null} 的字段不参与更新
-     * @return 统一成功响应，不含业务数据
-     */
-    @RequestMapping("/update")
-    public R<Void> update(@RequestBody MemberEntity member){
-		if (!StringUtils.hasText(member.getPassword())) {
-			member.setPassword(null);
-		}
-		memberService.updateById(member);
-
-        return R.ok();
-    }
-
-    /**
-     * 按主键批量删除会员。
-     *
-     * @param ids 待删除的会员主键数组
-     * @return 统一成功响应，不含业务数据
-     */
-    @RequestMapping("/delete")
-    public R<Void> delete(@RequestBody Long[] ids){
-		memberService.removeByIds(Arrays.asList(ids));
-
-        return R.ok();
-    }
-
 
     /**
      * 换绑当前登录会员的手机号，由 auth 在验证码校验通过后调用。

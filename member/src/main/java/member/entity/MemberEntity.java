@@ -28,7 +28,8 @@ public class MemberEntity implements Serializable {
 	/** 登录账号，注册时校验全局唯一。 */
 	private String username;
 	/** 登录密码，存 BCrypt 哈希；验证码链路建的账号没有密码，为 {@code null}。 */
-	// 用 WRITE_ONLY 而非 @JsonIgnore：写接口要把密码放进请求体，@JsonIgnore 会连反序列化一起挡掉
+	// 用 WRITE_ONLY 而非 @JsonIgnore：该实体被 list/info 原样返回，密码不能出现在响应里；
+	// 它只挡序列化，将来若有写接口仍能收下这个字段
 	@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
 	private String password;
 	/** 昵称，注册时默认与账号同名。 */
