@@ -252,6 +252,8 @@ public enum BaseCodeEnum {
     SECKILL_LIMIT_EXCEEDED(18003,"数量超出每人限购"),
     /** 用户已参与过该场秒杀。触发场景：同一用户重复抢购同一场次。 */
     SECKILL_ALREADY_BOUGHT(18004,"您已参与过本次秒杀，把机会留给别人吧"),
+    /** 秒杀下架失败。触发场景：删除场次或场次内商品时通知 seckill 摘缓存失败，删除已整体回滚。 */
+    SECKILL_OFFLINE_FAILED(18005,"秒杀下架失败，请稍后重试"),
 
     /** 上传文件不能为空。触发场景：调用方没带文件或文件流为空，改参数即可解决。 */
     MEDIA_FILE_EMPTY(19000,"上传文件不能为空"),

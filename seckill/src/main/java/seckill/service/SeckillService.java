@@ -1,5 +1,6 @@
 package seckill.service;
 
+import common.to.SeckillOfflineTo;
 import common.vo.MemberResponseVo;
 import seckill.to.SeckillSkuRedisTo;
 import seckill.vo.SeckillUploadResultVo;
@@ -26,6 +27,18 @@ public interface SeckillService {
      * @return 本次上架的场次数、新写入与跳过的商品条目数；时间窗口内没有场次时各项为 0
      */
     SeckillUploadResultVo uploadSeckillSkuLatest3Days();
+
+    /**
+     * 下架指定场次或场次下的指定商品。
+     *
+     * <p>把缓存里的商品条目、它的库存计数，以及场次列表中的编号一并摘掉；某个场次的列表被摘空时
+     * 连键一起删。实现方必须保证：{@code skuIds} 为空的项按整个场次处理，且库存计数键用随机码命名，
+     * 必须先读出缓存里的随机码才能删掉它。
+     *
+     * @param requests 下架请求，不能为 {@code null}，可以为空集合
+     * @return 实际摘掉的商品条目数；请求为空时返回 0
+     */
+    int offline(List<SeckillOfflineTo> requests);
 
     /**
      * 返回当前正在进行的秒杀场次里的商品。

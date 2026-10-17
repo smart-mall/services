@@ -7,10 +7,12 @@ import common.vo.PageVO;
 import coupon.dao.SeckillSessionDao;
 import coupon.entity.SeckillSessionEntity;
 import coupon.entity.SeckillSkuRelationEntity;
+import coupon.service.SeckillOfflineService;
 import coupon.service.SeckillSessionService;
 import coupon.service.SeckillSkuRelationService;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -30,13 +32,18 @@ import common.query.KeyPageQuery;
 public class SeckillSessionServiceImpl extends ServiceImpl<SeckillSessionDao, SeckillSessionEntity> implements SeckillSessionService {
     private final SeckillSkuRelationService seckillSkuRelationService;
 
+    private final SeckillOfflineService seckillOfflineService;
+
     /**
-     * 创建秒杀场次服务实例，注入秒杀商品关联服务。
+     * 创建秒杀场次服务实例。
      *
-     * @param seckillSkuRelationService 秒杀商品关联服务，用于装配场次下的商品
+     * @param seckillSkuRelationService 秒杀商品关联服务，用于装配场次下的商品，以及随场次级联删除
+     * @param seckillOfflineService 秒杀下架通知服务，用于删除场次前摘掉缓存
      */
-    public SeckillSessionServiceImpl(SeckillSkuRelationService seckillSkuRelationService) {
+    public SeckillSessionServiceImpl(SeckillSkuRelationService seckillSkuRelationService,
+                                     SeckillOfflineService seckillOfflineService) {
         this.seckillSkuRelationService = seckillSkuRelationService;
+        this.seckillOfflineService = seckillOfflineService;
     }
 
     /** {@inheritDoc} */
@@ -84,6 +91,23 @@ public class SeckillSessionServiceImpl extends ServiceImpl<SeckillSessionDao, Se
         }
 
         return null;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void removeSessions(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return;
+        }
+
+        // 先摘内存里那几场：摘不掉就抛异常回滚，否则会出现库里删了、前台还在卖
+        seckillOfflineService.offlineSessions(ids);
+
+        // 关联行不一起删，就会留下指向已删场次、永远没人认领的孤儿数据
+        seckillSkuRelationService.remove(new LambdaQueryWrapper<SeckillSkuRelationEntity>()
+                .in(SeckillSkuRelationEntity::getPromotionSessionId, ids));
+        removeByIds(ids);
     }
 
     /**

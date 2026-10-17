@@ -11,6 +11,7 @@ import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
 import common.mq.MqConstant;
 import common.mq.MqPublisher;
+import common.to.SeckillOfflineTo;
 import common.to.mq.SeckillOrderTo;
 import common.utils.R;
 import common.vo.MemberResponseVo;
@@ -387,6 +388,94 @@ public class SeckillServiceImpl implements SeckillService {
         log.info("秒杀成功，memberId={}，killId={}，num={}，orderSn={}，耗时={}ms",
                 memberId, killId, num, orderSn, System.currentTimeMillis() - start);
         return orderSn;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public int offline(List<SeckillOfflineTo> requests) {
+
+        if (requests == null || requests.isEmpty()) {
+            return 0;
+        }
+
+        BoundHashOperations<String, String, String> hashOps = redisTemplate.boundHashOps(SECKILL_CACHE_PREFIX);
+        int removed = 0;
+
+        for (SeckillOfflineTo request : requests) {
+            Long sessionId = request.getPromotionSessionId();
+            if (sessionId == null) {
+                continue;
+            }
+
+            for (String killId : resolveKillIds(hashOps, sessionId, request.getSkuIds())) {
+                // 库存计数键用随机码命名，随机码只存在这份缓存里，必须先读出来才能删掉它
+                String cached = hashOps.get(killId);
+                if (cached != null) {
+                    SeckillSkuRedisTo redisTo = JSON.parseObject(cached, SeckillSkuRedisTo.class);
+                    if (redisTo != null && redisTo.getRandomCode() != null) {
+                        redisTemplate.delete(SKU_STOCK_SEMAPHORE + redisTo.getRandomCode());
+                    }
+                }
+
+                hashOps.delete(killId);
+                removeFromSessionLists(killId);
+                removed++;
+            }
+        }
+
+        log.info("秒杀下架完成：摘掉商品 {} 条", removed);
+        return removed;
+    }
+
+    /**
+     * 取该场次在缓存里的商品条目名。
+     *
+     * @param hashOps   秒杀商品缓存
+     * @param sessionId 场次 ID
+     * @param skuIds    指定要下架的 SKU；为空表示整个场次
+     * @return 条目名列表，形如 {@code 场次id-skuId}
+     */
+    private List<String> resolveKillIds(BoundHashOperations<String, String, String> hashOps,
+                                        Long sessionId, List<Long> skuIds) {
+
+        if (skuIds != null && !skuIds.isEmpty()) {
+            return skuIds.stream()
+                    .filter(Objects::nonNull)
+                    .map(skuId -> sessionId + "-" + skuId)
+                    .toList();
+        }
+
+        Set<String> fields = hashOps.keys();
+        if (fields == null || fields.isEmpty()) {
+            return List.of();
+        }
+
+        // 按场次前缀扫：库里已经删掉的关联行在缓存里可能还留着，只按传参拼名字会漏掉它们
+        String prefix = sessionId + "-";
+        return fields.stream()
+                .filter(field -> field != null && field.startsWith(prefix))
+                .toList();
+    }
+
+    /**
+     * 把已下架的商品编号从所有场次列表里摘掉，列表被摘空时连键一起删。
+     *
+     * @param killId 商品条目名，形如 {@code 场次id-skuId}
+     */
+    private void removeFromSessionLists(String killId) {
+
+        Set<String> sessionKeys = redisTemplate.keys(SESSION_CACHE_PREFIX + "*");
+        if (sessionKeys == null || sessionKeys.isEmpty()) {
+            return;
+        }
+
+        for (String key : sessionKeys) {
+            redisTemplate.opsForList().remove(key, 0, killId);
+            Long size = redisTemplate.opsForList().size(key);
+            if (size != null && size == 0) {
+                redisTemplate.delete(key);
+            }
+        }
     }
 
 }

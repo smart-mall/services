@@ -105,15 +105,15 @@ public class SeckillSessionController {
     }
 
     /**
-     * 按主键批量删除秒杀活动场次。
+     * 按主键批量删除秒杀场次，连带清掉场次下的商品关联与秒杀缓存。
      *
      * @param ids 待删除的场次主键数组
-     * @return 统一成功响应，不含业务数据
+     * @return 统一成功响应，不含业务数据；下架缓存失败时返回 18005，此时场次与关联都未被删除
      */
     @RequestMapping("/delete")
     public R<Void> delete(@RequestBody Long[] ids) {
         log.info("删除：{}", JSON.toJSONString(ids, SerializerFeature.PrettyFormat));
-        seckillSessionService.removeByIds(Arrays.asList(ids));
+        seckillSessionService.removeSessions(Arrays.asList(ids));
 
         return R.ok();
     }

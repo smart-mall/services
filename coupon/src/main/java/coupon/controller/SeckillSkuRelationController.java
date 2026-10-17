@@ -81,14 +81,14 @@ public class SeckillSkuRelationController {
     }
 
     /**
-     * 按主键批量删除秒杀活动商品关联。
+     * 按主键批量删除秒杀活动商品关联，连带把这几条商品从秒杀缓存里下架。
      *
      * @param ids 待删除的关联关系主键数组
-     * @return 统一成功响应，不含业务数据
+     * @return 统一成功响应，不含业务数据；下架缓存失败时返回 18005，此时关联记录未被删除
      */
     @RequestMapping("/delete")
     public R<Void> delete(@RequestBody Long[] ids){
-		seckillSkuRelationService.removeByIds(Arrays.asList(ids));
+		seckillSkuRelationService.removeRelations(Arrays.asList(ids));
 
         return R.ok();
     }

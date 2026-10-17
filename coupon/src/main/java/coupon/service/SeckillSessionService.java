@@ -35,5 +35,16 @@ public interface SeckillSessionService extends IService<SeckillSessionEntity> {
      *         不返回空列表，调用方必须判空
      */
     List<SeckillSessionEntity> getLates3DaySession();
+
+    /**
+     * 删除秒杀场次，连带清掉场次下的商品关联与秒杀缓存。
+     *
+     * <p>先通知 seckill 把这几场从缓存里下架，再删关联行与场次行，整个过程在一个事务里：
+     * 下架失败就整体回滚，避免出现库里删了、前台还在卖；关联行不一起删会留下指向已删场次的孤儿数据。
+     *
+     * @param ids 待删除的场次 ID 列表，不能为 {@code null}，可以为空集合；为空时不做任何事
+     * @throws common.exception.BaseException 通知 seckill 下架失败时抛出，事务随之回滚
+     */
+    void removeSessions(List<Long> ids);
 }
 
