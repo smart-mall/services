@@ -1,12 +1,15 @@
 package coupon.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import common.to.CategoryCouponBlockerTo;
 import common.to.ProductReferenceBlockerTo;
 import coupon.entity.CouponEntity;
+import coupon.entity.CouponSpuCategoryRelationEntity;
 import coupon.entity.CouponSpuRelationEntity;
 import coupon.entity.SeckillSessionEntity;
 import coupon.entity.SeckillSkuRelationEntity;
 import coupon.service.CouponService;
+import coupon.service.CouponSpuCategoryRelationService;
 import coupon.service.CouponSpuRelationService;
 import coupon.service.ProductReferenceService;
 import coupon.service.SeckillSessionService;
@@ -24,12 +27,13 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * {@link ProductReferenceService} 的默认实现，读四张表：{@code sms_coupon_spu_relation} 与
- * {@code sms_coupon}、{@code sms_seckill_sku_relation} 与 {@code sms_seckill_session}。
+ * {@link ProductReferenceService} 的默认实现，读五张表：{@code sms_coupon_spu_relation}、
+ * {@code sms_coupon_spu_category_relation} 与 {@code sms_coupon}、{@code sms_seckill_sku_relation}
+ * 与 {@code sms_seckill_session}。
  *
- * <p>判定是否有效不需要 JOIN：先按 spuId / skuId 取出关联行，再按 couponId / 场次 ID 批量取父行，
- * 在内存里按 {@code endTime} 分类。关联行最多就是"这个商品被几张券纳入过适用范围、挂在几场秒杀上"，
- * 量级很小；这样也把"有效 / 失效"的判据收在一处，守卫与清理不会分叉。
+ * <p>判定是否有效不需要 JOIN：先按 spuId / skuId / categoryId 取出关联行，再按 couponId / 场次 ID
+ * 批量取父行，在内存里按 {@code endTime} 分类。关联行最多就是"这个对象被几张券纳入过适用范围、
+ * 挂在几场秒杀上"，量级很小；这样也把"有效 / 失效"的判据收在一处，守卫与清理不会分叉。
  *
  * <p>无状态，线程安全。
  */
@@ -39,6 +43,8 @@ public class ProductReferenceServiceImpl implements ProductReferenceService {
 
     private final CouponSpuRelationService couponSpuRelationService;
 
+    private final CouponSpuCategoryRelationService couponSpuCategoryRelationService;
+
     private final CouponService couponService;
 
     private final SeckillSkuRelationService seckillSkuRelationService;
@@ -46,18 +52,21 @@ public class ProductReferenceServiceImpl implements ProductReferenceService {
     private final SeckillSessionService seckillSessionService;
 
     /**
-     * 注入四张表各自的服务。
+     * 注入五张表各自的服务。
      *
-     * @param couponSpuRelationService 券与商品的关联服务，按 spuId 查
+     * @param couponSpuRelationService 券与 SPU 的关联服务，按 spuId 查
+     * @param couponSpuCategoryRelationService 券与分类的关联服务，按 categoryId 查
      * @param couponService 券模板服务，取券名与使用期
      * @param seckillSkuRelationService 秒杀商品关联服务，按 skuId 查
      * @param seckillSessionService 秒杀场次服务，取场次名与结束时间
      */
     public ProductReferenceServiceImpl(CouponSpuRelationService couponSpuRelationService,
+                                       CouponSpuCategoryRelationService couponSpuCategoryRelationService,
                                        CouponService couponService,
                                        SeckillSkuRelationService seckillSkuRelationService,
                                        SeckillSessionService seckillSessionService) {
         this.couponSpuRelationService = couponSpuRelationService;
+        this.couponSpuCategoryRelationService = couponSpuCategoryRelationService;
         this.couponService = couponService;
         this.seckillSkuRelationService = seckillSkuRelationService;
         this.seckillSessionService = seckillSessionService;
@@ -165,16 +174,7 @@ public class ProductReferenceServiceImpl implements ProductReferenceService {
      * @return couponId 到券模板的映射；券已经不存在时没有对应项
      */
     private Map<Long, CouponEntity> couponsOf(List<CouponSpuRelationEntity> relations) {
-        List<Long> couponIds = relations.stream()
-                .map(CouponSpuRelationEntity::getCouponId)
-                .filter(Objects::nonNull)
-                .distinct()
-                .toList();
-        if (couponIds.isEmpty()) {
-            return Map.of();
-        }
-        return couponService.listByIds(couponIds).stream()
-                .collect(Collectors.toMap(CouponEntity::getId, Function.identity(), (first, second) -> first));
+        return couponsByIds(relations.stream().map(CouponSpuRelationEntity::getCouponId).toList());
     }
 
     /**
@@ -299,7 +299,98 @@ public class ProductReferenceServiceImpl implements ProductReferenceService {
         return session != null && (session.getEndTime() == null || !now.after(session.getEndTime()));
     }
 
+    /* ═══════════════════ 券的分类范围 ═══════════════════ */
+
+    /** {@inheritDoc} */
+    @Override
+    public List<CategoryCouponBlockerTo> listActiveCategoryBlockers(List<Long> catIds) {
+        Date now = new Date();
+        List<CouponSpuCategoryRelationEntity> relations = categoryRelationsOf(catIds);
+        if (relations.isEmpty()) {
+            return List.of();
+        }
+
+        Map<Long, CouponEntity> coupons = couponsOfCategoryRelations(relations);
+        List<CategoryCouponBlockerTo> blockers = new ArrayList<>();
+        for (CouponSpuCategoryRelationEntity relation : relations) {
+            CouponEntity coupon = coupons.get(relation.getCouponId());
+            if (!isCouponActive(coupon, now)) {
+                continue;
+            }
+            CategoryCouponBlockerTo blocker = new CategoryCouponBlockerTo();
+            blocker.setCategoryId(relation.getCategoryId());
+            blocker.setCouponId(relation.getCouponId());
+            blocker.setCouponName(coupon.getCouponName());
+            blocker.setEndTime(coupon.getEndTime());
+            blockers.add(blocker);
+        }
+        return blockers;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    @Transactional
+    public int deleteDeadCategoryReferences(List<Long> catIds) {
+        Date now = new Date();
+        List<CouponSpuCategoryRelationEntity> relations = categoryRelationsOf(catIds);
+        if (relations.isEmpty()) {
+            return 0;
+        }
+
+        Map<Long, CouponEntity> coupons = couponsOfCategoryRelations(relations);
+        List<Long> deadIds = relations.stream()
+                .filter(relation -> !isCouponActive(coupons.get(relation.getCouponId()), now))
+                .map(CouponSpuCategoryRelationEntity::getId)
+                .toList();
+        if (deadIds.isEmpty()) {
+            return 0;
+        }
+        couponSpuCategoryRelationService.removeByIds(deadIds);
+        log.info("清理分类失效引用完成：删除券的分类范围关联 {} 行，catIds={}", deadIds.size(), catIds);
+        return deadIds.size();
+    }
+
+    /**
+     * 按 categoryId 取券的分类范围关联行。
+     *
+     * @param catIds 分类 ID 列表，允许为 {@code null}
+     * @return 关联行；入参没有有效值时为空列表
+     */
+    private List<CouponSpuCategoryRelationEntity> categoryRelationsOf(List<Long> catIds) {
+        List<Long> ids = usableIds(catIds);
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        return couponSpuCategoryRelationService.list(new LambdaQueryWrapper<CouponSpuCategoryRelationEntity>()
+                .in(CouponSpuCategoryRelationEntity::getCategoryId, ids));
+    }
+
+    /**
+     * 批量取这些分类范围关联行对应的券模板。
+     *
+     * @param relations 券的分类范围关联行，不能为 {@code null}
+     * @return couponId 到券模板的映射；券已经不存在时没有对应项
+     */
+    private Map<Long, CouponEntity> couponsOfCategoryRelations(List<CouponSpuCategoryRelationEntity> relations) {
+        return couponsByIds(relations.stream().map(CouponSpuCategoryRelationEntity::getCouponId).toList());
+    }
+
     /* ═══════════════════ 公共 ═══════════════════ */
+
+    /**
+     * 按 couponId 批量取券模板。
+     *
+     * @param couponIds 券 ID 列表，允许含 {@code null} 与重复值
+     * @return couponId 到券模板的映射；券已经不存在时没有对应项
+     */
+    private Map<Long, CouponEntity> couponsByIds(List<Long> couponIds) {
+        List<Long> usable = couponIds.stream().filter(Objects::nonNull).distinct().toList();
+        if (usable.isEmpty()) {
+            return Map.of();
+        }
+        return couponService.listByIds(usable).stream()
+                .collect(Collectors.toMap(CouponEntity::getId, Function.identity(), (first, second) -> first));
+    }
 
     /**
      * 去掉 {@code null} 并去重。

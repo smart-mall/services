@@ -3,10 +3,10 @@ package coupon.service;
 import java.util.List;
 
 /**
- * 商品删除后清理 coupon 侧优惠数据的入口。
+ * 商品与分类删除后清理 coupon 侧优惠数据的入口。
  *
- * <p>由 {@code ProductDeletedListener} 在收到 {@code product.deleted} 事件后调用：数据在本库，
- * 不需要跨服务调用。
+ * <p>由 {@code ProductDeletedListener} 与 {@code CategoryDeletedListener} 在收到
+ * {@code product.deleted}、{@code category.deleted} 事件后调用：数据在本库，不需要跨服务调用。
  */
 public interface ProductCleanupService {
 
@@ -25,4 +25,15 @@ public interface ProductCleanupService {
      * @param skuIds 商品 SKU 标识集合；为 {@code null} 或空集合时对应表不做任何操作
      */
     void cleanupProduct(List<Long> spuIds, List<Long> skuIds);
+
+    /**
+     * 清掉这些分类留下的失效引用：已过使用期的券的分类范围行。
+     *
+     * <p>与 {@link #cleanupProduct} 同一判据 —— <b>仍然有效的引用一行都不删</b>：分类能删掉的前提
+     * 就是没有它们（同步守卫拦过），这里也只删判定为失效的行。全是 DELETE，天然幂等，消息重复投递
+     * 不会出错。
+     *
+     * @param catIds 已删除的分类 ID 集合，含子树里的子分类；为 {@code null} 或空集合时不做任何操作
+     */
+    void cleanupCategory(List<Long> catIds);
 }

@@ -11,13 +11,14 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
- * 商品删除事件在 coupon 侧的清理执行方，一次删掉该商品在优惠库里的积分设置与满减、阶梯价、会员价，
- * 以及它留下的失效引用（已过使用期的券的范围行、已结束的场次关联行）。
+ * 商品与分类删除事件在 coupon 侧的清理执行方：商品那一路一次删掉该商品在优惠库里的积分设置与满减、
+ * 阶梯价、会员价，以及它留下的失效引用（已过使用期的券的范围行、已结束的场次关联行）；分类那一路
+ * 只清掉失效引用（已过使用期的券的分类范围行）。
  *
- * <p>链路位置：product 删除商品行后投递 {@code product.deleted}，{@code ProductDeletedListener} 消费后
- * 调用本类；待清理的数据都在本库，不需要回调 product。
+ * <p>链路位置：product 删除商品行或分类行后投递 {@code product.deleted}、{@code category.deleted}，
+ * 各自的监听器消费后调用本类；待清理的数据都在本库，不需要回调 product。
  *
- * <p><b>仍然有效的引用不归本类管</b>：券还在使用期内、场次还没结束时，商品根本删不掉 ——
+ * <p><b>仍然有效的引用不归本类管</b>：券还在使用期内、场次还没结束时，商品与分类根本删不掉 ——
  * {@code product} 删除前已经同步问过 coupon，那一步就把删除拦住了。
  *
  * <p>无状态，线程安全。
@@ -58,5 +59,13 @@ public class ProductCleanupServiceImpl implements ProductCleanupService {
         // 失效引用：已过使用期的券的范围行、已结束（或场次已不存在）的秒杀关联行。
         // 仍然有效的一行都不删 —— 商品能删掉的前提就是没有它们，守卫那一步已经拦过。
         productReferenceService.deleteDeadReferences(spuIds, skuIds);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    @Transactional
+    public void cleanupCategory(List<Long> catIds) {
+        // 分类在 coupon 侧只有券的分类范围这一种关联，仍然有效的那部分在守卫那一步就拦住了删除
+        productReferenceService.deleteDeadCategoryReferences(catIds);
     }
 }

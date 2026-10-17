@@ -5,12 +5,18 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
+import common.mq.MqConstant;
+import common.mq.outbox.ReliableMqPublisher;
+import common.to.CategoryCouponBlockerTo;
+import common.to.mq.CategoryDeletedTo;
+import common.utils.R;
 import common.vo.PageVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import product.dao.AttrDao;
 import product.dao.AttrGroupDao;
 import product.dao.CategoryDao;
@@ -20,6 +26,7 @@ import product.entity.AttrGroupEntity;
 import product.entity.CategoryBrandRelationEntity;
 import product.entity.CategoryEntity;
 import product.entity.SpuInfoEntity;
+import product.feign.CouponFeignService;
 import product.service.CategoryBrandRelationService;
 import product.service.CategoryService;
 import product.vo.CategoryVo;
@@ -31,12 +38,18 @@ import common.query.PageQuery;
 /**
  * 商品三级分类服务的默认实现，基于 MyBatis-Plus 的 {@code ServiceImpl} 读写 {@code pms_category}。
  *
- * <p>分类树由 {@code parent_cid} 自关联拼出，删除时连同整棵子树物理删除；前台分类树带
- * {@code category} 缓存，删除分类后整体清除。
+ * <p>分类树由 {@code parent_cid} 自关联拼出，删除时连同整棵子树物理删除；删除前先在本地查品牌关联、
+ * 商品、属性组与属性，再向 coupon 核对仍然有效的券范围，本地或远程任一有引用就整批拒绝。失效的券
+ * 范围行由删除成功后的 {@code category.deleted} 事件清理。前台分类树带 {@code category} 缓存，
+ * 删除分类后整体清除。
  */
 @Slf4j
 @Service("categoryService")
 public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity> implements CategoryService {
+
+    /** 提示语里最多列几张券，列多了前端 toast 显示不下。 */
+    private static final int MAX_REFERENCE_BLOCKERS_IN_MESSAGE = 3;
+
     private final CategoryBrandRelationService categoryBrandRelationService;
 
     // 注入 DAO 而不是对应的 Service：那三个 Service 都依赖 CategoryService，会构造器循环
@@ -44,22 +57,32 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
     private final AttrDao attrDao;
     private final AttrGroupDao attrGroupDao;
 
+    private final CouponFeignService couponFeignService;
+
+    private final ReliableMqPublisher reliableMqPublisher;
+
     /**
-     * 由容器注入品牌分类关联服务与三张引用表的 Mapper 构造。
+     * 由容器注入品牌分类关联服务、三张引用表的 Mapper、优惠服务客户端与消息发布器构造。
      *
      * @param categoryBrandRelationService 品牌分类关联服务，分类改名后回写关联表里的分类名
      * @param spuInfoDao spu 主表 Mapper，删除分类前查子树下是否还有商品
      * @param attrDao 属性 Mapper，删除分类前查子树下是否还有属性
      * @param attrGroupDao 属性分组 Mapper，删除分类前查子树下是否还有属性分组
+     * @param couponFeignService 优惠服务客户端，删除分类前核对券的分类范围是否还引用着它
+     * @param reliableMqPublisher 本地消息发布器，分类删除成功后投递 {@code category.deleted}
      */
     public CategoryServiceImpl(CategoryBrandRelationService categoryBrandRelationService,
                                SpuInfoDao spuInfoDao,
                                AttrDao attrDao,
-                               AttrGroupDao attrGroupDao) {
+                               AttrGroupDao attrGroupDao,
+                               CouponFeignService couponFeignService,
+                               ReliableMqPublisher reliableMqPublisher) {
         this.categoryBrandRelationService = categoryBrandRelationService;
         this.spuInfoDao = spuInfoDao;
         this.attrDao = attrDao;
         this.attrGroupDao = attrGroupDao;
+        this.couponFeignService = couponFeignService;
+        this.reliableMqPublisher = reliableMqPublisher;
     }
 
     /** {@inheritDoc} */
@@ -143,7 +166,17 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
 
         ensureNoReference(realRootIds, subtreeIds, allById);
 
+        // coupon 侧仍然有效的券范围同样拦住删除：那些行是券配置的一部分，删掉会静默改变券的适用范围
+        assertCouponCanDelete(realRootIds, subtreeIds, allById);
+
         baseMapper.deleteByIds(subtreeIds);
+
+        // 失效的券范围行在 coupon 侧，远程删除不可回滚，所以落一条本地消息与上面的删除同事务，提交后才投
+        reliableMqPublisher.publish(
+                MqConstant.Exchanges.PRODUCT,
+                MqConstant.RoutingKeys.CATEGORY_DELETED,
+                new CategoryDeletedTo(subtreeIds));
+
         log.info("级联删除分类完成：根节点={}，含子分类共 {} 个，ids={}",
                 realRootIds, subtreeIds.size(), subtreeIds);
     }
@@ -184,6 +217,8 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
      *
      * <p>品牌关联也拦而不是清：那些品牌还活着，静默清掉就等于让它们悄悄丢掉"归属哪个分类"，
      * 之后建商品时选不出来。子分类是唯一的例外，它是这个分类自己的组合子记录，跟着一起删。
+     *
+     * <p>券的分类范围不在本方法里查：那份数据在 coupon 库，由 {@link #assertCouponCanDelete} 单独核对。
      */
     private void ensureNoReference(List<Long> rootIds, List<Long> subtreeIds,
                                    Map<Long, CategoryEntity> allById) {
@@ -203,17 +238,83 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
             return;
         }
 
-        String names = rootIds.stream()
-                .map(id -> allById.get(id).getName())
-                .collect(Collectors.joining("、"));
         throw new BaseException(BaseCodeEnum.CATEGORY_IN_USE,
-                "分类【" + names + "】及其子分类下还有 " + String.join("、", blockers) + "，请先处理后再删除");
+                "分类【" + rootNames(rootIds, allById) + "】及其子分类下还有 "
+                        + String.join("、", blockers) + "，请先处理后再删除");
     }
 
     private static void addBlocker(List<String> blockers, String unit, Long count) {
         if (count != null && count > 0) {
             blockers.add(count + " " + unit);
         }
+    }
+
+    /**
+     * 问 coupon 这些分类还被哪些仍然有效的券纳入适用范围。
+     *
+     * <p>读不到 coupon 时按"不能删"处理：放行可能删掉一张仍然有效的券的范围，那是不可逆的；
+     * 拦下来最坏只是暂时删不掉。所以用独立错误码，不和"确实有引用"混成一个 ——
+     * 混了用户会去清数据，而实际上什么都不用清。
+     *
+     * <p>已过使用期的券不算引用，它们的范围行由删除成功后的清理直接删掉。
+     *
+     * @param rootIds 调用方传入的根分类 ID，不能为空，只用于拼提示语
+     * @param subtreeIds 待删除的分类 ID（含子分类），不能为空
+     * @param allById 全部分类，按 {@code catId} 建索引
+     */
+    private void assertCouponCanDelete(List<Long> rootIds, List<Long> subtreeIds,
+                                       Map<Long, CategoryEntity> allById) {
+        List<CategoryCouponBlockerTo> blockers;
+        try {
+            R<List<CategoryCouponBlockerTo>> r = couponFeignService.canDeleteCategory(subtreeIds);
+            if (r == null || r.getCode() != 0) {
+                throw new IllegalStateException("coupon 返回了非成功响应：" + (r == null ? "null" : r.getMsg()));
+            }
+            blockers = r.getData() == null ? List.of() : r.getData();
+        } catch (Exception e) {
+            log.error("询问优惠服务能否删除分类失败，按不能删处理：catIds={}", subtreeIds, e);
+            throw new BaseException(BaseCodeEnum.CATEGORY_COUPON_UNAVAILABLE);
+        }
+
+        if (blockers.isEmpty()) {
+            return;
+        }
+        throw new BaseException(BaseCodeEnum.CATEGORY_COUPON_IN_USE,
+                "分类【" + rootNames(rootIds, allById) + "】及其子分类下还有 "
+                        + describeCouponBlockers(blockers) + "，请先解除引用后再删除");
+    }
+
+    /**
+     * 把 coupon 返回的阻塞清单拼成一句人能读的话。
+     *
+     * <p>券多了前端 toast 显示不下，所以只列前 {@value #MAX_REFERENCE_BLOCKERS_IN_MESSAGE} 张。
+     *
+     * @param blockers coupon 返回的阻塞清单，不能为空
+     * @return 形如「3 张仍然有效的券定向到分类（券A、券B、券C）」的提示语
+     */
+    private static String describeCouponBlockers(List<CategoryCouponBlockerTo> blockers) {
+        String names = blockers.stream().limit(MAX_REFERENCE_BLOCKERS_IN_MESSAGE)
+                .map(blocker -> StringUtils.hasText(blocker.getCouponName())
+                        ? blocker.getCouponName() : ("券" + blocker.getCouponId()))
+                .collect(Collectors.joining("、"));
+        String suffix = blockers.size() > MAX_REFERENCE_BLOCKERS_IN_MESSAGE
+                ? " 等 " + blockers.size() + " 张券" : "";
+        return blockers.size() + " 张仍然有效的券定向到分类（" + names + suffix + "）";
+    }
+
+    /**
+     * 把根分类的名字拼成一句提示语里的主语。
+     *
+     * @param rootIds 调用方传入的根分类 ID，不能为空
+     * @param allById 全部分类，按 {@code catId} 建索引
+     * @return 以「、」分隔的分类名；查不到的 ID 会被跳过
+     */
+    private static String rootNames(List<Long> rootIds, Map<Long, CategoryEntity> allById) {
+        return rootIds.stream()
+                .map(allById::get)
+                .filter(Objects::nonNull)
+                .map(CategoryEntity::getName)
+                .collect(Collectors.joining("、"));
     }
 
     /** {@inheritDoc} */

@@ -35,11 +35,14 @@ public interface CategoryService extends IService<CategoryEntity> {
     /**
      * 按主键批量删除分类，连同其全部子分类一起物理删除。
      *
-     * <p>子树下还挂着品牌关联、商品、属性组或属性时整批拒绝，需要先处理；删除是幂等的，入参为
-     * {@code null} 或查不到的 ID 会被静默跳过。删除成功后清空 {@code category} 缓存。
+     * <p>子树下还挂着品牌关联、商品、属性组或属性，或被仍然有效的券纳入了适用范围时整批拒绝，需要先处理：
+     * 本地引用报 {@code CATEGORY_IN_USE}，券的分类范围报 {@code CATEGORY_COUPON_IN_USE}，coupon 读不到
+     * 报 {@code CATEGORY_COUPON_UNAVAILABLE}。已过使用期的券不算引用，它的范围行由删除成功后的
+     * {@code category.deleted} 清理。删除是幂等的，入参为 {@code null} 或查不到的 ID 会被静默跳过；
+     * 删除成功后清空 {@code category} 缓存。
      *
      * @param list 待删除的分类主键列表，允许为 {@code null}
-     * @throws common.exception.BaseException 子树下仍有引用数据时抛出，删除整批不生效
+     * @throws common.exception.BaseException 子树下仍有引用数据、或读不到优惠服务时抛出，删除整批不生效
      */
     void removeMenuByIds(List<Long> list);
 

@@ -1,5 +1,6 @@
 package product.feign;
 
+import common.to.CategoryCouponBlockerTo;
 import common.to.ProductDeleteCheckTo;
 import common.to.ProductReferenceBlockerTo;
 import common.to.SkuBoundsVo;
@@ -14,9 +15,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import java.util.List;
 
 /**
- * coupon 服务的 Feign 客户端：发布商品时写入积分与优惠信息。
+ * coupon 服务的 Feign 客户端：写入商品的积分与优惠配置、读取促销与积分设置，并在删除商品或分类前核对营销引用。
  *
- * <p>返回值统一是 {@link R}，业务是否成功看 {@code code}，{@code data} 恒为 {@code null}。
+ * <p>返回值统一是 {@link R}，业务是否成功看 {@code code}，写入类接口的 {@code data} 恒为 {@code null}。
  */
 @FeignClient("coupon")
 public interface CouponFeignService {
@@ -80,4 +81,17 @@ public interface CouponFeignService {
      */
     @PostMapping("/coupon/trade/reference/can-delete")
     R<ProductReferenceBlockerTo> canDeleteProduct(@RequestBody ProductDeleteCheckTo check);
+
+    /**
+     * 查这些分类还被哪些仍然有效的券纳入了适用范围，供删除分类前做守卫。
+     *
+     * <p>只读接口，不修改任何数据。已过使用期的券不算引用，不会出现在结果里 ——
+     * 它们留下的范围行由分类删除成功后的清理直接删掉。
+     *
+     * @param catIds 待删除的分类 ID（含子树里的子分类），不能为 {@code null}，可以为空集合
+     * @return 统一响应体，{@code code} 为 0 时 {@code data} 是阻塞清单，空列表表示没有引用；
+     *         调用失败时整个对象为 {@code null}
+     */
+    @PostMapping("/coupon/trade/reference/can-delete-category")
+    R<List<CategoryCouponBlockerTo>> canDeleteCategory(@RequestBody List<Long> catIds);
 }

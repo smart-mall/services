@@ -30,7 +30,7 @@ public final class MqConstant {
         public static final String ORDER = "order.exchange";
         /** 库存事件交换机（topic）：库存锁定成功进延迟队列，到期后死信成释放消息。 */
         public static final String STOCK = "stock.exchange";
-        /** 商品事件交换机（topic）：商品删除与下架，以及各服务重试消息的回投都走它。 */
+        /** 商品事件交换机（topic）：商品删除与下架、分类删除，以及各服务重试消息的回投都走它。 */
         public static final String PRODUCT = "product.exchange";
         /** coupon 死信交换机（direct）：接住 coupon 消费失败的消息，只转投重试队列与死信队列。 */
         public static final String COUPON_DLX = "coupon.dlx";
@@ -85,10 +85,18 @@ public final class MqConstant {
         /** 商品下架，绑定 search.product.delisted.queue。 */
         public static final String PRODUCT_DELISTED = "product.delisted";
 
+        /** 分类删除（含子分类），product.exchange 上绑 coupon 的分类清理队列。 */
+        public static final String CATEGORY_DELETED = "category.deleted";
+
         /** coupon 重试键：coupon 业务队列的 DLX 用它把失败消息送进 coupon 重试队列。 */
         public static final String COUPON_PRODUCT_DELETED_RETRY = "coupon.product.deleted.retry";
         /** coupon 死信键：与 {@link Queues#COUPON_PRODUCT_DELETED_DLQ} 同值（direct 交换机精确匹配），重试到上限时由监听器投递。 */
         public static final String COUPON_PRODUCT_DELETED_DLQ = "coupon.product.deleted.dlq";
+
+        /** coupon 分类清理的重试键：coupon 分类队列的 DLX 用它把失败消息送进分类重试队列。 */
+        public static final String COUPON_CATEGORY_DELETED_RETRY = "coupon.category.deleted.retry";
+        /** coupon 分类清理的死信键：与 {@link Queues#COUPON_CATEGORY_DELETED_DLQ} 同值（direct 交换机精确匹配）。 */
+        public static final String COUPON_CATEGORY_DELETED_DLQ = "coupon.category.deleted.dlq";
 
         /** third-party 重试键：third-party 业务队列的 DLX 用它把失败消息送进 third-party 重试队列。 */
         public static final String THIRDPARTY_PRODUCT_DELETED_RETRY = "thirdparty.product.deleted.retry";
@@ -159,6 +167,13 @@ public final class MqConstant {
         /** coupon 死信队列：重试到上限仍失败的消息落这里，无消费者，等人工处理。 */
         public static final String COUPON_PRODUCT_DELETED_DLQ = "coupon.product.deleted.dlq";
 
+        /** coupon 分类清理队列：绑 CATEGORY_DELETED，消费失败 nack 后由 coupon.dlx 接走。 */
+        public static final String COUPON_CATEGORY_DELETED = "coupon.category.deleted.queue";
+        /** coupon 分类清理的重试队列：消息躺 TTL 后死信回 product.exchange，等于延迟重投一次。 */
+        public static final String COUPON_CATEGORY_DELETED_RETRY = "coupon.category.deleted.retry.queue";
+        /** coupon 分类清理的死信队列：重试到上限仍失败的消息落这里，无消费者，等人工处理。 */
+        public static final String COUPON_CATEGORY_DELETED_DLQ = "coupon.category.deleted.dlq";
+
         /** third-party 业务队列：绑 PRODUCT_DELETED，消费失败 nack 后由 thirdparty.dlx 接走。 */
         public static final String THIRDPARTY_PRODUCT_DELETED = "thirdparty.product.deleted.queue";
         /** third-party 重试队列：消息躺 TTL 后死信回 product.exchange，等于延迟重投一次。 */
@@ -192,6 +207,8 @@ public final class MqConstant {
         /** 锁定库存后到自动解锁的等待时长。 */
         public static final int STOCK_LOCK_TIMEOUT = 120_000;
         public static final int PRODUCT_DELETED_RETRY = 60_000;
+        /** 分类失效引用清理失败后到下一次重投的等待时长。 */
+        public static final int CATEGORY_DELETED_RETRY = 60_000;
         public static final int PRODUCT_DELISTED_RETRY = 60_000;
         /** 发货扣减失败后到下一次重投的等待时长。 */
         public static final int ORDER_DELIVERED_RETRY = 60_000;

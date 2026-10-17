@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * coupon 侧消费 {@code product.deleted} 所需的交换机与队列。
+ * coupon 侧消费 {@code product.deleted} 与 {@code category.deleted} 所需的交换机与队列。
  *
  * <p>拓扑：业务队列消费失败 nack 后进 coupon.dlx，由它转进重试队列躺 1 分钟，到期死信回
  * product.exchange 并被重新路由到业务队列；重试到上限仍失败的消息由监听器直接投进死信队列。</p>
@@ -116,5 +116,82 @@ public class RabbitMQConfig {
                 MqConstant.Queues.COUPON_PRODUCT_DELETED_DLQ,
                 MqConstant.Exchanges.COUPON_DLX,
                 MqConstant.RoutingKeys.COUPON_PRODUCT_DELETED_DLQ);
+    }
+
+    /**
+     * 声明分类清理的业务队列，消费失败被 nack 后由自己的 DLX 接走。
+     *
+     * @return 带死信参数的持久化队列
+     */
+    @Bean
+    public Queue couponCategoryDeletedQueue() {
+        return MqBuilder.deadLetterQueue(
+                MqConstant.Queues.COUPON_CATEGORY_DELETED,
+                MqConstant.Exchanges.COUPON_DLX,
+                MqConstant.RoutingKeys.COUPON_CATEGORY_DELETED_RETRY);
+    }
+
+    /**
+     * 把分类清理的业务队列按 {@code category.deleted} 路由键绑到商品事件交换机上。
+     *
+     * @return 队列到交换机的绑定声明
+     */
+    @Bean
+    public Binding couponCategoryDeletedBinding() {
+        return MqBuilder.bind(
+                MqConstant.Queues.COUPON_CATEGORY_DELETED,
+                MqConstant.Exchanges.PRODUCT,
+                MqConstant.RoutingKeys.CATEGORY_DELETED);
+    }
+
+    /**
+     * 声明分类清理的重试队列：消息在这里躺够 TTL，到期后按 {@code x-dead-letter-*} 死信回业务交换机，
+     * 于是又回到分类清理队列 —— 等于"延迟 1 分钟再投一次"。
+     *
+     * @return 带 TTL 与死信参数的持久化队列
+     */
+    @Bean
+    public Queue couponCategoryDeletedRetryQueue() {
+        return MqBuilder.ttlQueue(
+                MqConstant.Queues.COUPON_CATEGORY_DELETED_RETRY,
+                MqConstant.Exchanges.PRODUCT,
+                MqConstant.RoutingKeys.CATEGORY_DELETED,
+                MqConstant.TtlMillis.CATEGORY_DELETED_RETRY);
+    }
+
+    /**
+     * 把分类清理的重试队列绑到死信交换机上。
+     *
+     * @return 队列到交换机的绑定声明
+     */
+    @Bean
+    public Binding couponCategoryDeletedRetryBinding() {
+        return MqBuilder.bind(
+                MqConstant.Queues.COUPON_CATEGORY_DELETED_RETRY,
+                MqConstant.Exchanges.COUPON_DLX,
+                MqConstant.RoutingKeys.COUPON_CATEGORY_DELETED_RETRY);
+    }
+
+    /**
+     * 声明分类清理的死信队列：重试到上限仍失败的消息放这里等人工看，没有任何消费者自动消费它。
+     *
+     * @return 不带 TTL 与死信参数的持久化队列
+     */
+    @Bean
+    public Queue couponCategoryDeletedDlq() {
+        return MqBuilder.durableQueue(MqConstant.Queues.COUPON_CATEGORY_DELETED_DLQ);
+    }
+
+    /**
+     * 把分类清理的死信队列绑到死信交换机上，路由键与队列名同值。
+     *
+     * @return 队列到交换机的绑定声明
+     */
+    @Bean
+    public Binding couponCategoryDeletedDlqBinding() {
+        return MqBuilder.bind(
+                MqConstant.Queues.COUPON_CATEGORY_DELETED_DLQ,
+                MqConstant.Exchanges.COUPON_DLX,
+                MqConstant.RoutingKeys.COUPON_CATEGORY_DELETED_DLQ);
     }
 }
