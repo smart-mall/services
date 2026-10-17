@@ -5,7 +5,6 @@ import common.vo.PageVO;
 import common.utils.R;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import product.entity.SpuCommentEntity;
 import product.service.SpuCommentService;
 import product.vo.CommentAuditVo;
 import product.vo.SpuCommentPageQuery;
@@ -13,12 +12,13 @@ import product.vo.SpuCommentPageQuery;
 import java.util.List;
 
 /**
- * 商品评价的后台管理接口：审核列表、下架/恢复、详情，以及一条供订单服务调用的服务间接口。
+ * 商品评价的后台管理接口：审核列表与下架/恢复，以及一条供订单服务调用的服务间接口。
  *
  * <p>路径不在 {@code /front} 下，经网关访问时按管理端接口鉴权。
  *
- * <p>没有新增与删除：评价只能由会员在会员端对自己买过的订单项发起，删除还会连带清掉回复与订单上的
- * 评价时间，后台撤下一条评价做的是下架，而不是把记录抹掉。
+ * <p>没有新增、修改与删除：评价只能由会员在会员端对自己买过的订单项发起；后台改一条评价会绕过
+ * 审核链路（星级、内容乃至归属都能被改），删除还会连带清掉回复与订单上的评价时间，所以后台
+ * 撤下一条评价做的是下架，而不是把记录抹掉。
  *
  * <p>{@link #commentedItems(List)} 是给 order 用的：由 {@code order/feign/ProductFeignService}
  * 直连调用、不经网关，返回"订单项到评价摘要"的映射，供会员订单列表决定显示「评价」还是「查看评论」。
@@ -40,32 +40,6 @@ public class SpuCommentController {
         return R.ok(spuCommentService.queryAuditPage(query));
     }
 
-
-    /**
-     * 按主键查询商品评价详情。
-     *
-     * @param id 评价主键
-     * @return 评价详情；不存在时 {@code data} 为 {@code null}
-     */
-    @RequestMapping("/info/{id}")
-    public R<SpuCommentEntity> info(@PathVariable("id") Long id){
-		SpuCommentEntity spuComment = spuCommentService.getById(id);
-
-        return R.ok(spuComment);
-    }
-
-    /**
-     * 按主键修改商品评价。
-     *
-     * @param spuComment 评价内容，主键必填
-     * @return 统一成功响应，不含业务数据
-     */
-    @RequestMapping("/update")
-    public R<Void> update(@RequestBody SpuCommentEntity spuComment){
-		spuCommentService.updateById(spuComment);
-
-        return R.ok();
-    }
 
     /**
      * 审核一条评价或回复：下架或恢复。

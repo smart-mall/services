@@ -3,13 +3,6 @@
 
 <mapper namespace="product.dao.CommentReplayDao">
 
-	<!-- 可根据自己的需求，是否要使用 -->
-    <resultMap type="product.entity.CommentReplayEntity" id="commentReplayMap">
-        <result property="id" column="id"/>
-        <result property="commentId" column="comment_id"/>
-        <result property="replyId" column="reply_id"/>
-    </resultMap>
-
     <delete id="deleteByCommentId">
         DELETE FROM pms_comment_replay
         WHERE comment_id = #{commentId}

@@ -3,28 +3,6 @@
 
 <mapper namespace="product.dao.SpuCommentDao">
 
-	<!-- 可根据自己的需求，是否要使用 -->
-    <resultMap type="product.entity.SpuCommentEntity" id="spuCommentMap">
-        <result property="id" column="id"/>
-        <result property="skuId" column="sku_id"/>
-        <result property="spuId" column="spu_id"/>
-        <result property="orderItemId" column="order_item_id"/>
-        <result property="memberId" column="member_id"/>
-        <result property="spuName" column="spu_name"/>
-        <result property="memberNickName" column="member_nick_name"/>
-        <result property="star" column="star"/>
-        <result property="memberIp" column="member_ip"/>
-        <result property="createTime" column="create_time"/>
-        <result property="showStatus" column="show_status"/>
-        <result property="spuAttributes" column="spu_attributes"/>
-        <result property="likesCount" column="likes_count"/>
-        <result property="replyCount" column="reply_count"/>
-        <result property="resources" column="resources"/>
-        <result property="content" column="content"/>
-        <result property="memberIcon" column="member_icon"/>
-        <result property="commentType" column="comment_type"/>
-    </resultMap>
-
     <!-- 删除会员自己的一条评价：member_id 写在 WHERE 里，归属校验与删除是同一条 SQL，
          删别人的或删不存在的都只会影响 0 行；调用方按受影响行数抛 COMMENT_NOT_FOUND。
          comment_type = 0 挡住回复行：回复的 member_id 也是本人，少了这个条件这里就成了

@@ -1,10 +1,7 @@
 package order.controller;
 
-import java.util.Arrays;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -17,9 +14,11 @@ import common.utils.R;
 
 import common.query.PageQuery;
 /**
- * 支付流水（{@code oms_payment_info} 表）的后台管理接口：分页列表、详情、新增、修改、删除。
+ * 支付流水（{@code oms_payment_info} 表）的后台只读台账：分页列表与详情。
  *
- * <p>路径不在 {@code /front} 下，经网关访问时按管理端接口鉴权；支付宝支付回调会向本表写入交易流水。
+ * <p>路径不在 {@code /front} 下，经网关访问时按管理端接口鉴权；交易流水只由支付回调写入
+ * （支付宝、微信与测试支付三条链路），后台没有新增、修改与删除 —— 凭证既不该手工落库，
+ * 也不该被改金额或平台交易号，否则会绕过流水的查重口径。
  */
 @RestController
 @RequestMapping("order/paymentinfo")
@@ -52,45 +51,6 @@ public class PaymentInfoController {
 		PaymentInfoEntity paymentInfo = paymentInfoService.getById(id);
 
         return R.ok(paymentInfo);
-    }
-
-    /**
-     * 新增一条支付流水。
-     *
-     * @param paymentInfo 支付流水内容，主键由数据库生成
-     * @return 统一成功响应，不含业务数据
-     */
-    @RequestMapping("/save")
-    public R<Void> save(@RequestBody PaymentInfoEntity paymentInfo){
-		paymentInfoService.save(paymentInfo);
-
-        return R.ok();
-    }
-
-    /**
-     * 按主键修改一条支付流水。
-     *
-     * @param paymentInfo 支付流水内容，主键必填；为 {@code null} 的字段不参与更新
-     * @return 统一成功响应，不含业务数据
-     */
-    @RequestMapping("/update")
-    public R<Void> update(@RequestBody PaymentInfoEntity paymentInfo){
-		paymentInfoService.updateById(paymentInfo);
-
-        return R.ok();
-    }
-
-    /**
-     * 按主键批量删除支付流水。
-     *
-     * @param ids 待删除的支付流水主键数组
-     * @return 统一成功响应，不含业务数据
-     */
-    @RequestMapping("/delete")
-    public R<Void> delete(@RequestBody Long[] ids){
-		paymentInfoService.removeByIds(Arrays.asList(ids));
-
-        return R.ok();
     }
 
 }
