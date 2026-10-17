@@ -15,6 +15,7 @@ import common.to.mq.SeckillOrderTo;
 import common.utils.R;
 import common.vo.MemberResponseVo;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
 import org.redisson.api.RSemaphore;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
@@ -28,6 +29,7 @@ import seckill.feign.ProductFeignService;
 import seckill.service.SeckillService;
 import seckill.to.SeckillSkuRedisTo;
 import seckill.vo.SeckillSessionWithSkusVo;
+import seckill.vo.SeckillUploadResultVo;
 import seckill.vo.SkuInfoVo;
 
 import java.util.List;
@@ -78,24 +80,57 @@ public class SeckillServiceImpl implements SeckillService {
     /** 库存信号量 key 前缀，完整 key 为「前缀 + 商品随机码」，信号量的当前值就是剩余可抢数量。 */
     private final String SKU_STOCK_SEMAPHORE = "seckill:stock:";
 
+    /** 上架锁 key：定时任务与后台手动触发共用，保证同一时刻只有一个实例在真正上架。 */
+    private final String UPLOAD_LOCK = "seckill:upload:lock";
+
     /** {@inheritDoc} */
     @Override
-    public void uploadSeckillSkuLatest3Days() {
+    public SeckillUploadResultVo uploadSeckillSkuLatest3Days() {
+
+        RLock lock = redissonClient.getLock(UPLOAD_LOCK);
+        try {
+            // 租期 10 秒：实例宕机后锁自动过期，不会让上架永久卡死
+            lock.lock(10, TimeUnit.SECONDS);
+            return uploadLatest3Days();
+        } finally {
+            // 没抢到锁时当前线程并不持有锁，直接 unlock 会抛异常并盖掉真实的失败原因
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
+        }
+    }
+
+    /**
+     * 执行一次上架：取场次、写场次列表与商品缓存，并统计写入条数。
+     *
+     * @return 上架结果，时间窗口内没有场次时各项计数为 0
+     */
+    private SeckillUploadResultVo uploadLatest3Days() {
+
+        SeckillUploadResultVo result = new SeckillUploadResultVo();
 
         R<List<SeckillSessionWithSkusVo>> lates3DaySession = couponFeignService.getLates3DaySession();
         // code 非 0 表示 coupon 查询失败，此时 data 不可用，本轮直接放弃上架
-        if (lates3DaySession.getCode() == 0) {
-            List<SeckillSessionWithSkusVo> sessionData = lates3DaySession.getData();
-            // coupon 侧查不到场次时返回 null 而不是空集合，这里必须判空
-            if (sessionData == null || sessionData.isEmpty()) {
-                log.info("最近三天没有秒杀场次，本轮跳过上架");
-                return;
-            }
-
-            saveSessionInfos(sessionData);
-            saveSessionSkuInfo(sessionData);
+        if (lates3DaySession.getCode() != 0) {
+            log.error("查询最近三天秒杀场次失败，本轮跳过上架：code={}", lates3DaySession.getCode());
+            return result;
         }
 
+        List<SeckillSessionWithSkusVo> sessionData = lates3DaySession.getData();
+        // coupon 侧查不到场次时返回 null 而不是空集合，这里必须判空
+        if (sessionData == null || sessionData.isEmpty()) {
+            log.info("最近三天没有秒杀场次，本轮跳过上架");
+            return result;
+        }
+
+        result.setSessionCount(sessionData.size());
+
+        saveSessionInfos(sessionData);
+        saveSessionSkuInfo(sessionData, result);
+
+        log.info("秒杀上架完成：场次 {} 个，新写入商品 {} 条，跳过已存在 {} 条",
+                result.getSessionCount(), result.getUploadedSkuCount(), result.getSkippedSkuCount());
+        return result;
     }
 
 
@@ -123,8 +158,11 @@ public class SeckillServiceImpl implements SeckillService {
 
     /**
      * 把场次关联的 SKU 秒杀信息写入 Redis hash，并按库存初始化信号量。
+     *
+     * @param sessions 场次及其商品，来自 coupon 服务
+     * @param result   上架结果，用于累计本次新写入与跳过的条目数
      */
-    private void saveSessionSkuInfo(List<SeckillSessionWithSkusVo> sessions) {
+    private void saveSessionSkuInfo(List<SeckillSessionWithSkusVo> sessions, SeckillUploadResultVo result) {
 
         sessions.forEach(session -> {
             BoundHashOperations<String, Object, Object> ops = redisTemplate.boundHashOps(SECKILL_CACHE_PREFIX);
@@ -161,6 +199,10 @@ public class SeckillServiceImpl implements SeckillService {
                     // 4. 库存信号量：key 用随机码，许可数就是本场次参与秒杀的总量
                     RSemaphore semaphore = redissonClient.getSemaphore(SKU_STOCK_SEMAPHORE + token);
                     semaphore.trySetPermits(seckillSkuVo.getSeckillCount());
+
+                    result.setUploadedSkuCount(result.getUploadedSkuCount() + 1);
+                } else {
+                    result.setSkippedSkuCount(result.getSkippedSkuCount() + 1);
                 }
             });
         });

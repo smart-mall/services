@@ -2,6 +2,7 @@ package seckill.service;
 
 import common.vo.MemberResponseVo;
 import seckill.to.SeckillSkuRedisTo;
+import seckill.vo.SeckillUploadResultVo;
 
 import java.util.List;
 
@@ -17,10 +18,14 @@ public interface SeckillService {
     /**
      * 上架最近三天需要参与的秒杀场次与商品。
      *
+     * <p>上架前先取 Redis 分布式锁，与定时任务、后台手动触发共用同一把，保证同一时刻只有一次上架在跑。
+     *
      * <p>重复调用不会覆盖已上架的数据：Redis 里已存在的场次与 SKU 会被跳过，
      * 已下发的随机码和已初始化的库存信号量保持原值。
+     *
+     * @return 本次上架的场次数、新写入与跳过的商品条目数；时间窗口内没有场次时各项为 0
      */
-    void uploadSeckillSkuLatest3Days();
+    SeckillUploadResultVo uploadSeckillSkuLatest3Days();
 
     /**
      * 返回当前正在进行的秒杀场次里的商品。
