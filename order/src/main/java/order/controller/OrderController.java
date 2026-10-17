@@ -25,7 +25,7 @@ import order.vo.OrderStatusOptionVo;
 import order.vo.OrderStatusVo;
 /**
  * 订单（{@code oms_order} 表）的后台管理接口：分页列表、详情、发货、关闭、改备注、状态选项查询与删除，
- * 以及两条给下游直连调用的服务间接口（评价来源核对与评价时间登记）。
+ * 以及若干给下游直连调用的服务间接口（评价来源核对与评价时间登记、删除商品前的订单引用核对）。
  *
  * <p>不提供"按主键改任意字段"的接口：自由更新能绕过状态流转。删除只删被会员标记过删除的订单
  * （{@link #delete}），它连带清掉订单项、支付流水与库存工作单，没被标记过的订单删不掉；
@@ -34,7 +34,8 @@ import order.vo.OrderStatusVo;
  * <p>路径不在 {@code /front} 下，经网关访问时按管理端接口鉴权；另有服务间接口给下游直连调用：
  * ware 释放库存前的状态查询见 {@link #status(String)}，product 提交评价前的来源核对见
  * {@link #commentTarget(Long, Long)}、评价落库后的时间登记见 {@link #commentMarked(String, Long)}、
- * 删除评价后的时间撤回见 {@link #commentUnmark(Long, Long)}。
+ * 删除评价后的时间撤回见 {@link #commentUnmark(Long, Long)}、product 删除商品前的订单引用核对见
+ * {@link #canDelete(List)}。
  * 会员侧接口在 {@code order.web.OrderFrontController}。
  */
 @RestController
@@ -277,6 +278,20 @@ public class OrderController {
         orderService.unmarkCommented(orderItemId, memberId);
 
         return R.ok();
+    }
+
+    /**
+     * 查出这些 SKU 里哪些已经有订单项，供 product 删除商品前做守卫。
+     *
+     * <p>Feign 直连不经网关，调用方是服务。只读、无副作用、幂等；不区分订单状态 ——
+     * 订单项存的是下单时的快照，一旦写下就是历史记录，已取消的单同样算。</p>
+     *
+     * @param skuIds SKU ID 列表，允许为空数组；为空时返回空列表
+     * @return 统一响应，{@code data} 为已有订单项的 SKU ID，去重后返回
+     */
+    @PostMapping("/can-delete")
+    public R<List<Long>> canDelete(@RequestBody List<Long> skuIds){
+        return R.ok(orderService.listSkuIdsWithOrders(skuIds));
     }
 
 }

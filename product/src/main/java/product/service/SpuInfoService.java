@@ -95,13 +95,16 @@ public interface SpuInfoService extends IService<SpuInfoEntity> {
     /**
      * 级联删除 spu，连同其描述、图集、规格参数、sku、sku 图集与 sku 销售属性一起删。
      *
-     * <p>本地 7 张表的删除与 {@code product.deleted} 事件在同一个事务内完成，coupon 的优惠数据与
-     * MinIO 里的图片由消费方异步清理。已上架的商品（11001）、仓库侧还有库存或未完成采购需求的商品
-     * 一律整批拒绝，入参为空同样拒绝；删除是幂等的，查不到的 ID 会被静默跳过。
+     * <p>本地 7 张表的删除与 {@code product.deleted} 事件在同一个事务内完成；这个商品自己的优惠配置、
+     * 它留下的失效营销引用、MinIO 里的图片与仓库的零库存行由消费方异步清理。
+     *
+     * <p>四类情况一律整批拒绝：商品已上架（11001）、仓库侧还有库存或未完成采购需求（11006）、
+     * 还被有效期内的券或未结束的秒杀引用（11009）、已有订单记录（11011）；依赖服务读不到时同样拒绝
+     * （11007 / 11010 / 11012）。入参为空也拒绝；删除是幂等的，查不到的 ID 会被静默跳过。
      *
      * @param spuIds 待删除的 spu 主键列表，不能为 {@code null} 或空集合
      * @throws common.exception.ValidationException 入参为空时抛出
-     * @throws common.exception.BaseException 商品已上架、仓库服务不可用或仓库仍有库存时抛出，删除整批不生效
+     * @throws common.exception.BaseException 上述四种拒绝原因之一，或依赖服务不可用时抛出，删除整批不生效
      */
     void removeSpuInfo(List<Long> spuIds);
 

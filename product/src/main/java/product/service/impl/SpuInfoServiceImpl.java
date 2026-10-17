@@ -9,6 +9,8 @@ import common.exception.BaseException;
 import common.exception.ValidationException;
 import common.mq.MqConstant;
 import common.mq.outbox.ReliableMqPublisher;
+import common.to.ProductDeleteCheckTo;
+import common.to.ProductReferenceBlockerTo;
 import common.to.SkuDeleteBlockerTo;
 import common.to.SkuReductionTo;
 import common.to.SpuBoundTo;
@@ -25,6 +27,7 @@ import org.springframework.util.StringUtils;
 import product.dao.*;
 import product.entity.*;
 import product.feign.CouponFeignService;
+import product.feign.OrderFeignService;
 import product.feign.SearchFeignService;
 import product.feign.WareFeignService;
 import product.service.*;
@@ -43,7 +46,8 @@ import product.vo.SpuInfoPageQuery;
  * 商品（spu）服务的默认实现，基于 MyBatis-Plus 的 {@code ServiceImpl} 读写 {@code pms_spu_info}。
  *
  * <p>写操作不止改本地库：新增商品一次写 7 张表并远程写 coupon 的积分与优惠；上架要推
- * Elasticsearch；删除前要问仓库能否删，跨服务的清理走本地消息表，提交后才投递。
+ * Elasticsearch；删除前要向仓库、优惠与订单服务确认能否删，跨服务的清理与失效引用的回收
+ * 走本地消息表，提交后才投递。
  */
 @Service("spuInfoService")
 @Slf4j
@@ -57,6 +61,9 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
 
     /** 仓库阻塞信息里最多列几个 sku，列多了前端 toast 显示不下。 */
     private static final int MAX_WARE_BLOCKERS_IN_MESSAGE = 3;
+
+    /** 营销引用阻塞信息里最多列几条，列多了前端 toast 显示不下。 */
+    private static final int MAX_REFERENCE_BLOCKERS_IN_MESSAGE = 3;
 
     private final SpuInfoDescDao spuInfoDescDao;
     private final SpuInfoDao spuInfoDao;
@@ -73,11 +80,12 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
     private final CategoryService categoryService;
     private final AttrService attrService;
     private final WareFeignService wareFeignService;
+    private final OrderFeignService orderFeignService;
     private final SearchFeignService searchFeignService;
     private final ReliableMqPublisher reliableMqPublisher;
 
     /**
-     * 由容器注入七张子表的 Mapper、规格参数与 sku 服务、四个远程客户端与本地消息发布器构造。
+     * 由容器注入七张子表的 Mapper、规格参数与 sku 服务、五个远程客户端与本地消息发布器构造。
      *
      * @param spuInfoDao spu 主表 Mapper，上架与下架时改发布状态
      * @param spuInfoDescDao spu 介绍 Mapper，新增商品时写描述图，删除时清
@@ -94,10 +102,11 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
      * @param categoryService 分类服务，列表与索引文档里回填分类名
      * @param attrService 属性服务，上架时筛出可作为检索条件的属性
      * @param wareFeignService 库存服务客户端，上架时查库存，删除前问仓库能否删
+     * @param orderFeignService 订单服务客户端，删除前问这个商品有没有订单记录
      * @param searchFeignService 搜索服务客户端，上架时推索引文档
      * @param reliableMqPublisher 本地消息发布器，删除与下架后投递事件
      */
-    public SpuInfoServiceImpl(SpuInfoDao spuInfoDao, SpuInfoDescDao spuInfoDescDao, SpuImagesDao spuImagesDao, ProductAttrValueDao productAttrValueDao, ProductAttrValueService productAttrValueService, AttrDao attrDao, SkuInfoDao skuInfoDao, SkuImagesDao skuImagesDao, SkuSaleAttrValueDao skuSaleAttrValueDao, CouponFeignService couponFeignService, SkuInfoServiceImpl skuInfoService, BrandService brandService, CategoryService categoryService, AttrService attrService, WareFeignService wareFeignService, SearchFeignService searchFeignService, ReliableMqPublisher reliableMqPublisher) {
+    public SpuInfoServiceImpl(SpuInfoDao spuInfoDao, SpuInfoDescDao spuInfoDescDao, SpuImagesDao spuImagesDao, ProductAttrValueDao productAttrValueDao, ProductAttrValueService productAttrValueService, AttrDao attrDao, SkuInfoDao skuInfoDao, SkuImagesDao skuImagesDao, SkuSaleAttrValueDao skuSaleAttrValueDao, CouponFeignService couponFeignService, SkuInfoServiceImpl skuInfoService, BrandService brandService, CategoryService categoryService, AttrService attrService, WareFeignService wareFeignService, OrderFeignService orderFeignService, SearchFeignService searchFeignService, ReliableMqPublisher reliableMqPublisher) {
         this.spuInfoDao = spuInfoDao;
         this.spuInfoDescDao = spuInfoDescDao;
         this.spuImagesDao = spuImagesDao;
@@ -113,6 +122,7 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
         this.categoryService = categoryService;
         this.attrService = attrService;
         this.wareFeignService = wareFeignService;
+        this.orderFeignService = orderFeignService;
         this.searchFeignService = searchFeignService;
         this.reliableMqPublisher = reliableMqPublisher;
     }
@@ -338,10 +348,18 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
         // 商品先没了它们就成无主数据
         assertWareCanDelete(skuIds);
 
-        // 5. 这些地址指向 MinIO 里的对象，必须在删行之前收集 —— 行一删就再也找不到它们了
+        // 5. 营销侧仍然有效的引用也不许删：那些行是别人配置的一部分，删掉会静默改变
+        // 一张券的适用范围、一场秒杀的货架
+        assertCouponCanDelete(existingSpuIds, skuIds);
+
+        // 6. 有订单记录就不许删：订单项是下单时的快照，商品档案不该在它背后消失，
+        // 已取消的单同样算
+        assertOrderCanDelete(skuIds);
+
+        // 7. 这些地址指向 MinIO 里的对象，必须在删行之前收集 —— 行一删就再也找不到它们了
         List<String> imageUrls = collectImageUrls(existingSpuIds, skus);
 
-        // 6. 先删子表再删主表：库里没有外键，顺序不影响最终结果，但反过来会出现
+        // 8. 先删子表再删主表：库里没有外键，顺序不影响最终结果，但反过来会出现
         // "主表已经没了、子表还在"的中间状态，看着就是脏数据
         if (!skuIds.isEmpty()) {
             skuImagesDao.delete(new LambdaQueryWrapper<SkuImagesEntity>()
@@ -360,7 +378,7 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
                 .in(ProductAttrValueEntity::getSpuId, existingSpuIds));
         this.removeByIds(existingSpuIds);
 
-        // 7. 跨服务的清理（coupon 的优惠数据、MinIO 图片）落一条本地消息，与上面 7 张表的删除同事务，
+        // 9. 跨服务的清理（coupon 的优惠数据、MinIO 图片）落一条本地消息，与上面 7 张表的删除同事务，
         // 提交后才投出去。远程删除不可回滚，不能直接调
         reliableMqPublisher.publish(
                 MqConstant.Exchanges.PRODUCT,
@@ -400,6 +418,130 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
             return;
         }
         throw new BaseException(BaseCodeEnum.PRODUCT_WARE_IN_USE, describeWareBlockers(blockers));
+    }
+
+    /**
+     * 问 coupon 这个商品还被哪些活着的营销配置引用。
+     *
+     * <p>与 {@link #assertWareCanDelete} 同一取向：读不到 coupon 时按"不能删"处理 ——
+     * 放行可能删掉还被券覆盖、还挂在秒杀上的商品，那是不可逆的；拦下来最坏只是暂时删不掉。
+     * 所以用独立错误码，不和"确实有引用"混成一个。
+     *
+     * <p>已过使用期的券与已结束的场次不算引用：coupon 那侧按 {@code end_time} 判定是否仍然有效，
+     * 失效引用会由商品删除成功后的清理直接删掉。
+     *
+     * @param spuIds 待删除的 SPU ID 列表，不能为空
+     * @param skuIds 待删除的 SKU ID 列表，允许为空
+     */
+    private void assertCouponCanDelete(List<Long> spuIds, List<Long> skuIds) {
+        ProductReferenceBlockerTo blockers;
+        try {
+            R<ProductReferenceBlockerTo> r = couponFeignService.canDeleteProduct(
+                    new ProductDeleteCheckTo(spuIds, skuIds));
+            if (r == null || r.getCode() != 0) {
+                throw new IllegalStateException("coupon 返回了非成功响应：" + (r == null ? "null" : r.getMsg()));
+            }
+            blockers = r.getData();
+        } catch (Exception e) {
+            log.error("询问优惠服务能否删除商品失败，按不能删处理：spuIds={}，skuIds={}", spuIds, skuIds, e);
+            throw new BaseException(BaseCodeEnum.PRODUCT_COUPON_UNAVAILABLE);
+        }
+
+        String detail = describeCouponBlockers(blockers);
+        if (detail == null) {
+            return;
+        }
+        throw new BaseException(BaseCodeEnum.PRODUCT_COUPON_IN_USE, detail);
+    }
+
+    /**
+     * 问 order 这些 sku 有没有订单记录。
+     *
+     * <p>失败关闭与独立错误码的理由同 {@link #assertCouponCanDelete}。
+     *
+     * @param skuIds 待删除的 SKU ID 列表，允许为空
+     */
+    private void assertOrderCanDelete(List<Long> skuIds) {
+        if (skuIds.isEmpty()) {
+            return;
+        }
+
+        List<Long> blockedSkuIds;
+        try {
+            R<List<Long>> r = orderFeignService.listSkuIdsWithOrders(skuIds);
+            if (r == null || r.getCode() != 0) {
+                throw new IllegalStateException("order 返回了非成功响应：" + (r == null ? "null" : r.getMsg()));
+            }
+            blockedSkuIds = r.getData() == null ? List.of() : r.getData();
+        } catch (Exception e) {
+            log.error("询问订单服务能否删除商品失败，按不能删处理：skuIds={}", skuIds, e);
+            throw new BaseException(BaseCodeEnum.PRODUCT_ORDER_UNAVAILABLE);
+        }
+
+        if (blockedSkuIds.isEmpty()) {
+            return;
+        }
+        throw new BaseException(BaseCodeEnum.PRODUCT_ORDER_IN_USE, describeOrderBlockers(blockedSkuIds));
+    }
+
+    /**
+     * 把 coupon 返回的引用清单拼成一句人能读的话。
+     *
+     * <p>两类引用各取前 {@value #MAX_REFERENCE_BLOCKERS_IN_MESSAGE} 条，列多了前端 toast 显示不下。
+     *
+     * @param blockers coupon 返回的阻塞清单，可能为 {@code null}
+     * @return 形如「商品还被优惠券定向到商品（券名），请先解除引用后再删除」的提示语；
+     *         两类都没有时返回 {@code null}
+     */
+    private static String describeCouponBlockers(ProductReferenceBlockerTo blockers) {
+        if (blockers == null) {
+            return null;
+        }
+        List<String> parts = new ArrayList<>();
+
+        List<ProductReferenceBlockerTo.CouponBlocker> coupons = blockers.getCouponBlockers() == null
+                ? List.of() : blockers.getCouponBlockers();
+        if (!coupons.isEmpty()) {
+            String names = coupons.stream().limit(MAX_REFERENCE_BLOCKERS_IN_MESSAGE)
+                    .map(coupon -> StringUtils.hasText(coupon.getCouponName())
+                            ? coupon.getCouponName() : ("券" + coupon.getCouponId()))
+                    .collect(Collectors.joining("、"));
+            String suffix = coupons.size() > MAX_REFERENCE_BLOCKERS_IN_MESSAGE
+                    ? " 等 " + coupons.size() + " 张券" : "";
+            parts.add("还被优惠券定向到商品（" + names + suffix + "）");
+        }
+
+        List<ProductReferenceBlockerTo.SeckillBlocker> seckills = blockers.getSeckillBlockers() == null
+                ? List.of() : blockers.getSeckillBlockers();
+        if (!seckills.isEmpty()) {
+            String names = seckills.stream().limit(MAX_REFERENCE_BLOCKERS_IN_MESSAGE)
+                    .map(seckill -> StringUtils.hasText(seckill.getSessionName())
+                            ? seckill.getSessionName() : ("场次" + seckill.getSessionId()))
+                    .collect(Collectors.joining("、"));
+            String suffix = seckills.size() > MAX_REFERENCE_BLOCKERS_IN_MESSAGE
+                    ? " 等 " + seckills.size() + " 个场次" : "";
+            parts.add("还挂着秒杀场次（" + names + suffix + "）");
+        }
+
+        if (parts.isEmpty()) {
+            return null;
+        }
+        return "商品" + String.join("，", parts) + "，请先解除引用后再删除";
+    }
+
+    /**
+     * 把订单侧返回的 sku 列表拼成一句人能读的话。
+     *
+     * @param skuIds 已有订单项的 sku，不能为空
+     * @return 形如「商品下的 sku 19、20 已有订单记录，不能删除」的提示语
+     */
+    private static String describeOrderBlockers(List<Long> skuIds) {
+        String names = skuIds.stream().limit(MAX_REFERENCE_BLOCKERS_IN_MESSAGE)
+                .map(String::valueOf)
+                .collect(Collectors.joining("、"));
+        String suffix = skuIds.size() > MAX_REFERENCE_BLOCKERS_IN_MESSAGE
+                ? " 等 " + skuIds.size() + " 个 sku" : "";
+        return "商品下的 sku " + names + suffix + " 已有订单记录，不能删除";
     }
 
     /**

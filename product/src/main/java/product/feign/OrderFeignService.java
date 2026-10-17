@@ -6,7 +6,10 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
+
+import java.util.List;
 
 /**
  * order 服务的 Feign 客户端：会员提交评价前核对来源，评价落库后登记订单的评价时间。
@@ -58,5 +61,18 @@ public interface OrderFeignService {
     @PostMapping("/order/order/comment-unmark/{orderItemId}")
     R<Void> unmarkCommented(@PathVariable("orderItemId") Long orderItemId,
                             @RequestParam("memberId") Long memberId);
+
+    /**
+     * 查出这些 SKU 里哪些已经有订单项，供删除商品前做守卫。
+     *
+     * <p>只读接口，不修改任何数据。不区分订单状态：订单项存的是下单时的快照，一旦写下就是历史记录，
+     * 已取消、已关闭的订单同样算。
+     *
+     * @param skuIds SKU ID 列表，允许为 {@code null} 或空集合
+     * @return 统一响应体，{@code code} 为 0 时 {@code data} 为已有订单项的 SKU ID（去重）；
+     *         调用失败时 {@code data} 为 {@code null}
+     */
+    @PostMapping("/order/order/can-delete")
+    R<List<Long>> listSkuIdsWithOrders(@RequestBody List<Long> skuIds);
 
 }

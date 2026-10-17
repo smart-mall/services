@@ -1,5 +1,7 @@
 package product.feign;
 
+import common.to.ProductDeleteCheckTo;
+import common.to.ProductReferenceBlockerTo;
 import common.to.SkuBoundsVo;
 import common.to.SkuPromotionVo;
 import common.to.SkuReductionTo;
@@ -65,4 +67,17 @@ public interface CouponFeignService {
      */
     @PostMapping("/coupon/trade/promotion/sku-bounds")
     R<List<SkuBoundsVo>> skuBounds(@RequestBody List<Long> skuIds);
+
+    /**
+     * 查这个商品还被哪些活着的营销配置引用，供删除商品前做守卫。
+     *
+     * <p>只读接口，不修改任何数据。已过使用期的券、已结束的秒杀场次不算引用，不会出现在结果里 ——
+     * 它们留下的关联行由商品删除成功后的清理直接删掉。
+     *
+     * @param check 待删除商品的 SPU 与 SKU 主键，不能为 {@code null}
+     * @return 统一响应体，{@code code} 为 0 时 {@code data} 是阻塞清单，两类都为空表示没有引用；
+     *         调用失败时整个对象为 {@code null}
+     */
+    @PostMapping("/coupon/trade/reference/can-delete")
+    R<ProductReferenceBlockerTo> canDeleteProduct(@RequestBody ProductDeleteCheckTo check);
 }

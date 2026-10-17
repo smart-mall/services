@@ -3750,6 +3750,26 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
     /** {@inheritDoc} */
     @Override
+    public List<Long> listSkuIdsWithOrders(List<Long> skuIds) {
+        List<Long> ids = skuIds == null ? List.of()
+                : skuIds.stream().filter(Objects::nonNull).distinct().toList();
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+
+        // 只取 skuId 一列：判据是"有没有"，条数与金额都用不上
+        return orderItemService.list(new LambdaQueryWrapper<OrderItemEntity>()
+                        .select(OrderItemEntity::getSkuId)
+                        .in(OrderItemEntity::getSkuId, ids))
+                .stream()
+                .map(OrderItemEntity::getSkuId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+    }
+
+    /** {@inheritDoc} */
+    @Override
     public void markCommented(String orderSn, Long memberId) {
         if (this.baseMapper.markCommented(orderSn, memberId) == 0) {
             // 不抛异常：评价的事实已经在 product 侧落定，这里只补展示时间列与一条操作史，

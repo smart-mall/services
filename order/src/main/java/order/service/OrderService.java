@@ -419,6 +419,20 @@ public interface OrderService extends IService<OrderEntity> {
     CommentTargetVo getCommentTarget(Long orderItemId, Long memberId);
 
     /**
+     * 查出这些 SKU 里哪些已经有订单项，供 product 删除商品前做守卫。
+     *
+     * <p>只读，无副作用。不区分订单状态：订单项一旦写下就是历史记录 —— 它存的是下单时的快照，
+     * 商品档案不该在它背后消失，所以已取消、已关闭的订单同样算。
+     *
+     * <p>供 product 经 {@code product/feign/OrderFeignService} 直连调用，不经网关，没有凭证可带；
+     * 本方法不涉及会员身份，入参只有 SKU。</p>
+     *
+     * @param skuIds SKU ID 列表，允许为 {@code null} 或空集合
+     * @return 已有订单项的 SKU ID，去重后返回；一个都没有时为空列表
+     */
+    List<Long> listSkuIdsWithOrders(List<Long> skuIds);
+
+    /**
      * 登记订单的评价时间，供 product 在评价落库成功后调用。
      *
      * <p>幂等：登记成功后 {@code comment_time} 非空，重复调用只会更新 0 行。登记失败不抛异常 ——
