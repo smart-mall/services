@@ -128,6 +128,13 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
         }
 
         if (new BCryptPasswordEncoder().matches(password, passwordDB)) {
+            // 锁定账号（status = 0）不发登录态。这里刻意与"密码不对"返回同一个 null，
+            // 由调用方统一转 15003 —— 区分开就等于告诉别人"这个账号存在、只是被禁了"。
+            // status 为 null 是注册链路的常态（注册不写该字段，后台按"未设置"展示），
+            // 必须放行，否则所有正常注册的账号都会登不进来。
+            if (Integer.valueOf(0).equals(memberEntity.getStatus())) {
+                return null;
+            }
             return memberEntity;
         }
 

@@ -69,12 +69,15 @@ public interface MemberService extends IService<MemberEntity> {
     /**
      * 账号密码登录。
      *
-     * <p>账号不存在、没设过密码、密码不对三种情况一律返回 {@code null}，由调用方统一转成
-     * "账号或密码错误"——不区分是账号错还是密码错，避免被用来枚举账号。
+     * <p>账号不存在、没设过密码、密码不对、账号被禁用四种情况一律返回 {@code null}，由调用方统一转成
+     * "账号或密码错误"——不区分是账号错、密码错还是被禁用，避免被用来枚举账号。
+     *
+     * <p>禁用只认 {@code status = 0}。{@code status} 为 {@code null} 是注册链路的常态（注册不写该字段，
+     * 后台按"未设置"展示），按可用处理。
      *
      * @param username 登录账号，不能为 {@code null} 或空白
      * @param password 明文密码，可以为 {@code null}（按密码错误处理）
-     * @return 登录成功的会员；上述三种失败情况均返回 {@code null}
+     * @return 登录成功的会员；上述四种失败情况均返回 {@code null}
      */
     MemberEntity loginByUsername(String username, String password);
 

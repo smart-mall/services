@@ -68,10 +68,10 @@ public class MemberController {
      * 按账号密码登录会员。
      *
      * <p>只按 {@code username} 匹配账号，手机号不能当作账号使用；账号不存在、没设过密码、
-     * 密码不对三种情况统一返回 15003，不区分是其中哪一种。
+     * 密码不对、账号被禁用（{@code status = 0}）四种情况统一返回 15003，不区分是其中哪一种。
      *
      * @param vo 登录入参，含账号与密码
-     * @return 成功时 {@code data} 为会员信息；账号不存在或密码不对返回 15003
+     * @return 成功时 {@code data} 为会员信息；账号不存在、密码不对或账号被禁用返回 15003
      */
     @PostMapping(value = "/login")
     public R<MemberEntity> login(@RequestBody MemberUserLoginVo vo) {
