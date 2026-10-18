@@ -10,6 +10,13 @@ services:
       - /volume/GrainMall/redis/data:/data
       - /volume/GrainMall/redis/redis.conf:/usr/local/etc/redis/redis.conf
     command: redis-server /usr/local/etc/redis/redis.conf
+    # 探活：redis 配了密码，必须带 -a；--no-auth-warning 免得告警混进健康检查输出
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "123456", "--no-auth-warning", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
     networks:
       - GrainMall-network
 
@@ -26,6 +33,13 @@ services:
     # 显式钉住会话时区，不依赖镜像内是否装了 tzdata；用 +08:00 偏移而非 Asia/Shanghai
     # 字面量，是因为后者要求 mysql 时区表已导入。
     command: ["--default-time-zone=+08:00"]
+    # 探活：只确认 mysqld 能应答，不做业务查询。首次启动要初始化数据目录，给 30s 宽限。
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
     ports:
       - "53306:3306"
     volumes:
@@ -47,6 +61,13 @@ services:
       - /volume/GrainMall/minio/data:/data
       - /volume/GrainMall/minio/config:/root/.minio
     command: server /data --console-address ":9001"
+    # 探活：MinIO 自带的存活接口，镜像里已有 curl
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
     networks:
       - GrainMall-network
 
@@ -109,6 +130,17 @@ services:
       - MYSQL_DATABASE_NUM=1               # 数据库数量
       - JVM_XMS=512m                       # JVM初始内存
       - JVM_XMX=512m                       # JVM最大内存
+    # 探活：Nacos 3.x 已经没有 /nacos/v1/console/health/readiness（8848 上 404，8080 上返回
+    # "No static resource"），所以用实测可用的 8848 naming metrics，**再加 gRPC 端口 9848 的
+    # TCP 探测** —— 9848 才是客户端注册走的口子，它没监听时注册会以
+    # "NacosException: Client not connected, current status:STARTING" 直接终止启动。
+    # Nacos 起得慢（连库 + 加载配置），给 60s 宽限、最多等 5 分钟。
+    healthcheck:
+      test: ["CMD", "bash", "-c", "curl -fs http://localhost:8848/nacos/v1/ns/operator/metrics | grep -q UP && exec 3<>/dev/tcp/127.0.0.1/9848"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
     volumes:
       - /volume/GrainMall/nacos/log:/home/nacos/logs           # 日志挂载
     ports:
@@ -117,8 +149,11 @@ services:
       - "59848:9848"
     networks:
       - GrainMall-network
+    # Nacos 自己走外部 MySQL 持久化，所以它也必须在库能应答之后才起：
+    # 历史日志里出现过连不上库导致 ExternalDataSourceServiceImpl 初始化失败、上下文刷新被取消。
     depends_on:
-      - gl-mysql
+      gl-mysql:
+        condition: service_healthy
 
   gl-es:
     image: elasticsearch:8.11.0
@@ -126,6 +161,12 @@ services:
     environment:
       - discovery.type=single-node
       - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:9200/_cluster/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
     ports:
       - "59200:9200"
       - "59300:9300"
@@ -150,6 +191,12 @@ services:
       - "58883:8883"      # MQTT (TLS)
       - "61613:61613"    # STOMP 协议端口
       - "61614:61614"    # STOMP (TLS)
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 30s
     networks:
       - GrainMall-network
 
@@ -178,167 +225,260 @@ services:
   # 网关会把客户端手写的 X-Member-Claims / X-Admin 抹掉，直连不经过网关，伪造的头就被当成真的。
   # 容器之间经 GrainMall-network 按服务名互访，服务端口在各自 application.yaml 的 server.port 里
   # 前置条件：镜像必须已存在于本机（本机构建的 gl-* 镜像，或 docker load / 从仓库 pull）
+  #
+  # 依赖一律写 condition: service_healthy，而不是默认的 service_started —— 后者只保证"容器
+  # 起来了"，不保证服务能干活：Nacos 从容器启动到能受理 gRPC 注册（9848）要几十秒，抢跑的服务
+  # 会在注册时抛 "Client not connected, current status:STARTING" 直接退出（gl-search 就这样死过
+  # 一次、躺了 1.5 小时没人发现）。sentinel / zipkin 没有健康检查端点，只能退回 service_started。
+  # 另加 restart: unless-stopped —— 万一仍有竞态漏网，容器自己重试，而不是死透。
 
   gl-gateway:
     image: gl-gateway:latest
     container_name: gl-gateway
+    restart: unless-stopped
     ports:
       - "53000:53000"
     networks:
       - GrainMall-network
     depends_on:
-      - gl-nacos
-      - gl-product
-      - gl-coupon
-      - gl-member
-      - gl-ware
-      - gl-order
-      - gl-search
-      - gl-third-party
-      - gl-auth
-      - gl-cart
-      - gl-seckill
+      gl-nacos:
+        condition: service_healthy
+      gl-product:
+        condition: service_started
+      gl-coupon:
+        condition: service_started
+      gl-member:
+        condition: service_started
+      gl-ware:
+        condition: service_started
+      gl-order:
+        condition: service_started
+      gl-search:
+        condition: service_started
+      gl-third-party:
+        condition: service_started
+      gl-auth:
+        condition: service_started
+      gl-cart:
+        condition: service_started
+      gl-seckill:
+        condition: service_started
 
   gl-product:
     image: gl-product:latest
     container_name: gl-product
+    restart: unless-stopped
     networks:
       - GrainMall-network
     depends_on:
-      - gl-nacos
-      - gl-mysql
-      - gl-redis
-      - gl-rabbitmq
-      - gl-sentinel
-      - gl-zipkin
-      - gl-minio
+      gl-nacos:
+        condition: service_healthy
+      gl-mysql:
+        condition: service_healthy
+      gl-redis:
+        condition: service_healthy
+      gl-rabbitmq:
+        condition: service_healthy
+      gl-sentinel:
+        condition: service_started
+      gl-zipkin:
+        condition: service_started
+      gl-minio:
+        condition: service_healthy
 
   gl-coupon:
     image: gl-coupon:latest
     container_name: gl-coupon
+    restart: unless-stopped
     networks:
       - GrainMall-network
     depends_on:
-      - gl-nacos
-      - gl-mysql
-      - gl-redis
-      - gl-rabbitmq
-      - gl-sentinel
-      - gl-zipkin
+      gl-nacos:
+        condition: service_healthy
+      gl-mysql:
+        condition: service_healthy
+      gl-redis:
+        condition: service_healthy
+      gl-rabbitmq:
+        condition: service_healthy
+      gl-sentinel:
+        condition: service_started
+      gl-zipkin:
+        condition: service_started
 
   gl-member:
     image: gl-member:latest
     container_name: gl-member
+    restart: unless-stopped
     networks:
       - GrainMall-network
     depends_on:
-      - gl-nacos
-      - gl-mysql
-      - gl-redis
-      - gl-rabbitmq
-      - gl-sentinel
-      - gl-zipkin
+      gl-nacos:
+        condition: service_healthy
+      gl-mysql:
+        condition: service_healthy
+      gl-redis:
+        condition: service_healthy
+      gl-rabbitmq:
+        condition: service_healthy
+      gl-sentinel:
+        condition: service_started
+      gl-zipkin:
+        condition: service_started
 
   gl-ware:
     image: gl-ware:latest
     container_name: gl-ware
+    restart: unless-stopped
     networks:
       - GrainMall-network
     depends_on:
-      - gl-nacos
-      - gl-mysql
-      - gl-redis
-      - gl-rabbitmq
-      - gl-sentinel
-      - gl-zipkin
+      gl-nacos:
+        condition: service_healthy
+      gl-mysql:
+        condition: service_healthy
+      gl-redis:
+        condition: service_healthy
+      gl-rabbitmq:
+        condition: service_healthy
+      gl-sentinel:
+        condition: service_started
+      gl-zipkin:
+        condition: service_started
 
   gl-order:
     image: gl-order:latest
     container_name: gl-order
+    restart: unless-stopped
     networks:
       - GrainMall-network
     depends_on:
-      - gl-nacos
-      - gl-mysql
-      - gl-redis
-      - gl-rabbitmq
-      - gl-sentinel
-      - gl-zipkin
+      gl-nacos:
+        condition: service_healthy
+      gl-mysql:
+        condition: service_healthy
+      gl-redis:
+        condition: service_healthy
+      gl-rabbitmq:
+        condition: service_healthy
+      gl-sentinel:
+        condition: service_started
+      gl-zipkin:
+        condition: service_started
 
   gl-search:
     image: gl-search:latest
     container_name: gl-search
+    restart: unless-stopped
     networks:
       - GrainMall-network
     depends_on:
-      - gl-nacos
-      - gl-es
-      - gl-redis
-      - gl-rabbitmq
-      - gl-sentinel
-      - gl-zipkin
+      gl-nacos:
+        condition: service_healthy
+      gl-es:
+        condition: service_healthy
+      gl-redis:
+        condition: service_healthy
+      gl-rabbitmq:
+        condition: service_healthy
+      gl-sentinel:
+        condition: service_started
+      gl-zipkin:
+        condition: service_started
 
   gl-third-party:
     image: gl-third-party:latest
     container_name: gl-third-party
+    restart: unless-stopped
     networks:
       - GrainMall-network
     depends_on:
-      - gl-nacos
-      - gl-mysql
-      - gl-redis
-      - gl-rabbitmq
-      - gl-sentinel
-      - gl-zipkin
-      - gl-minio
+      gl-nacos:
+        condition: service_healthy
+      gl-mysql:
+        condition: service_healthy
+      gl-redis:
+        condition: service_healthy
+      gl-rabbitmq:
+        condition: service_healthy
+      gl-sentinel:
+        condition: service_started
+      gl-zipkin:
+        condition: service_started
+      gl-minio:
+        condition: service_healthy
 
   gl-auth:
     image: gl-auth:latest
     container_name: gl-auth
+    restart: unless-stopped
     networks:
       - GrainMall-network
     depends_on:
-      - gl-nacos
-      - gl-mysql
-      - gl-redis
-      - gl-rabbitmq
-      - gl-sentinel
-      - gl-zipkin
+      gl-nacos:
+        condition: service_healthy
+      gl-mysql:
+        condition: service_healthy
+      gl-redis:
+        condition: service_healthy
+      gl-rabbitmq:
+        condition: service_healthy
+      gl-sentinel:
+        condition: service_started
+      gl-zipkin:
+        condition: service_started
 
   gl-cart:
     image: gl-cart:latest
     container_name: gl-cart
+    restart: unless-stopped
     networks:
       - GrainMall-network
     depends_on:
-      - gl-nacos
-      - gl-redis
-      - gl-rabbitmq
-      - gl-sentinel
-      - gl-zipkin
+      gl-nacos:
+        condition: service_healthy
+      gl-redis:
+        condition: service_healthy
+      gl-rabbitmq:
+        condition: service_healthy
+      gl-sentinel:
+        condition: service_started
+      gl-zipkin:
+        condition: service_started
 
   gl-seckill:
     image: gl-seckill:latest
     container_name: gl-seckill
+    restart: unless-stopped
     networks:
       - GrainMall-network
     depends_on:
-      - gl-nacos
-      - gl-mysql
-      - gl-redis
-      - gl-rabbitmq
-      - gl-sentinel
-      - gl-zipkin
+      gl-nacos:
+        condition: service_healthy
+      gl-mysql:
+        condition: service_healthy
+      gl-redis:
+        condition: service_healthy
+      gl-rabbitmq:
+        condition: service_healthy
+      gl-sentinel:
+        condition: service_started
+      gl-zipkin:
+        condition: service_started
 
   gl-renren-fast:
     image: gl-renren-fast:latest
     container_name: gl-renren-fast
+    restart: unless-stopped
     networks:
       - GrainMall-network
     depends_on:
-      - gl-nacos
-      - gl-mysql
-      - gl-redis
+      gl-nacos:
+        condition: service_healthy
+      gl-mysql:
+        condition: service_healthy
+      gl-redis:
+        condition: service_healthy
 
 
 networks:
