@@ -5,6 +5,7 @@ import common.utils.R;
 import coupon.entity.CouponEntity;
 import coupon.service.CouponService;
 import coupon.vo.CouponGrantVO;
+import coupon.vo.CouponPageQuery;
 import coupon.vo.CouponReceivableVo;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,8 +18,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Arrays;
 import java.util.List;
-
-import common.query.KeyPageQuery;
 
 /**
  * 优惠券的后台管理接口：分页列表、详情、新增、修改、删除、发布、停发与定向发券。
@@ -33,15 +32,18 @@ public class CouponController {
     private CouponService couponService;
 
     /**
-     * 分页查询优惠券。
+     * 分页查询优惠券，支持按券类型、适用范围、等级门槛、发布状态、派生状态与领取窗口收窄。
      *
      * <p>每行都带现算的 {@code statusText} 与 {@code allowedActions}，列表页据此渲染状态与按钮。
      *
-     * @param query 分页参数，{@code key} 模糊匹配券名或券 ID，{@code page} 为页码、{@code limit} 为每页条数
+     * @param query 分页与筛选参数：{@code key} 模糊匹配券名或券 ID，{@code couponType}、{@code useType}、
+     *              {@code memberLevel}、{@code publish} 精确匹配，{@code status} 取
+     *              {@code CouponStatusEnum} 的枚举名，{@code enableStartFrom} / {@code enableStartTo}
+     *              按领取窗口求交集；都不传即不限
      * @return 分页结果，{@code rows} 为优惠券列表
      */
     @GetMapping("/list")
-    public R<PageVO<CouponEntity>> list(KeyPageQuery query){
+    public R<PageVO<CouponEntity>> list(CouponPageQuery query){
         PageVO<CouponEntity> page = couponService.queryPage(query);
 
         return R.ok(page);

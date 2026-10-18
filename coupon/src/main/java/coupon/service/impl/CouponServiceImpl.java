@@ -6,7 +6,6 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import common.exception.BaseCodeEnum;
 import common.exception.BaseException;
-import common.query.KeyPageQuery;
 import common.to.MemberGrowthVo;
 import common.to.MemberLevelVo;
 import common.utils.R;
@@ -25,6 +24,7 @@ import coupon.service.CouponHistoryService;
 import coupon.service.CouponService;
 import coupon.service.CouponSpuCategoryRelationService;
 import coupon.service.CouponSpuRelationService;
+import coupon.vo.CouponPageQuery;
 import coupon.vo.CouponReceivableVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,6 +35,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -89,9 +90,13 @@ public class CouponServiceImpl extends ServiceImpl<CouponDao, CouponEntity> impl
 
     /** {@inheritDoc} */
     @Override
-    public PageVO<CouponEntity> queryPage(KeyPageQuery query) {
-        String key = query.getKey();
+    public PageVO<CouponEntity> queryPage(CouponPageQuery query) {
+        // 判定时间只取一次，SQL 筛选与回填 statusText 共用：取两次的话两次之间时间会走，
+        // 列表里就会出现"按领取中筛出来的行，状态列写着未开始"
+        Date now = new Date();
+
         LambdaQueryWrapper<CouponEntity> wrapper = new LambdaQueryWrapper<>();
+        String key = query.getKey();
 
         if (key != null && !key.isEmpty()) {
             // 整体括起来：不加括号时后续再补条件会被 or 拆散，变成"或"掉全部筛选
@@ -100,8 +105,19 @@ public class CouponServiceImpl extends ServiceImpl<CouponDao, CouponEntity> impl
                     .like(CouponEntity::getId, key));
         }
 
+        wrapper.eq(query.getCouponType() != null, CouponEntity::getCouponType, query.getCouponType())
+                .eq(query.getUseType() != null, CouponEntity::getUseType, query.getUseType())
+                .eq(query.getMemberLevel() != null, CouponEntity::getMemberLevel, query.getMemberLevel())
+                .eq(query.getPublish() != null, CouponEntity::getPublish, query.getPublish());
+
+        applyEnableRange(wrapper, query.getEnableStartFrom(), query.getEnableStartTo());
+        applyStatusFilter(wrapper, query.getStatus(), now);
+
+        // 主键兜底排序：不排序时 MySQL 不保证顺序，翻页会出现同一张券重复出现或整个漏掉
+        wrapper.orderByDesc(CouponEntity::getId);
+
         IPage<CouponEntity> page = this.page(query.toPage(), wrapper);
-        fillStatus(page.getRecords());
+        fillStatus(page.getRecords(), now);
 
         return new PageVO<>(page.getTotal(), page.getRecords());
     }
@@ -425,13 +441,93 @@ public class CouponServiceImpl extends ServiceImpl<CouponDao, CouponEntity> impl
      * 为列表回填现算的状态与可执行动作。
      *
      * @param coupons 券列表，不能为 {@code null}，可以为空
+     * @param now 判定基准时间，不能为 {@code null}；必须与筛选用的是同一个值
      */
-    private void fillStatus(List<CouponEntity> coupons) {
+    private void fillStatus(List<CouponEntity> coupons, Date now) {
         // 同一次查询共用一个判定时间，避免跨行状态因时间漂移而不一致
-        Date now = new Date();
         for (CouponEntity coupon : coupons) {
             coupon.setStatusText(CouponStatusEnum.resolve(coupon, now).getMsg());
             coupon.setAllowedActions(CouponStatusEnum.allowedActions(coupon, now));
+        }
+    }
+
+    /**
+     * 按领取窗口与所选时间区间求交集。
+     *
+     * <p>用交集而不是"领取起点落在区间内"：后者会把窗口横跨整个区间的券漏掉 —— 选本月时，
+     * 上月开始、下月结束的券明明是能领的，却一条都不显示。
+     *
+     * @param wrapper 查询条件，不能为 {@code null}
+     * @param from 所选区间下界，可以为 {@code null}（不限）
+     * @param to 所选区间上界，可以为 {@code null}（不限）
+     */
+    private void applyEnableRange(LambdaQueryWrapper<CouponEntity> wrapper, Date from, Date to) {
+        // 两个边界都可空，各自独立生效：只填一端时按"从某时刻起 / 到某时刻止"收窄
+        wrapper.le(to != null, CouponEntity::getEnableStartTime, to)
+                .ge(from != null, CouponEntity::getEnableEndTime, from);
+    }
+
+    /**
+     * 把派生状态翻译成等价的 SQL 条件。
+     *
+     * <p>券状态不落库，权威判定在 {@link CouponStatusEnum#resolve}。这里必须把那份判定原样翻成 SQL：
+     * 改成"查出来再在内存里过滤"会把分页的 {@code total} 算错，页面上表现为翻到第二页就空了。
+     * <b>改 {@code resolve} 时必须同步改这里</b>，两者的等价性由
+     * {@code .gl-seed/verify_coupon_filter.py} 对全部券逐张交叉核对。
+     *
+     * <p>三处 NULL 语义要与 {@code resolve} 对齐：{@code enable_end_time} 为空不算已结束；
+     * {@code publish} 非 1（含 NULL）都算未发布；两个计数列参与比较前按 0 处理。
+     *
+     * @param wrapper 查询条件，不能为 {@code null}
+     * @param status 状态枚举名，可以为 {@code null} 或非法值（此时不加条件）
+     * @param now 判定基准时间，不能为 {@code null}；必须与回填 {@code statusText} 用的是同一个值
+     */
+    private void applyStatusFilter(LambdaQueryWrapper<CouponEntity> wrapper, String status, Date now) {
+        CouponStatusEnum target = parseStatus(status);
+        if (target == null) {
+            return;
+        }
+
+        // 与 resolve 的判定顺序一一对应：先看窗口是否已结束，再看发布开关，最后看领取进度
+        final String notEnded = "(enable_end_time IS NULL OR enable_end_time >= {0})";
+        final String notPublished = "(publish IS NULL OR publish <> 1)";
+        final String started = "(enable_start_time IS NULL OR enable_start_time <= {0})";
+        final String received = "COALESCE(receive_count, 0)";
+        final String total = "COALESCE(publish_count, 0)";
+
+        switch (target) {
+            case ENDED -> wrapper.apply("enable_end_time IS NOT NULL AND enable_end_time < {0}", now);
+            case DRAFT -> wrapper.apply(
+                    notEnded + " AND " + notPublished + " AND " + received + " = 0", now);
+            case REVOKED -> wrapper.apply(
+                    notEnded + " AND " + notPublished + " AND " + received + " > 0", now);
+            case NOT_STARTED -> wrapper.apply(
+                    notEnded + " AND publish = 1 AND enable_start_time IS NOT NULL"
+                            + " AND enable_start_time > {0}", now);
+            case SOLD_OUT -> wrapper.apply(
+                    notEnded + " AND publish = 1 AND " + started + " AND " + received + " >= " + total, now);
+            case RECEIVING -> wrapper.apply(
+                    notEnded + " AND publish = 1 AND " + started + " AND " + received + " < " + total, now);
+        }
+    }
+
+    /**
+     * 把入参里的状态名翻成枚举。
+     *
+     * <p>认不出来时按"没传"处理并记一条 warn，不抛异常：列表页不该因为一个筛选值写错就整页打不开。
+     *
+     * @param status 状态枚举名，可以为 {@code null} 或空白
+     * @return 对应的枚举；{@code status} 为空或不是合法枚举名时返回 {@code null}
+     */
+    private CouponStatusEnum parseStatus(String status) {
+        if (status == null || status.isBlank()) {
+            return null;
+        }
+        try {
+            return CouponStatusEnum.valueOf(status.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            log.warn("收到无法识别的券状态筛选值，已忽略：status={}", status);
+            return null;
         }
     }
 

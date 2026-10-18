@@ -2,10 +2,10 @@ package coupon.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import common.exception.BaseException;
-import common.query.KeyPageQuery;
 import common.vo.MemberResponseVo;
 import common.vo.PageVO;
 import coupon.entity.CouponEntity;
+import coupon.vo.CouponPageQuery;
 import coupon.vo.CouponReceivableVo;
 
 import java.util.List;
@@ -19,15 +19,17 @@ import java.util.List;
 public interface CouponService extends IService<CouponEntity> {
 
     /**
-     * 分页查询优惠券，{@code key} 同时模糊匹配券名与优惠券 ID。
+     * 按券类型、适用范围、等级门槛、发布状态、派生状态与领取窗口分页查询优惠券，
+     * {@code key} 同时模糊匹配券名与优惠券 ID。
      *
      * <p>实现方必须为每行回填 {@code statusText} 与 {@code allowedActions}，且同一次查询内所有行
-     * 使用同一个判定时间，否则跨行的状态会出现先后不一致。
+     * 使用同一个判定时间，否则跨行的状态会出现先后不一致。按 {@code status} 收窄时用的必须是
+     * 同一个判定时间，否则会出现"按领取中筛出来的行，状态列却写着未开始"。
      *
-     * @param query 分页参数与关键字，不能为 {@code null}；{@code key} 可以为 {@code null} 或空白
+     * @param query 分页参数与各筛选条件，不能为 {@code null}；每个条件都可以为 {@code null}，即不限
      * @return 分页结果，无数据时 {@code rows} 为空列表、{@code total} 为 0，不返回 {@code null}
      */
-    PageVO<CouponEntity> queryPage(KeyPageQuery query);
+    PageVO<CouponEntity> queryPage(CouponPageQuery query);
 
     /**
      * 查询券详情，同时带出适用范围关联明细，供管理端编辑时回显。
