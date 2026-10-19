@@ -38,6 +38,26 @@ spring:
       transport:
         dashboard: ${sentinel.dashboard}
         port: ${sentinel.port}
+      filter:
+        enabled: true  # 不显式写，Spring MVC 拦截器不会注册
+      eager: true
+      datasource:
+        flow:
+          nacos:
+            server-addr: ${nacos.url}:${nacos.port}
+            data-id: ${spring.application.name}-sentinel-flow-rules
+            group-id: gulimall
+            namespace: gulimall
+            data-type: json
+            rule-type: flow
+        degrade:
+          nacos:
+            server-addr: ${nacos.url}:${nacos.port}
+            data-id: ${spring.application.name}-sentinel-degrade-rules
+            group-id: gulimall
+            namespace: gulimall
+            data-type: json
+            rule-type: degrade
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: GMT+8
