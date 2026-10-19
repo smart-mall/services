@@ -1,5 +1,9 @@
 name: "GrainMall"
 
+# 追踪采样率：覆盖 application-common.yaml 里的 1.0。业务服务引用，gl-renren-fast 无此依赖不引用。
+x-tracing-env: &tracing-env
+  - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=0.1
+
 services:
   gl-redis:
     image: redis
@@ -116,6 +120,7 @@ services:
   gl-nacos:
     image: nacos/nacos-server:latest
     container_name: gl-nacos
+    restart: unless-stopped
     environment:
       - MODE=standalone                    # 单机模式
       - NACOS_AUTH_TOKEN=SecretKey012345678901234567890123456789012345678901234567890123456789
@@ -203,6 +208,7 @@ services:
   gl-sentinel:
     image: bladex/sentinel-dashboard:latest
     container_name: gl-sentinel
+    restart: unless-stopped
     ports:
       - "58858:8858"
       - "58719:8719"
@@ -210,13 +216,16 @@ services:
       - GrainMall-network
 
   gl-zipkin:
-    image: openzipkin/zipkin:latest
+    image: openzipkin/zipkin:3.6.1
     container_name: gl-zipkin
+    restart: unless-stopped
     ports:
       - "59411:9411"      # Zipkin UI 和 API 端口
     environment:
       - STORAGE_TYPE=mem  # 使用内存存储（开发环境）
-      - JAVA_OPTS=-Xms256m -Xmx512m
+      # 必须带 ExitOnOutOfMemoryError：OOM 时立刻退出交给 restart 拉起，否则会带着坏线程装死
+      - JAVA_OPTS=-Xms256m -Xmx256m -XX:+ExitOnOutOfMemoryError
+    mem_limit: 768m
     networks:
       - GrainMall-network
 
@@ -229,13 +238,15 @@ services:
   # 依赖一律写 condition: service_healthy，而不是默认的 service_started —— 后者只保证"容器
   # 起来了"，不保证服务能干活：Nacos 从容器启动到能受理 gRPC 注册（9848）要几十秒，抢跑的服务
   # 会在注册时抛 "Client not connected, current status:STARTING" 直接退出（gl-search 就这样死过
-  # 一次、躺了 1.5 小时没人发现）。sentinel / zipkin 没有健康检查端点，只能退回 service_started。
+  # 一次、躺了 1.5 小时没人发现）。sentinel 没有健康检查端点；zipkin 有（镜像自带 HEALTHCHECK），
+  # 但这里仍用 service_started —— 追踪是旁路，不该成为整个技术栈的启动闸门。
   # 另加 restart: unless-stopped —— 万一仍有竞态漏网，容器自己重试，而不是死透。
 
   gl-gateway:
     image: gl-gateway:latest
     container_name: gl-gateway
     restart: unless-stopped
+    environment: *tracing-env
     ports:
       - "53000:53000"
     networks:
@@ -268,6 +279,7 @@ services:
     image: gl-product:latest
     container_name: gl-product
     restart: unless-stopped
+    environment: *tracing-env
     networks:
       - GrainMall-network
     depends_on:
@@ -290,6 +302,7 @@ services:
     image: gl-coupon:latest
     container_name: gl-coupon
     restart: unless-stopped
+    environment: *tracing-env
     networks:
       - GrainMall-network
     depends_on:
@@ -310,6 +323,7 @@ services:
     image: gl-member:latest
     container_name: gl-member
     restart: unless-stopped
+    environment: *tracing-env
     networks:
       - GrainMall-network
     depends_on:
@@ -330,6 +344,7 @@ services:
     image: gl-ware:latest
     container_name: gl-ware
     restart: unless-stopped
+    environment: *tracing-env
     networks:
       - GrainMall-network
     depends_on:
@@ -350,6 +365,7 @@ services:
     image: gl-order:latest
     container_name: gl-order
     restart: unless-stopped
+    environment: *tracing-env
     networks:
       - GrainMall-network
     depends_on:
@@ -370,6 +386,7 @@ services:
     image: gl-search:latest
     container_name: gl-search
     restart: unless-stopped
+    environment: *tracing-env
     networks:
       - GrainMall-network
     depends_on:
@@ -390,6 +407,7 @@ services:
     image: gl-third-party:latest
     container_name: gl-third-party
     restart: unless-stopped
+    environment: *tracing-env
     networks:
       - GrainMall-network
     depends_on:
@@ -412,6 +430,7 @@ services:
     image: gl-auth:latest
     container_name: gl-auth
     restart: unless-stopped
+    environment: *tracing-env
     networks:
       - GrainMall-network
     depends_on:
@@ -432,6 +451,7 @@ services:
     image: gl-cart:latest
     container_name: gl-cart
     restart: unless-stopped
+    environment: *tracing-env
     networks:
       - GrainMall-network
     depends_on:
@@ -450,6 +470,7 @@ services:
     image: gl-seckill:latest
     container_name: gl-seckill
     restart: unless-stopped
+    environment: *tracing-env
     networks:
       - GrainMall-network
     depends_on:
