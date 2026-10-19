@@ -146,6 +146,17 @@
 		</dependency>
 
 		<!--
+			Feign 埋点。spring-cloud-starter-openfeign 不会传递依赖它，必须显式声明：
+			缺了它 Feign 调用不产生 span，traceId 也不会注入到出站请求头，
+			下游会另起一个新的根 trace，整条链路在每次 Feign 调用处断开。
+		-->
+		<dependency>
+			<groupId>io.github.openfeign</groupId>
+			<artifactId>feign-micrometer</artifactId>
+			<version>13.6</version>
+		</dependency>
+
+		<!--
 			JWT：登录态从 Session 改成 JWT 之后，auth 负责签发、gateway 负责验签。
 			放在 common 里是因为 gateway 已经依赖 common（见 gateway/pom.xml），
 			两边共用同一套 Claims 定义，不用各写一份。

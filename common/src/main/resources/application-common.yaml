@@ -69,14 +69,18 @@ mybatis-plus:
 
 management:
   tracing:
-    enabled: true
     sampling:
-      probability: 1.0  # 采样率
+      probability: 0.1  # 采样率
     propagation:
-      type: B3  # 必须用 B3 才能给 Zipkin
+      produce: B3  # 出站用 B3（Zipkin 原生格式）
+      consume:  # 入站三种都认，避免非 Brave 调用方（W3C traceparent）在网关这一跳断链
+        - B3
+        - B3_MULTI
+        - W3C
   zipkin:
     tracing:
       endpoint: http://${zipkin.url}:${zipkin.port}/api/v2/spans  # 正确地址
+      encoding: PROTO3  # 上报体积与序列化开销均低于默认的 JSON
   endpoints:
     web:
       exposure:
