@@ -1,0 +1,1 @@
+{"product":{"settings":{"index":{"routing":{"allocation":{"include":{"_tier_preference":"data_content"}}},"number_of_shards":"1","provided_name":"product","creation_date":"1792289954406","number_of_replicas":"1","uuid":"6eqkjhJrTfunMqXznpPQ0w","version":{"created":"8500003"}}}}}

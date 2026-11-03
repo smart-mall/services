@@ -1,0 +1,2429 @@
+{
+  "bucket": "gulimall",
+  "note": "file 字段是相对 minio/objects/ 的路径，bucket+key 是对象在 MinIO 里的完整位置",
+  "objectCount": 269,
+  "totalBytes": 200926481,
+  "objects": [
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/002a5aa61f38433aa99e1e02c1f42780.jpg",
+      "file": "gulimall/2026/10/18/002a5aa61f38433aa99e1e02c1f42780.jpg",
+      "size": 19581,
+      "etag": "12fdb6c752f681876e1ec184563eab6e",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:32.84Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/0150b1cb88334161b16b29d9049a7375.png",
+      "file": "gulimall/2026/10/18/0150b1cb88334161b16b29d9049a7375.png",
+      "size": 211862,
+      "etag": "49bccbcfc6d851c92bf1bf649b2a7907",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:31.562Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/016ecda5f5224d4bb5735be21c3db071.jpg",
+      "file": "gulimall/2026/10/18/016ecda5f5224d4bb5735be21c3db071.jpg",
+      "size": 39436,
+      "etag": "00400d672d65b9d863c91873db999f37",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:34.023Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/0249d53df69843679f1d20c0b8e9f88d.jpg",
+      "file": "gulimall/2026/10/18/0249d53df69843679f1d20c0b8e9f88d.jpg",
+      "size": 29964,
+      "etag": "4091a07f02f08fb561d0993ea4e93140",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:32.757Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/0486ad68e3374a5189d7f1e50f49f422.jpg",
+      "file": "gulimall/2026/10/18/0486ad68e3374a5189d7f1e50f49f422.jpg",
+      "size": 21053,
+      "etag": "85382763d9dc6263dda796f3e7e27d0f",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:29.881Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/065b2b070e8240ccb0b33a9e439553db.png",
+      "file": "gulimall/2026/10/18/065b2b070e8240ccb0b33a9e439553db.png",
+      "size": 278877,
+      "etag": "cf53bb0957032361750288da34639ea8",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:28.156Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/068e1631001b48f6a0b0b7ca610c5507.png",
+      "file": "gulimall/2026/10/18/068e1631001b48f6a0b0b7ca610c5507.png",
+      "size": 821665,
+      "etag": "460c3a1cae3ebca70300d6fe6379e6f6",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:29.666Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/08dd48f704214e7487c71d80ccaeb2d6.png",
+      "file": "gulimall/2026/10/18/08dd48f704214e7487c71d80ccaeb2d6.png",
+      "size": 2096681,
+      "etag": "f7cc641776e5f75eea3446856e6b13b6",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:17.74Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/0c77ac776b2b49e180f79b56c1aaa088.png",
+      "file": "gulimall/2026/10/18/0c77ac776b2b49e180f79b56c1aaa088.png",
+      "size": 791077,
+      "etag": "d50e65f1cf0aaa890f5468f063c74d8f",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:27.897Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/0cdaccf255e54698a8b272f74d12a6cc.png",
+      "file": "gulimall/2026/10/18/0cdaccf255e54698a8b272f74d12a6cc.png",
+      "size": 1121605,
+      "etag": "b4bac9b12899208e422d2691d7cd39cb",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:24.538Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/0cde54abed834751925dcb98ef998029.png",
+      "file": "gulimall/2026/10/18/0cde54abed834751925dcb98ef998029.png",
+      "size": 1177928,
+      "etag": "95ff0ba810ad2275b31712dfeddc93d3",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:14.342Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/0f5b2d780d25429c9bf66d1f26bd7034.jpg",
+      "file": "gulimall/2026/10/18/0f5b2d780d25429c9bf66d1f26bd7034.jpg",
+      "size": 23381,
+      "etag": "f22f67caa7d374d505945a142c08f76a",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:30.086Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/0f7125fb45ef4c0993523052c05ffd98.png",
+      "file": "gulimall/2026/10/18/0f7125fb45ef4c0993523052c05ffd98.png",
+      "size": 3660778,
+      "etag": "6f1aa2bab7937bb1f6f00b6a34642452",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:18.501Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/1050dbc6eb1d49159763071abac3fdbf.png",
+      "file": "gulimall/2026/10/18/1050dbc6eb1d49159763071abac3fdbf.png",
+      "size": 325778,
+      "etag": "a308c1c8788223e5cfc5040d37de1ca5",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:37.001Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/10ceba8362f34cd290f753661d162ab8.jpg",
+      "file": "gulimall/2026/10/18/10ceba8362f34cd290f753661d162ab8.jpg",
+      "size": 207500,
+      "etag": "21fc6b78c6faba40ae3b267b8451503f",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T01:01:12.486Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/1307485cb76643b3a8ed28ee2f094cdb.png",
+      "file": "gulimall/2026/10/18/1307485cb76643b3a8ed28ee2f094cdb.png",
+      "size": 994800,
+      "etag": "15922e2d9512c5a2961fecb39047768b",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:33.8Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/14c575e296bb493da36f6425744c413f.jpg",
+      "file": "gulimall/2026/10/18/14c575e296bb493da36f6425744c413f.jpg",
+      "size": 146615,
+      "etag": "5b5110ad5cef0d405db5a0027c1403ef",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T01:01:17.521Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/15381b80458a40db992e73b9d0740056.png",
+      "file": "gulimall/2026/10/18/15381b80458a40db992e73b9d0740056.png",
+      "size": 1081331,
+      "etag": "9205635394f12c04aec8130903d140f9",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:39.626Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/1564dc8417d443a0b6d828ad3149fe21.jpg",
+      "file": "gulimall/2026/10/18/1564dc8417d443a0b6d828ad3149fe21.jpg",
+      "size": 141759,
+      "etag": "b04a67735470bf9327600602a70e1d18",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T01:01:26.377Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/15d1a077a2b842ec852fc9c09f810031.png",
+      "file": "gulimall/2026/10/18/15d1a077a2b842ec852fc9c09f810031.png",
+      "size": 239309,
+      "etag": "2a5f528ed3a66dca526a09eba663c8b9",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:12.797Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/1699da8071314682b276931680437dd0.png",
+      "file": "gulimall/2026/10/18/1699da8071314682b276931680437dd0.png",
+      "size": 137141,
+      "etag": "9bccd4314a10b1cc328a2c774bc9bc3a",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T02:04:31.616Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/16e0d062a65a4c129a4bf8356da0764e.jpg",
+      "file": "gulimall/2026/10/18/16e0d062a65a4c129a4bf8356da0764e.jpg",
+      "size": 20848,
+      "etag": "007cda9b98bea200de84cb508565ea95",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:34.224Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/16e2f949575043ae98370c67bb2e91a9.jpg",
+      "file": "gulimall/2026/10/18/16e2f949575043ae98370c67bb2e91a9.jpg",
+      "size": 26879,
+      "etag": "d8532498581076ca88dfdbc54421f328",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:34.297Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/173a8518a5ce41eab67441a14db83c7f.png",
+      "file": "gulimall/2026/10/18/173a8518a5ce41eab67441a14db83c7f.png",
+      "size": 66236,
+      "etag": "5b6d6a525c86926715fec70edddd815f",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:19.465Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/18531976d4bd449b97c3dafef61b6f3b.png",
+      "file": "gulimall/2026/10/18/18531976d4bd449b97c3dafef61b6f3b.png",
+      "size": 285791,
+      "etag": "1d40029b40715c2e041b07850cb33523",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:42.414Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/185a80f51f4940feb9ad9c8ecc8138b7.jpg",
+      "file": "gulimall/2026/10/18/185a80f51f4940feb9ad9c8ecc8138b7.jpg",
+      "size": 22332,
+      "etag": "6d8a247f0a66dc2b081333eca4385da5",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:34.158Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/1897d234b1f1420ebb50ea306185e519.jpg",
+      "file": "gulimall/2026/10/18/1897d234b1f1420ebb50ea306185e519.jpg",
+      "size": 172350,
+      "etag": "bf108b2bd9d7b5b3f951a758d2fe4531",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T01:01:31.696Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/19c28ab624994ecbbc63654a3453dc8e.png",
+      "file": "gulimall/2026/10/18/19c28ab624994ecbbc63654a3453dc8e.png",
+      "size": 1950939,
+      "etag": "3ef0598cf2efa3e0a1d7043b4d9db9ea",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:22.681Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/1a13f3f37eb544888779567099ce5772.jpg",
+      "file": "gulimall/2026/10/18/1a13f3f37eb544888779567099ce5772.jpg",
+      "size": 34419,
+      "etag": "364da1fb9eb815e14240553690a4c06f",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:32.594Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/1aafe13248894ef487b40d4e73f06e13.png",
+      "file": "gulimall/2026/10/18/1aafe13248894ef487b40d4e73f06e13.png",
+      "size": 45583,
+      "etag": "f7f17444b3294b348be5728448a36226",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T02:04:31.683Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/1b8aea48e7d246e4bb2aa0757b254801.jpg",
+      "file": "gulimall/2026/10/18/1b8aea48e7d246e4bb2aa0757b254801.jpg",
+      "size": 196436,
+      "etag": "663fa04f28c3d30efe5725150f79040f",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T01:01:40.276Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/1bd379e4caf945e88e4bff7cfa954fb0.png",
+      "file": "gulimall/2026/10/18/1bd379e4caf945e88e4bff7cfa954fb0.png",
+      "size": 969366,
+      "etag": "71e0868b7c975fbb22a7e6b47dcbf4fd",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:24.794Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/1c1cf19332134eee8175373c0b82f7cc.png",
+      "file": "gulimall/2026/10/18/1c1cf19332134eee8175373c0b82f7cc.png",
+      "size": 1272462,
+      "etag": "000d9450c3e20d4cda4bc42b4a716cfa",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:40.611Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/1ca85abebd284ec2b1485c82c95a5321.png",
+      "file": "gulimall/2026/10/18/1ca85abebd284ec2b1485c82c95a5321.png",
+      "size": 406131,
+      "etag": "d36719b457de14c7d9b872b29658deb2",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:38.318Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/1ce2cbce72fb45c89634fb6d8b40f24d.png",
+      "file": "gulimall/2026/10/18/1ce2cbce72fb45c89634fb6d8b40f24d.png",
+      "size": 1510581,
+      "etag": "6302d58979eafdd6fbbf085d19f52506",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:35.535Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/1cede1b9a0d74c3fbe4166b2380f3241.png",
+      "file": "gulimall/2026/10/18/1cede1b9a0d74c3fbe4166b2380f3241.png",
+      "size": 1674371,
+      "etag": "9e7b4c508d9b26104ece176bd3071e97",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:20.287Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/1f934e7a32544857b79f1261cb586f71.png",
+      "file": "gulimall/2026/10/18/1f934e7a32544857b79f1261cb586f71.png",
+      "size": 118316,
+      "etag": "a1543cad72b54048553e14327f191fab",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:41.308Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/209c05175f314fcd836801d03baf5aae.png",
+      "file": "gulimall/2026/10/18/209c05175f314fcd836801d03baf5aae.png",
+      "size": 777750,
+      "etag": "06830517a4dc3b3aed86f5bf682adc6d",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:36.372Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/21f56c6e3c884e64a3f1e5ec3fdd954b.png",
+      "file": "gulimall/2026/10/18/21f56c6e3c884e64a3f1e5ec3fdd954b.png",
+      "size": 280591,
+      "etag": "cd0d01a382b4d98551141c3dda69b47b",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:15.309Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/23b5832026e4464eabce41a4c4e7cfed.png",
+      "file": "gulimall/2026/10/18/23b5832026e4464eabce41a4c4e7cfed.png",
+      "size": 704935,
+      "etag": "03b1df8810128893d758a943e3a565a8",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:37.83Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/252d3480145240d78eedcda13ee384a0.png",
+      "file": "gulimall/2026/10/18/252d3480145240d78eedcda13ee384a0.png",
+      "size": 318446,
+      "etag": "983500c59854ff45b937702e5bf52551",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:17.862Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/256db3c43e4441f692ddadb68804940e.png",
+      "file": "gulimall/2026/10/18/256db3c43e4441f692ddadb68804940e.png",
+      "size": 2347477,
+      "etag": "69404278934ff1aef6bad62d2c9423c0",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:18.257Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/2719e35b34324717aefd48d3f2aa8f7a.png",
+      "file": "gulimall/2026/10/18/2719e35b34324717aefd48d3f2aa8f7a.png",
+      "size": 1112531,
+      "etag": "da3e6a9ad811fa88afe9933931088d5b",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:36.534Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/2af6306e2858494686e11aa095a44e80.jpg",
+      "file": "gulimall/2026/10/18/2af6306e2858494686e11aa095a44e80.jpg",
+      "size": 31051,
+      "etag": "30f1349b14ef5b238bb252f08966d8b3",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:32.485Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/2b11bf54778a485e8761d7f9614ae1e6.jpg",
+      "file": "gulimall/2026/10/18/2b11bf54778a485e8761d7f9614ae1e6.jpg",
+      "size": 22971,
+      "etag": "cc47df44c1cdecf3a0aafb1f5a6284e8",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:30.761Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/2dcf782767c24dd281615c7e1dcc9a78.jpg",
+      "file": "gulimall/2026/10/18/2dcf782767c24dd281615c7e1dcc9a78.jpg",
+      "size": 29648,
+      "etag": "394b30e086ee4161358d09473028616b",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:31.956Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/2f7afba48063449da9683b0695a406e5.jpg",
+      "file": "gulimall/2026/10/18/2f7afba48063449da9683b0695a406e5.jpg",
+      "size": 31390,
+      "etag": "9e900504744cd9435cec93a382dc9c9e",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:30.941Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/3036ee679eff4c0f8078bac946d61e5d.jpg",
+      "file": "gulimall/2026/10/18/3036ee679eff4c0f8078bac946d61e5d.jpg",
+      "size": 227435,
+      "etag": "92cc1004d79f3bc8055cab8b90f51737",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T01:01:39.144Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/3123bcaadf6d4b7ab5e057e84b629b2d.png",
+      "file": "gulimall/2026/10/18/3123bcaadf6d4b7ab5e057e84b629b2d.png",
+      "size": 3124671,
+      "etag": "94e8d2a61e0b97071e2f7c57a968395a",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:40.147Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/326a4d27f24f4264be67000e5203cbaf.png",
+      "file": "gulimall/2026/10/18/326a4d27f24f4264be67000e5203cbaf.png",
+      "size": 1262609,
+      "etag": "e6095552dbf917fce75f3486050c766f",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:35.369Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/36c3dd94a3a44279aec4e859c87c8c56.jpg",
+      "file": "gulimall/2026/10/18/36c3dd94a3a44279aec4e859c87c8c56.jpg",
+      "size": 20347,
+      "etag": "b1ed32f826dd29d1edb6eb8a9e2915e0",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:30.838Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/373f74dfc88f4439b0fcf878f728b792.jpg",
+      "file": "gulimall/2026/10/18/373f74dfc88f4439b0fcf878f728b792.jpg",
+      "size": 106900,
+      "etag": "c5a8a7156ad2b0ec0dfeab81d558a483",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T01:01:15.074Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/377d2af8cc374da5aa50954185ce320e.png",
+      "file": "gulimall/2026/10/18/377d2af8cc374da5aa50954185ce320e.png",
+      "size": 295417,
+      "etag": "00a20a33e18d6ea02c98dd556fd79d4b",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:20.82Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/39f6674430914e808eb2fdec83e8813d.png",
+      "file": "gulimall/2026/10/18/39f6674430914e808eb2fdec83e8813d.png",
+      "size": 1828509,
+      "etag": "5cfa51fb330e45fe03c66fb78ba1e33a",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:23.654Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/3a945c1eca8343f7954e03b7e1ce27aa.png",
+      "file": "gulimall/2026/10/18/3a945c1eca8343f7954e03b7e1ce27aa.png",
+      "size": 1113540,
+      "etag": "4c255a17579fe30915601b817b2eb371",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:33.186Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/3b3780ccf7314545b7114400a1f92c6a.png",
+      "file": "gulimall/2026/10/18/3b3780ccf7314545b7114400a1f92c6a.png",
+      "size": 956408,
+      "etag": "0b065a03abbb8252ee4a93f08041a7d9",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:35.03Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/3b6f4b665c8e4f1699ecffb2de510d98.jpg",
+      "file": "gulimall/2026/10/18/3b6f4b665c8e4f1699ecffb2de510d98.jpg",
+      "size": 26232,
+      "etag": "e486f901646678cbde635522d0d91592",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:31.304Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/3c9d3d4957a8400090dab0c9e3baaf3c.png",
+      "file": "gulimall/2026/10/18/3c9d3d4957a8400090dab0c9e3baaf3c.png",
+      "size": 3633692,
+      "etag": "df9b1cc3543c595b9dfa9aac98d35fd0",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:25.381Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/3ca8df109c6146dea9e0204f46bb202d.png",
+      "file": "gulimall/2026/10/18/3ca8df109c6146dea9e0204f46bb202d.png",
+      "size": 269495,
+      "etag": "bc1963f3f50f1dab415e1499f535eeac",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:21.525Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/3cb176709bd740b1aa6656366b0952b1.jpg",
+      "file": "gulimall/2026/10/18/3cb176709bd740b1aa6656366b0952b1.jpg",
+      "size": 15080,
+      "etag": "25da5da6e10fe9c2c0492bf2f3e11835",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:31.528Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/3e02c3122dee465a88be37d0a15ce779.jpg",
+      "file": "gulimall/2026/10/18/3e02c3122dee465a88be37d0a15ce779.jpg",
+      "size": 16845,
+      "etag": "22c65dc0b97ed4bccc71aad423db36c2",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:32.979Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/3e34ec0d075347239d6bb6f36a5a5106.jpg",
+      "file": "gulimall/2026/10/18/3e34ec0d075347239d6bb6f36a5a5106.jpg",
+      "size": 31373,
+      "etag": "d03ae4af0ee5bcfa0736b1c723fe0316",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:30.637Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/3e678bac00594d0d8bba71d89abe736f.png",
+      "file": "gulimall/2026/10/18/3e678bac00594d0d8bba71d89abe736f.png",
+      "size": 143010,
+      "etag": "dfdc2052e0d75ce09fbaf4e66df44fc9",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:36.126Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/3f117e7e865f47aab92bad03ff77910a.png",
+      "file": "gulimall/2026/10/18/3f117e7e865f47aab92bad03ff77910a.png",
+      "size": 110355,
+      "etag": "c354b2d0490be254795e41de813e26a1",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:39.894Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/3f18e4c17d3742778ab327463c39ec20.jpg",
+      "file": "gulimall/2026/10/18/3f18e4c17d3742778ab327463c39ec20.jpg",
+      "size": 17899,
+      "etag": "88d90376674d30ad720245d4eacd159b",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:33.474Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/3f517baaacd7487eb36d3bb2d949393c.png",
+      "file": "gulimall/2026/10/18/3f517baaacd7487eb36d3bb2d949393c.png",
+      "size": 1082884,
+      "etag": "2301ca1c6f86fab9e4bcaedb586b0fde",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:43.048Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/3fca19eccee34e91a68c52d8d2aeb3fa.jpg",
+      "file": "gulimall/2026/10/18/3fca19eccee34e91a68c52d8d2aeb3fa.jpg",
+      "size": 17670,
+      "etag": "1770c7ffed0bfec9d11611555c161630",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:33.902Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/406745cceb5e446eaea34b8442cb5bc3.jpg",
+      "file": "gulimall/2026/10/18/406745cceb5e446eaea34b8442cb5bc3.jpg",
+      "size": 38104,
+      "etag": "88e546ac22a9d9eab74c61e18f1504bb",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:29.946Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/40f26466738f4dfbbf715ecb7a372495.png",
+      "file": "gulimall/2026/10/18/40f26466738f4dfbbf715ecb7a372495.png",
+      "size": 433806,
+      "etag": "77b4a7021f738386ea0b6deec2590b27",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:18.922Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/412e3f80be964868b8b1f10d21459cfc.png",
+      "file": "gulimall/2026/10/18/412e3f80be964868b8b1f10d21459cfc.png",
+      "size": 1153486,
+      "etag": "5771e0c97152c2b0d8fcd9ee56ce7de0",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:30.871Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/41e665b9ebdb45cdb13c9241f354a6d7.png",
+      "file": "gulimall/2026/10/18/41e665b9ebdb45cdb13c9241f354a6d7.png",
+      "size": 307346,
+      "etag": "fff447c3cc35e915104f0d10e4f34c08",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:19.035Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/443b62c6104b43c7beeb6edd70d8ed9b.png",
+      "file": "gulimall/2026/10/18/443b62c6104b43c7beeb6edd70d8ed9b.png",
+      "size": 684542,
+      "etag": "d28053eba061b2084a04f9057c109004",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:29.349Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/44b4090a89174fb186aa910f7298c9a9.png",
+      "file": "gulimall/2026/10/18/44b4090a89174fb186aa910f7298c9a9.png",
+      "size": 462878,
+      "etag": "0fc7f49d0e1d255cc0ed2b751216692c",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:38.098Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/468f4f5e6f2a4f818daf3f328d9b6671.png",
+      "file": "gulimall/2026/10/18/468f4f5e6f2a4f818daf3f328d9b6671.png",
+      "size": 440769,
+      "etag": "b43e18675be4bc0a7cfb3e3326c2fc8b",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:14.712Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/47166e70cf3044b2bfcb5cc706b3a903.png",
+      "file": "gulimall/2026/10/18/47166e70cf3044b2bfcb5cc706b3a903.png",
+      "size": 1631184,
+      "etag": "3ff4ed9474ea599bc8b7cb55545471c1",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:25.995Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/4745e934f3404d168625432f32da3aed.png",
+      "file": "gulimall/2026/10/18/4745e934f3404d168625432f32da3aed.png",
+      "size": 1484507,
+      "etag": "7fafbd71cd29a712abb8c7dc366ca228",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:33.994Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/483bc0464f16453b8eb9545bf2dcd0d3.png",
+      "file": "gulimall/2026/10/18/483bc0464f16453b8eb9545bf2dcd0d3.png",
+      "size": 523341,
+      "etag": "f6f0c1c41fe4ed02507ec45c56da97d4",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:12.251Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/4aa5e0c7123b45849ba8eb0d98baf6ee.jpg",
+      "file": "gulimall/2026/10/18/4aa5e0c7123b45849ba8eb0d98baf6ee.jpg",
+      "size": 1561044,
+      "etag": "11abfec99136b9bf6c3e10b3d1d0fcf0",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T01:01:25.559Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/4bee7a09a5a54d0482b12c8ca7d877bf.png",
+      "file": "gulimall/2026/10/18/4bee7a09a5a54d0482b12c8ca7d877bf.png",
+      "size": 1015468,
+      "etag": "9abe54bb868e9398065deb864545dc09",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:13.914Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/4d406f5801fa429cae04fdcbf55ebb94.png",
+      "file": "gulimall/2026/10/18/4d406f5801fa429cae04fdcbf55ebb94.png",
+      "size": 1519459,
+      "etag": "a5bf58c5fd33f4655069dd8cc7edc2ff",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:42.017Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/4fd729a2fc614896ba8b797813a26356.jpg",
+      "file": "gulimall/2026/10/18/4fd729a2fc614896ba8b797813a26356.jpg",
+      "size": 188080,
+      "etag": "b76af4fe38b727b9920b4a188289ab3d",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T01:01:17.246Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/502b042efc494640ac335921dca5e6f7.jpg",
+      "file": "gulimall/2026/10/18/502b042efc494640ac335921dca5e6f7.jpg",
+      "size": 210768,
+      "etag": "733d8e615e6e011406eb0c0446103e74",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T01:01:41.816Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/513086953f0043dcbea894b04e2f429c.png",
+      "file": "gulimall/2026/10/18/513086953f0043dcbea894b04e2f429c.png",
+      "size": 1378675,
+      "etag": "784ed0765ad086e77f2bd41ab1747294",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:36.899Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/516ca9e7853145e196107a80d99ab165.jpg",
+      "file": "gulimall/2026/10/18/516ca9e7853145e196107a80d99ab165.jpg",
+      "size": 20938,
+      "etag": "1069fc07c2836ae76262bade0f20d259",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:30.436Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/532a362c9ded497181bac148bf9bfd70.png",
+      "file": "gulimall/2026/10/18/532a362c9ded497181bac148bf9bfd70.png",
+      "size": 1479841,
+      "etag": "5ad1b6f936064ee1564bb90e2d2f18fc",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:11.98Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/5437222a2d8145a6a1426f148262de06.png",
+      "file": "gulimall/2026/10/18/5437222a2d8145a6a1426f148262de06.png",
+      "size": 1252357,
+      "etag": "552c04821b7c7019f3002d5efe734e3f",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:22.42Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/55ee2c9684db49339008bf78cd1029d1.jpg",
+      "file": "gulimall/2026/10/18/55ee2c9684db49339008bf78cd1029d1.jpg",
+      "size": 15139,
+      "etag": "392dabd824a4c481cb746bdc0139e73a",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:31.086Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/5630566768db4eb3841b868c3a97ec68.png",
+      "file": "gulimall/2026/10/18/5630566768db4eb3841b868c3a97ec68.png",
+      "size": 538208,
+      "etag": "ca4b702b65282a06c85b854b5d57fa64",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:14.594Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/56464ed1c68f4a2cb1297b78e029348b.png",
+      "file": "gulimall/2026/10/18/56464ed1c68f4a2cb1297b78e029348b.png",
+      "size": 788666,
+      "etag": "ae5b6d4f042d10645b55dbd2f2961638",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:26.128Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/5793e2a3fb2a4156add9781ab40f83e6.png",
+      "file": "gulimall/2026/10/18/5793e2a3fb2a4156add9781ab40f83e6.png",
+      "size": 855660,
+      "etag": "fd6a31c4d7f5d8fa90674e7ec3d65b23",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:37.967Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/57b72d46db684805ad0f2f2bfb8bcff3.png",
+      "file": "gulimall/2026/10/18/57b72d46db684805ad0f2f2bfb8bcff3.png",
+      "size": 453189,
+      "etag": "a6212c003899c7b153f225d93ed3fa44",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:15.891Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/57b7f9b0cac643cfbe1816c4c3184fad.png",
+      "file": "gulimall/2026/10/18/57b7f9b0cac643cfbe1816c4c3184fad.png",
+      "size": 119416,
+      "etag": "1323c31d81966ac86a821932cde4af44",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:27.028Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/58f7f0b5c1ef41199ef7bce609382271.png",
+      "file": "gulimall/2026/10/18/58f7f0b5c1ef41199ef7bce609382271.png",
+      "size": 135687,
+      "etag": "b93c6ccf188f7c63865bfbaeae9fa542",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:25.119Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/5b48e3c0d6da454da190c119597322ab.jpg",
+      "file": "gulimall/2026/10/18/5b48e3c0d6da454da190c119597322ab.jpg",
+      "size": 135233,
+      "etag": "840029da464e56d259115d174a78b6aa",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:29.734Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/5bc6bcbdc1e34fdcb7936f001316bcb5.png",
+      "file": "gulimall/2026/10/18/5bc6bcbdc1e34fdcb7936f001316bcb5.png",
+      "size": 113773,
+      "etag": "f0581d4b92f95b078a08b1c151fa847a",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:26.711Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/5bea8732ad944862aff3b1efe39daac7.png",
+      "file": "gulimall/2026/10/18/5bea8732ad944862aff3b1efe39daac7.png",
+      "size": 706316,
+      "etag": "1ca0d75682ebb77f38109e8fb39fd5cb",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:40.758Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/5cdbfb2c3a544c60832c8beeb92010bb.png",
+      "file": "gulimall/2026/10/18/5cdbfb2c3a544c60832c8beeb92010bb.png",
+      "size": 1433219,
+      "etag": "b70ae782bb3a7401e4b0a65362447db4",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:31.06Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/5d68ee9601b844f5b1c78996fbcaa8d5.png",
+      "file": "gulimall/2026/10/18/5d68ee9601b844f5b1c78996fbcaa8d5.png",
+      "size": 1860590,
+      "etag": "405e12f98af1b49bd9a073c9f17a4453",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:41.156Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/5d965b01aee14d0989968077737e442f.png",
+      "file": "gulimall/2026/10/18/5d965b01aee14d0989968077737e442f.png",
+      "size": 921620,
+      "etag": "185bad5acfb634f3cf19eee69e8dcf12",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:30.676Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/5dd4786163f44dde96cc51fe13b5332f.jpg",
+      "file": "gulimall/2026/10/18/5dd4786163f44dde96cc51fe13b5332f.jpg",
+      "size": 25161,
+      "etag": "353867c746a0c76b548b816c03fcb7ce",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:30.153Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/5f506b474bf74f8d938802a191786454.png",
+      "file": "gulimall/2026/10/18/5f506b474bf74f8d938802a191786454.png",
+      "size": 1728584,
+      "etag": "28902f6e3b6721d977463a6067a9620d",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:30.207Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/5f9f82e8e56e44c8890b23da9599184a.png",
+      "file": "gulimall/2026/10/18/5f9f82e8e56e44c8890b23da9599184a.png",
+      "size": 1508008,
+      "etag": "f1b1eac494ed7fcd3344cf6035c17fa6",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:32.784Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/60c70475a67d4f53814465529bb9e1f4.jpg",
+      "file": "gulimall/2026/10/18/60c70475a67d4f53814465529bb9e1f4.jpg",
+      "size": 58914,
+      "etag": "5f9872504e6e4d390518cac283b613af",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:33.542Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/610cfdf2054e436b9b5876b7bdf16e39.png",
+      "file": "gulimall/2026/10/18/610cfdf2054e436b9b5876b7bdf16e39.png",
+      "size": 607182,
+      "etag": "0659da33d5a338161d3832d91373a836",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:33.396Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/612f41c849f847c390024128474dd910.png",
+      "file": "gulimall/2026/10/18/612f41c849f847c390024128474dd910.png",
+      "size": 279156,
+      "etag": "3bd2db3feb9f644c215ce0441d9c2ca7",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:14.826Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/617fb116c591421e82db21885c6a2ada.png",
+      "file": "gulimall/2026/10/18/617fb116c591421e82db21885c6a2ada.png",
+      "size": 411363,
+      "etag": "26239533f604fda76853ffbf2bc3963b",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:32.917Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/61ed5289e3914f22b205e67806ed144a.png",
+      "file": "gulimall/2026/10/18/61ed5289e3914f22b205e67806ed144a.png",
+      "size": 249600,
+      "etag": "d8876656c3d5013ec4a230624c90127b",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:34.441Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/63110285981744c88f930a09b4851234.jpg",
+      "file": "gulimall/2026/10/18/63110285981744c88f930a09b4851234.jpg",
+      "size": 29811,
+      "etag": "14dda6c362e33bb679162acafd6ff171",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:32.919Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/659849d211144471a664e06ea747fd3a.png",
+      "file": "gulimall/2026/10/18/659849d211144471a664e06ea747fd3a.png",
+      "size": 1961327,
+      "etag": "e4a967fde5ad006484a4da7f98c33e4b",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:11.681Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/65f16a85cde142c297c161256bad75b5.png",
+      "file": "gulimall/2026/10/18/65f16a85cde142c297c161256bad75b5.png",
+      "size": 311583,
+      "etag": "b3644c39a078e4c2d76ec4386fc7869a",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:16.197Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/6ba35aac6f1443459bcf439e8d65e50b.png",
+      "file": "gulimall/2026/10/18/6ba35aac6f1443459bcf439e8d65e50b.png",
+      "size": 3238579,
+      "etag": "f6aec33322f4e2f0c11e285f055b1bc7",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:42.681Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/6c8fb2bc64ac45c7ae991288cb0c23fe.jpg",
+      "file": "gulimall/2026/10/18/6c8fb2bc64ac45c7ae991288cb0c23fe.jpg",
+      "size": 135096,
+      "etag": "26947e4138ef26af3b5423ad2b4b1caa",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T01:01:24.636Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/6de726b4b7ea4c7d94492e3c4ca0a055.jpg",
+      "file": "gulimall/2026/10/18/6de726b4b7ea4c7d94492e3c4ca0a055.jpg",
+      "size": 23471,
+      "etag": "a3951a73cb5775d391550d69ae462b81",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:30.268Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/6f91737213c34acab2d030cbe89b3c87.png",
+      "file": "gulimall/2026/10/18/6f91737213c34acab2d030cbe89b3c87.png",
+      "size": 1164995,
+      "etag": "a9441dc007630135d7128358286f23bc",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:23.357Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/7197c1ef70334b01b3eb74cf4b0d792c.png",
+      "file": "gulimall/2026/10/18/7197c1ef70334b01b3eb74cf4b0d792c.png",
+      "size": 131800,
+      "etag": "8f5afa15c85746f0653774be8befef72",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:25.007Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/72eaf162f2d9488485b0b570cb1b3b76.png",
+      "file": "gulimall/2026/10/18/72eaf162f2d9488485b0b570cb1b3b76.png",
+      "size": 1660781,
+      "etag": "36fe25c094a6d3a3db6a655fd745ba6b",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:16.344Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/75bebb84fafb440a8c495b68d2be9094.png",
+      "file": "gulimall/2026/10/18/75bebb84fafb440a8c495b68d2be9094.png",
+      "size": 1017563,
+      "etag": "b7b1ebdf9a83919c753cdaedae994c3c",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:33.534Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/781f85d3c7e44a8ea63f5287aa458425.jpg",
+      "file": "gulimall/2026/10/18/781f85d3c7e44a8ea63f5287aa458425.jpg",
+      "size": 32134,
+      "etag": "931742757922751aade33cfc5a598f81",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:31.368Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/783f568ea6a44ec5a5a30f0006fde59b.png",
+      "file": "gulimall/2026/10/18/783f568ea6a44ec5a5a30f0006fde59b.png",
+      "size": 611767,
+      "etag": "f05e8cf0606439f03dcddfbaefff3ab9",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:13.62Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/78ae166417ac45fa86ab1b35ea7f0f1e.png",
+      "file": "gulimall/2026/10/18/78ae166417ac45fa86ab1b35ea7f0f1e.png",
+      "size": 2246384,
+      "etag": "2a0f359261862abdfd7276db552ef00e",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:19.908Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/7923a4ed64164d809daa5fb53605117d.jpg",
+      "file": "gulimall/2026/10/18/7923a4ed64164d809daa5fb53605117d.jpg",
+      "size": 95001,
+      "etag": "15c4fc59243e907f3c506f1a47deccbc",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:30.501Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/79b9ef781f59431b9b336aee8b8002d4.png",
+      "file": "gulimall/2026/10/18/79b9ef781f59431b9b336aee8b8002d4.png",
+      "size": 233855,
+      "etag": "8d6b8027a4e380b84b24cba19a800e0e",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:12.691Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/7a529de20c384206b48d4a9d989cd9e9.png",
+      "file": "gulimall/2026/10/18/7a529de20c384206b48d4a9d989cd9e9.png",
+      "size": 337032,
+      "etag": "300778542f647e7592bf49c9725c697a",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:25.817Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/7b4d3798eab243c2a38b55eb0b80ba69.png",
+      "file": "gulimall/2026/10/18/7b4d3798eab243c2a38b55eb0b80ba69.png",
+      "size": 1600174,
+      "etag": "1e454558d146464f373490b154acec95",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:13.265Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/7b759a27151c4f779ba91659acbd62e4.png",
+      "file": "gulimall/2026/10/18/7b759a27151c4f779ba91659acbd62e4.png",
+      "size": 1002446,
+      "etag": "04e3827c53f349a4afb07b5550767ed0",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:38.447Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/7cc12348f2234545a064f65dc2302c38.png",
+      "file": "gulimall/2026/10/18/7cc12348f2234545a064f65dc2302c38.png",
+      "size": 409295,
+      "etag": "41cbbc00ba3322840286916bea55b823",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:27.139Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/7d4c3945e9e4440ea29fb894801db1d7.jpg",
+      "file": "gulimall/2026/10/18/7d4c3945e9e4440ea29fb894801db1d7.jpg",
+      "size": 29355,
+      "etag": "d1279ae7f69a0543ae17ba6746372dc3",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:31.746Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/7e096dfe381f4291bf94f0f5a7d1e497.jpg",
+      "file": "gulimall/2026/10/18/7e096dfe381f4291bf94f0f5a7d1e497.jpg",
+      "size": 35161,
+      "etag": "78df714ca472dd9463b07b5414e45916",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:31.808Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/7ea18d97d3014314aa75e53920a0dba6.png",
+      "file": "gulimall/2026/10/18/7ea18d97d3014314aa75e53920a0dba6.png",
+      "size": 314996,
+      "etag": "4893590d7c77a75e44ce52e83dbb8a16",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:25.704Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/808fea120fa944788eac209d24e8323c.png",
+      "file": "gulimall/2026/10/18/808fea120fa944788eac209d24e8323c.png",
+      "size": 1464338,
+      "etag": "0267b40202c58bf82e0e1db402c23dc6",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:34.312Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/80e93c6ff5cb4d4ca0bc9f577c0aa695.png",
+      "file": "gulimall/2026/10/18/80e93c6ff5cb4d4ca0bc9f577c0aa695.png",
+      "size": 582160,
+      "etag": "ea062cac6ce70b6c38acb29ae16bba69",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:28.658Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/80f6585e91ee4e1e9f4bb60d200efd0a.png",
+      "file": "gulimall/2026/10/18/80f6585e91ee4e1e9f4bb60d200efd0a.png",
+      "size": 1277092,
+      "etag": "26ee97316374849c4ac2d49efbc698bf",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:28.048Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/812e6017d10a46cca0fcb105d1608ee9.png",
+      "file": "gulimall/2026/10/18/812e6017d10a46cca0fcb105d1608ee9.png",
+      "size": 1106806,
+      "etag": "fb1c6a05a920c3ffa99e6b8d9470d4f5",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:13.775Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/8157e8eee8b84c97a3d7a83a3ff9a20a.png",
+      "file": "gulimall/2026/10/18/8157e8eee8b84c97a3d7a83a3ff9a20a.png",
+      "size": 1746339,
+      "etag": "3ea7a0fcc24dd8ef9d95d912ff188eaf",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:23.008Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/81753fb67995490daf556a2fffe84fd3.png",
+      "file": "gulimall/2026/10/18/81753fb67995490daf556a2fffe84fd3.png",
+      "size": 248213,
+      "etag": "a33391ad31b8531f565899d50d861ba1",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:27.264Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/81b720efd8a1447ea18f71adffd0d63d.png",
+      "file": "gulimall/2026/10/18/81b720efd8a1447ea18f71adffd0d63d.png",
+      "size": 1143668,
+      "etag": "db868c6e6dfa8bafca23a08cbb909bf4",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:42.873Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/8287269044f947f0b0d97dcc12f31f13.jpg",
+      "file": "gulimall/2026/10/18/8287269044f947f0b0d97dcc12f31f13.jpg",
+      "size": 20342,
+      "etag": "ce61b8387460fdf07b2bf3de1193e1a4",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:32.029Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/8299661750a8432dbe150e6c80c29c67.jpg",
+      "file": "gulimall/2026/10/18/8299661750a8432dbe150e6c80c29c67.jpg",
+      "size": 258125,
+      "etag": "a5fd25b034b3188d9f84c4db258c2280",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T01:01:23.183Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/82abb3d11e4e4fb1bdd7a4e4339236a9.png",
+      "file": "gulimall/2026/10/18/82abb3d11e4e4fb1bdd7a4e4339236a9.png",
+      "size": 580531,
+      "etag": "aa43c629913821581c387ffdc428c75f",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:34.126Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/83d6fae34c254e5b8bb6ebad45a34411.jpg",
+      "file": "gulimall/2026/10/18/83d6fae34c254e5b8bb6ebad45a34411.jpg",
+      "size": 68325,
+      "etag": "42ef7488eb6112804c4df85f545dfdb5",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:32.193Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/842f3fbdb2df46c88cd5c28a342663f8.png",
+      "file": "gulimall/2026/10/18/842f3fbdb2df46c88cd5c28a342663f8.png",
+      "size": 1400182,
+      "etag": "1874f900efd7001fad2bafd1b923b548",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:29.535Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/85293891dc794eaea612478f14f0c7ff.png",
+      "file": "gulimall/2026/10/18/85293891dc794eaea612478f14f0c7ff.png",
+      "size": 121883,
+      "etag": "786e9f1292581ad74fbfe9830a018d95",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:29.066Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/859bb7e578a54a1aa052684b0a493a95.png",
+      "file": "gulimall/2026/10/18/859bb7e578a54a1aa052684b0a493a95.png",
+      "size": 141396,
+      "etag": "478af3571ae2ce0e606398a8ccd513a3",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T02:04:34.397Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/86e1cc15489c4ad8a04f4825b4b19296.png",
+      "file": "gulimall/2026/10/18/86e1cc15489c4ad8a04f4825b4b19296.png",
+      "size": 94614,
+      "etag": "369e71fbc3229888644db7e62c7ac053",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T02:04:31.886Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/86f162af352f487b8cc5d35a8ddda52a.png",
+      "file": "gulimall/2026/10/18/86f162af352f487b8cc5d35a8ddda52a.png",
+      "size": 237491,
+      "etag": "ef3498aefe3a753c40ebcdc7429d0ada",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:18.788Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/8715ddff01f54907a5a50e9a3a578cd6.jpg",
+      "file": "gulimall/2026/10/18/8715ddff01f54907a5a50e9a3a578cd6.jpg",
+      "size": 21638,
+      "etag": "5ca88f33952a07c42b24ae7f3b164a9d",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:33.961Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/88f80796459c4e23a3c0e042565ba1f4.jpg",
+      "file": "gulimall/2026/10/18/88f80796459c4e23a3c0e042565ba1f4.jpg",
+      "size": 17218,
+      "etag": "013ff2da305011126f245b5dfc548d39",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:33.608Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/899b86ae1e7246a0a22f2d5c45eb4947.png",
+      "file": "gulimall/2026/10/18/899b86ae1e7246a0a22f2d5c45eb4947.png",
+      "size": 240522,
+      "etag": "fb82e76e06a3f0aad67b98db6a040cbe",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:19.132Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/8a2a1632d82943a68bbd195f7ba1dc4f.png",
+      "file": "gulimall/2026/10/18/8a2a1632d82943a68bbd195f7ba1dc4f.png",
+      "size": 1699790,
+      "etag": "5567dc95c071eba6a5fed6444bf31af8",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:37.705Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/8a7e68106d9a4f74897a2157a1e44afd.png",
+      "file": "gulimall/2026/10/18/8a7e68106d9a4f74897a2157a1e44afd.png",
+      "size": 109970,
+      "etag": "d1577cd6e0dfca5051e331ae6936010d",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:41.452Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/8aef87eb8645472ab4648998565c6d31.jpg",
+      "file": "gulimall/2026/10/18/8aef87eb8645472ab4648998565c6d31.jpg",
+      "size": 15790,
+      "etag": "7edffda17c8f52c051fbc2fad848fff9",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:33.404Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/8b4ab7cc2c0c4c10a4a90ab4853709aa.jpg",
+      "file": "gulimall/2026/10/18/8b4ab7cc2c0c4c10a4a90ab4853709aa.jpg",
+      "size": 32802,
+      "etag": "e2e2ffd0c2fde79e23e96a07a218475e",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:30.567Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/8cae70f750e54dab80c5cdd98e4a9584.png",
+      "file": "gulimall/2026/10/18/8cae70f750e54dab80c5cdd98e4a9584.png",
+      "size": 331194,
+      "etag": "29a37c64da6c2541545040792d71b9d2",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:38.204Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/8d08b7d12ff146a99cd281256271d03d.png",
+      "file": "gulimall/2026/10/18/8d08b7d12ff146a99cd281256271d03d.png",
+      "size": 109020,
+      "etag": "f38c951cf91f2e4fb2864eb6495013da",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:19.699Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/8d7078dabcf14b8b8508735fb881192e.png",
+      "file": "gulimall/2026/10/18/8d7078dabcf14b8b8508735fb881192e.png",
+      "size": 1585531,
+      "etag": "a1bb3bc7e457b6cf4361de055f5bed05",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:15.572Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/8d97a31a409743069dce04918318d3ce.jpg",
+      "file": "gulimall/2026/10/18/8d97a31a409743069dce04918318d3ce.jpg",
+      "size": 21655,
+      "etag": "62efe5663d70ed0f879bf2e3542cd838",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:33.161Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/9043e16ed9f24618a1f474030418e55f.png",
+      "file": "gulimall/2026/10/18/9043e16ed9f24618a1f474030418e55f.png",
+      "size": 869045,
+      "etag": "c907a4fcf329da1cd81e59aabcbe8d5e",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:36.232Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/926ec4f0ef5f4cd3b42c60f67b004f97.png",
+      "file": "gulimall/2026/10/18/926ec4f0ef5f4cd3b42c60f67b004f97.png",
+      "size": 1592083,
+      "etag": "eed0a3afc4542ea48cf339b42378e9b0",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:15.751Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/943900eb6e7440c59723368b6dc69d87.jpg",
+      "file": "gulimall/2026/10/18/943900eb6e7440c59723368b6dc69d87.jpg",
+      "size": 121529,
+      "etag": "6ec5cac586b63b94fc5cb84fbe1d3f29",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T01:01:17.985Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/95b08d077f9645668179957522000ceb.jpg",
+      "file": "gulimall/2026/10/18/95b08d077f9645668179957522000ceb.jpg",
+      "size": 28616,
+      "etag": "e67131190356c40f9d3d586f4cb8fe76",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:34.086Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/96862ec6289e4a23a0d69b9fe82b47a4.png",
+      "file": "gulimall/2026/10/18/96862ec6289e4a23a0d69b9fe82b47a4.png",
+      "size": 1157002,
+      "etag": "9eafa776869ef2c0e3b7cd4099e809e6",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:22.837Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/96ecf2269ba4459ea4bb9bccc527ef56.png",
+      "file": "gulimall/2026/10/18/96ecf2269ba4459ea4bb9bccc527ef56.png",
+      "size": 124555,
+      "etag": "23b148d875d28cafbc3a6e661de805b8",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:20.937Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/972a51da1c80434ba20c94a8905b3199.png",
+      "file": "gulimall/2026/10/18/972a51da1c80434ba20c94a8905b3199.png",
+      "size": 2080751,
+      "etag": "7e42dc5125801f35754011368a6e7fbe",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:36.027Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/97d57ffcccc94a39bc448a7276c7db63.png",
+      "file": "gulimall/2026/10/18/97d57ffcccc94a39bc448a7276c7db63.png",
+      "size": 1576547,
+      "etag": "440498d699395978994e6c176292eab5",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:26.911Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/9b5d07283263461e96193ec1f76847a2.png",
+      "file": "gulimall/2026/10/18/9b5d07283263461e96193ec1f76847a2.png",
+      "size": 979795,
+      "etag": "29ebef5784cbc1d2189ddbca55049bdc",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:35.659Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/9d2aee80276a41e68f4668398cf2a8aa.png",
+      "file": "gulimall/2026/10/18/9d2aee80276a41e68f4668398cf2a8aa.png",
+      "size": 360156,
+      "etag": "078e02c99e931b7b7cff1ae74eec51bf",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:24.307Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/9d5c7e78cf6d4ece819ae680572517a4.png",
+      "file": "gulimall/2026/10/18/9d5c7e78cf6d4ece819ae680572517a4.png",
+      "size": 2159170,
+      "etag": "ea5bfcfa65a2053bad27e320759399fb",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:31.282Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/9e57b7b34870482fa0133dfe97da3a1d.png",
+      "file": "gulimall/2026/10/18/9e57b7b34870482fa0133dfe97da3a1d.png",
+      "size": 810848,
+      "etag": "b446dcc619451b06469bfd684149604c",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:14.163Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/9ee6b20438804bfdabeb212a57c713ff.png",
+      "file": "gulimall/2026/10/18/9ee6b20438804bfdabeb212a57c713ff.png",
+      "size": 906447,
+      "etag": "1bf9cf1a5a011f0ca9d139ec2c8c44de",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:26.268Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/9eefc281e79a4f0b96de667433feed80.png",
+      "file": "gulimall/2026/10/18/9eefc281e79a4f0b96de667433feed80.png",
+      "size": 790556,
+      "etag": "3b31af3ca99ae8d1e1804a38939e4489",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:12.124Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/9f7d9f0e01c545e89d511535a3301d56.png",
+      "file": "gulimall/2026/10/18/9f7d9f0e01c545e89d511535a3301d56.png",
+      "size": 1284211,
+      "etag": "365769a1e6d6f31706e3812a0b27f8ac",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:39.777Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/a18200355cae4ab0912a3fafea34fccb.png",
+      "file": "gulimall/2026/10/18/a18200355cae4ab0912a3fafea34fccb.png",
+      "size": 108915,
+      "etag": "50daed3324d3ad19f6c41ef2b4379585",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:20.403Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/a275dc41c13b4815ad7dc91cf1df9dfb.png",
+      "file": "gulimall/2026/10/18/a275dc41c13b4815ad7dc91cf1df9dfb.png",
+      "size": 2452896,
+      "etag": "7df9640229c4d43b21d5efa27a823106",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:32.583Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/a45ddb22144d49c685768e0f04ac493e.png",
+      "file": "gulimall/2026/10/18/a45ddb22144d49c685768e0f04ac493e.png",
+      "size": 427541,
+      "etag": "29f0cfa9fb9ff355cc2d1c8188814b6e",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:29.191Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/a75291250a404322b72a05cacd4d35c3.png",
+      "file": "gulimall/2026/10/18/a75291250a404322b72a05cacd4d35c3.png",
+      "size": 345292,
+      "etag": "d41b92bd64f5bc45b34741e05ffd8b5e",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:21.239Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/a75993bf904745a3a2deb0a34f1dc91b.png",
+      "file": "gulimall/2026/10/18/a75993bf904745a3a2deb0a34f1dc91b.png",
+      "size": 977982,
+      "etag": "2368eb6a81818fcd3899a505af694c10",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:12.383Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/aa6bc71629504ce097b346ce7f06d3d0.jpg",
+      "file": "gulimall/2026/10/18/aa6bc71629504ce097b346ce7f06d3d0.jpg",
+      "size": 103548,
+      "etag": "25f00edf3975c08cb9f3f44174681062",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T01:01:16.72Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/ab28d053b6664ce5aaa25a33afe9599f.png",
+      "file": "gulimall/2026/10/18/ab28d053b6664ce5aaa25a33afe9599f.png",
+      "size": 3648206,
+      "etag": "214e79159a2875dd7a9fbda7c2dc2979",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:28.95Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/ab5b0511be6244dd8284d07851dc98a7.png",
+      "file": "gulimall/2026/10/18/ab5b0511be6244dd8284d07851dc98a7.png",
+      "size": 2264152,
+      "etag": "64e08f6ceb0a67d7def1452b5b33a47d",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:27.485Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/ac8e0461a4934212bbadf21c3850a2f1.png",
+      "file": "gulimall/2026/10/18/ac8e0461a4934212bbadf21c3850a2f1.png",
+      "size": 335099,
+      "etag": "78ffa282a61119b34a76afeb777f72d1",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:30.344Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/ac908a9b4358428ba39a7deff3b1b2b8.png",
+      "file": "gulimall/2026/10/18/ac908a9b4358428ba39a7deff3b1b2b8.png",
+      "size": 624536,
+      "etag": "d5ba7c7bbe90385fca3d3515760f90c3",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:00:58.523Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/aca438d184254dceb8cb518e749566f8.png",
+      "file": "gulimall/2026/10/18/aca438d184254dceb8cb518e749566f8.png",
+      "size": 633213,
+      "etag": "17e6503c04a543054ede581597c1a97c",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:26.606Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/acdf05152f464363b25c317defc943ca.png",
+      "file": "gulimall/2026/10/18/acdf05152f464363b25c317defc943ca.png",
+      "size": 1223203,
+      "etag": "59a0cc814e052c4b8e629b874d9e1e1b",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:16.62Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/ae5e556c6f1b491f8054999c711e1be2.jpg",
+      "file": "gulimall/2026/10/18/ae5e556c6f1b491f8054999c711e1be2.jpg",
+      "size": 1095945,
+      "etag": "41672daa09868b574f352e1d8d18e7d5",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T01:01:20.694Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/af343ccb1c004705b1fde31c8991ba4b.jpg",
+      "file": "gulimall/2026/10/18/af343ccb1c004705b1fde31c8991ba4b.jpg",
+      "size": 465547,
+      "etag": "272709d7052063cdc0cc709448d8848b",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T01:01:16.457Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/b1dc9af81c3c404485d5aa04385ef44c.jpg",
+      "file": "gulimall/2026/10/18/b1dc9af81c3c404485d5aa04385ef44c.jpg",
+      "size": 19658,
+      "etag": "b7abc28378d1b6f9557a84ec0862c0e6",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:30.696Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/b1f9039d34554befbc8d1d40f96d05a6.png",
+      "file": "gulimall/2026/10/18/b1f9039d34554befbc8d1d40f96d05a6.png",
+      "size": 987086,
+      "etag": "020a5f963406dc9be72fe7aa39755d4a",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:39.018Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/b2997f93ece249769d6c6bb2cbd8a737.png",
+      "file": "gulimall/2026/10/18/b2997f93ece249769d6c6bb2cbd8a737.png",
+      "size": 828999,
+      "etag": "1eee25f29c2dcaaf61c0be488f04a651",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:21.093Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/b64e297293e94997b4f73c1d56b547a8.jpg",
+      "file": "gulimall/2026/10/18/b64e297293e94997b4f73c1d56b547a8.jpg",
+      "size": 38035,
+      "etag": "d9d5685c65280b6115b0b7c02f3e18eb",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:32.354Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/b7568a7562a74128b54060b406d13d55.png",
+      "file": "gulimall/2026/10/18/b7568a7562a74128b54060b406d13d55.png",
+      "size": 2078477,
+      "etag": "f38ac86bd98f8cb3ab06725ccd6d9f71",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:42.264Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/b7b7b14892204597a660ce116e9595e6.jpg",
+      "file": "gulimall/2026/10/18/b7b7b14892204597a660ce116e9595e6.jpg",
+      "size": 67195,
+      "etag": "2c4afa0cc8f9304754d27d8265b71a31",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T01:01:35.212Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/b8aa264374454f77897b8cc1761258d8.png",
+      "file": "gulimall/2026/10/18/b8aa264374454f77897b8cc1761258d8.png",
+      "size": 1444382,
+      "etag": "84af16624748dbe76200a09b942a61dd",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:13.101Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/b93d117624bf4a758b0b0c7d12c99a56.png",
+      "file": "gulimall/2026/10/18/b93d117624bf4a758b0b0c7d12c99a56.png",
+      "size": 416997,
+      "etag": "69a432a5face0a733e33763d67ce5387",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:31.426Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/b97c232aa15f42f8808e6e99c11ba6ef.png",
+      "file": "gulimall/2026/10/18/b97c232aa15f42f8808e6e99c11ba6ef.png",
+      "size": 95185,
+      "etag": "dd044c6ed51d2b6b280abbf1140758f5",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T02:04:31.438Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/b99afdfebe6b4b319a804a04e7f14ad5.png",
+      "file": "gulimall/2026/10/18/b99afdfebe6b4b319a804a04e7f14ad5.png",
+      "size": 3479014,
+      "etag": "6dc2b042ce3cdb7bf31c56f1f1521cc2",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:37.496Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/baed3bfb021b4f26b3c2fdc3b412fef3.jpg",
+      "file": "gulimall/2026/10/18/baed3bfb021b4f26b3c2fdc3b412fef3.jpg",
+      "size": 23598,
+      "etag": "9c170774eed6cce8b7f1bc109149c1d2",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:29.818Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/c02adfee249545de8a47c2ff4c265110.jpg",
+      "file": "gulimall/2026/10/18/c02adfee249545de8a47c2ff4c265110.jpg",
+      "size": 39022,
+      "etag": "d5cfe591e3db40d2f2724be646c102c5",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:32.273Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/c178622dfab041c4b38678de3c1ec0b5.png",
+      "file": "gulimall/2026/10/18/c178622dfab041c4b38678de3c1ec0b5.png",
+      "size": 732222,
+      "etag": "a00e789078529e79c2701741fe392cbf",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:14.472Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/c25b8f93fc9c45fc8681f65f1d25a780.png",
+      "file": "gulimall/2026/10/18/c25b8f93fc9c45fc8681f65f1d25a780.png",
+      "size": 1095848,
+      "etag": "3ac1245515c6554cdb5b6d882dd06729",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:12.947Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/c3e72ee4af294db291e001354f056316.jpg",
+      "file": "gulimall/2026/10/18/c3e72ee4af294db291e001354f056316.jpg",
+      "size": 24812,
+      "etag": "a5add9eb712f9e7633afcd68a7f37b4c",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:33.741Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/c482de69034b4b0ea3ba2c2f61bd7eae.jpg",
+      "file": "gulimall/2026/10/18/c482de69034b4b0ea3ba2c2f61bd7eae.jpg",
+      "size": 40491,
+      "etag": "65931b4652a06052edab77737d64d82c",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:33.675Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/c496c281f3a34ab4bca354fb201ff19c.png",
+      "file": "gulimall/2026/10/18/c496c281f3a34ab4bca354fb201ff19c.png",
+      "size": 392513,
+      "etag": "163b30e26e227065e6c2d346b4b56ab4",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:30.501Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/c53623fc91ee46df813ca0c0952377d3.png",
+      "file": "gulimall/2026/10/18/c53623fc91ee46df813ca0c0952377d3.png",
+      "size": 113418,
+      "etag": "ba6d7d111c63f91cbb430f0a5c070f08",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:23.743Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/c6c1fbb954b54e0eb2b8e2f93ca83ba3.png",
+      "file": "gulimall/2026/10/18/c6c1fbb954b54e0eb2b8e2f93ca83ba3.png",
+      "size": 672650,
+      "etag": "38ea930a0ea9ade1bf26dc382c8676c6",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:21.391Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/c90212f7a535481ba5de368b4f4a1c79.png",
+      "file": "gulimall/2026/10/18/c90212f7a535481ba5de368b4f4a1c79.png",
+      "size": 1099699,
+      "etag": "420a13f9f950605e61d2bb9e7ba17f42",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:17.408Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/c94df22287b7429981ac88ad604239d8.jpg",
+      "file": "gulimall/2026/10/18/c94df22287b7429981ac88ad604239d8.jpg",
+      "size": 44974,
+      "etag": "70f8f07c1c2fced5690de1a91c2a1cd1",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:32.66Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/cacfa198fae94b25b30415a1a406bab2.png",
+      "file": "gulimall/2026/10/18/cacfa198fae94b25b30415a1a406bab2.png",
+      "size": 624536,
+      "etag": "d5ba7c7bbe90385fca3d3515760f90c3",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:11.478Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/cbd3f726cdce48ed99db96a2d3d5a688.png",
+      "file": "gulimall/2026/10/18/cbd3f726cdce48ed99db96a2d3d5a688.png",
+      "size": 981320,
+      "etag": "6a4cd02e07a9ba912d87178cdfdb9780",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:24.203Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/cc1099b7f61b44fdb9d562df88898e22.png",
+      "file": "gulimall/2026/10/18/cc1099b7f61b44fdb9d562df88898e22.png",
+      "size": 1027025,
+      "etag": "9c377b2fdd5ad2d3409294e475cd6080",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:18.656Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/cdb5f7b699ad4811a22525ab1126d3ce.png",
+      "file": "gulimall/2026/10/18/cdb5f7b699ad4811a22525ab1126d3ce.png",
+      "size": 115195,
+      "etag": "66041bfccce79cc7d5956e05cdb4e041",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:14.023Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/cf2b489f88444a1fa27f43d308c5c00e.png",
+      "file": "gulimall/2026/10/18/cf2b489f88444a1fa27f43d308c5c00e.png",
+      "size": 992485,
+      "etag": "41f0490400e20a232eb1859fa204f9a2",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:37.154Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/cf5d1dcf587f49f3be519aa25c67d62f.png",
+      "file": "gulimall/2026/10/18/cf5d1dcf587f49f3be519aa25c67d62f.png",
+      "size": 119881,
+      "etag": "cd68a2971bc6801fe61803858bcf81a4",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T02:04:31.163Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/d0fd6f8f0a9c4e4998d5c996b09a1b4e.png",
+      "file": "gulimall/2026/10/18/d0fd6f8f0a9c4e4998d5c996b09a1b4e.png",
+      "size": 1466206,
+      "etag": "12b73749e143b04c88bd87637d247326",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:24.052Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/d275a43ced2d45ae9af294866ef6f564.png",
+      "file": "gulimall/2026/10/18/d275a43ced2d45ae9af294866ef6f564.png",
+      "size": 2217408,
+      "etag": "72cb70e1bd44322a937ad4e91b3d16ac",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:28.512Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/d2ec8c29ca3a4c05946c9ab203af01a9.png",
+      "file": "gulimall/2026/10/18/d2ec8c29ca3a4c05946c9ab203af01a9.png",
+      "size": 139594,
+      "etag": "e949ddb2ec3820c1ee9ce275b1ec88ea",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:23.469Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/d3ccbcabc8aa4cbc994560dba8d7a1e9.jpg",
+      "file": "gulimall/2026/10/18/d3ccbcabc8aa4cbc994560dba8d7a1e9.jpg",
+      "size": 16654,
+      "etag": "d2b34f75b6429c6b471fef80d3e8f659",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:33.032Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/d3db1ad7cadf4c6b95fbd0ef31693854.jpg",
+      "file": "gulimall/2026/10/18/d3db1ad7cadf4c6b95fbd0ef31693854.jpg",
+      "size": 32926,
+      "etag": "eac0f8081022c9b8950ff63230d86be8",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:31.017Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/d3e4257f47ba47bcba3a6bf87c9c3a8c.png",
+      "file": "gulimall/2026/10/18/d3e4257f47ba47bcba3a6bf87c9c3a8c.png",
+      "size": 120671,
+      "etag": "3f91a98415062edbab7ae9b764253fe0",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:19.36Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/d4a0fbb70d56448c890360876dc71d6b.png",
+      "file": "gulimall/2026/10/18/d4a0fbb70d56448c890360876dc71d6b.png",
+      "size": 121629,
+      "etag": "474576c59a959de5f52d5f8e0577f806",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:24.396Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/d4a4c0adfc074922aa9e221fa2b1a1ec.png",
+      "file": "gulimall/2026/10/18/d4a4c0adfc074922aa9e221fa2b1a1ec.png",
+      "size": 1072885,
+      "etag": "5c8fdf43e7581a7c2465323ac1d9d3ca",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:22.057Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/d674590b07a74a75b19730d7a872fb4f.png",
+      "file": "gulimall/2026/10/18/d674590b07a74a75b19730d7a872fb4f.png",
+      "size": 1560027,
+      "etag": "e453394163118fa9f53697c52802b967",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:28.316Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/d80d928b27694c92b83428bbd11b6126.jpg",
+      "file": "gulimall/2026/10/18/d80d928b27694c92b83428bbd11b6126.jpg",
+      "size": 16839,
+      "etag": "20b28eaf60212d6114b76802e2be2687",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:33.096Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/da4a0d693e0046d6ad30c992d8ddc3c9.jpg",
+      "file": "gulimall/2026/10/18/da4a0d693e0046d6ad30c992d8ddc3c9.jpg",
+      "size": 24562,
+      "etag": "7a7ff09568cfd781fbb1ff503f5d7d57",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:33.231Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/da5ef01a92864f4caa36018c877cd5ff.jpg",
+      "file": "gulimall/2026/10/18/da5ef01a92864f4caa36018c877cd5ff.jpg",
+      "size": 26828,
+      "etag": "b98d7cc2e1f87061abdec917436ec4e9",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:30.362Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/da9624167cf345fd847bfdf453ffd89c.png",
+      "file": "gulimall/2026/10/18/da9624167cf345fd847bfdf453ffd89c.png",
+      "size": 1118132,
+      "etag": "b84adba64274f0d1c0d8e9f6f67eb03f",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:34.757Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/dabb489b8aa14361a9b96fb5b6934f8f.png",
+      "file": "gulimall/2026/10/18/dabb489b8aa14361a9b96fb5b6934f8f.png",
+      "size": 691968,
+      "etag": "9288c7926150aef9a8443306bb0664a5",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:23.892Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/dbce9cf516624f86af17af98ba2721b9.jpg",
+      "file": "gulimall/2026/10/18/dbce9cf516624f86af17af98ba2721b9.jpg",
+      "size": 26432,
+      "etag": "277236f575294376ab5ba69c9c9691ed",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:30.014Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/dd40401b193e4324a96e87eda5ecedfc.png",
+      "file": "gulimall/2026/10/18/dd40401b193e4324a96e87eda5ecedfc.png",
+      "size": 2428065,
+      "etag": "fd2369e9d80a64dfbf1f3e23ceb69bbf",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:41.698Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/de4866df7f164710a33f00ba306f1794.png",
+      "file": "gulimall/2026/10/18/de4866df7f164710a33f00ba306f1794.png",
+      "size": 1280970,
+      "etag": "29df0455340079bf7b96221ff97b5d25",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:20.085Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/df5aeea8ad01448898ba06c263060f67.png",
+      "file": "gulimall/2026/10/18/df5aeea8ad01448898ba06c263060f67.png",
+      "size": 4556488,
+      "etag": "42c83f3dcd5fd417aaad61a003ef268a",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:39.463Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/df7439b9076e48d38db2b2ffd34f422c.png",
+      "file": "gulimall/2026/10/18/df7439b9076e48d38db2b2ffd34f422c.png",
+      "size": 114515,
+      "etag": "07cc6e98264469e83072853b40cd9866",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:35.123Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/e149859706af4cf29ac3518fccdbf31e.png",
+      "file": "gulimall/2026/10/18/e149859706af4cf29ac3518fccdbf31e.png",
+      "size": 562332,
+      "etag": "cfc21b9f84f21bc6c13d484cea42b480",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:19.267Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/e266edf5583649378f476bea6a9fb32e.png",
+      "file": "gulimall/2026/10/18/e266edf5583649378f476bea6a9fb32e.png",
+      "size": 327820,
+      "etag": "ad0b6f10c8c42e49c8b9c201f859b196",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:40.918Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/e4fbd9d5553445b0ab77957e0c8ab1d2.png",
+      "file": "gulimall/2026/10/18/e4fbd9d5553445b0ab77957e0c8ab1d2.png",
+      "size": 109887,
+      "etag": "bc32d41826527e3aeb142ecb05253931",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:19.597Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/e5b906af5dd64f058f53c154c8a54607.png",
+      "file": "gulimall/2026/10/18/e5b906af5dd64f058f53c154c8a54607.png",
+      "size": 2142936,
+      "etag": "c41ce065d7997200cad69ddda236588e",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:38.857Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/e6ff7ab90337403caf5c29032c0c1781.png",
+      "file": "gulimall/2026/10/18/e6ff7ab90337403caf5c29032c0c1781.png",
+      "size": 1194669,
+      "etag": "0b70c44a8c14cbf2c7091f6c4c689b45",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:40.443Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/e731ebbcd77d46f38ff30e7513125ba8.png",
+      "file": "gulimall/2026/10/18/e731ebbcd77d46f38ff30e7513125ba8.png",
+      "size": 1485156,
+      "etag": "443520782cf646bee707530d1b7a86eb",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:38.675Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/e7704d00073b49d48b8ec017bc4c9d51.png",
+      "file": "gulimall/2026/10/18/e7704d00073b49d48b8ec017bc4c9d51.png",
+      "size": 1042985,
+      "etag": "06dcdbd348604cd7410460026f567175",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:11.807Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/e9dc29e1168447909effcc59c11b76c4.png",
+      "file": "gulimall/2026/10/18/e9dc29e1168447909effcc59c11b76c4.png",
+      "size": 638602,
+      "etag": "52a354a325b196163b80ddd64ffe6902",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:14.963Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/ea76f0de43df4181975df37ffd1e555e.jpg",
+      "file": "gulimall/2026/10/18/ea76f0de43df4181975df37ffd1e555e.jpg",
+      "size": 25273,
+      "etag": "d2b674c875d2a9592fdea891937130e9",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:32.42Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/eac68905cfe44ae1a9d5ca0d6804aa8e.png",
+      "file": "gulimall/2026/10/18/eac68905cfe44ae1a9d5ca0d6804aa8e.png",
+      "size": 156245,
+      "etag": "a28487590a847ec6cb33c461a132aa1f",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T02:04:33.339Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/ec2bbe726144421594a5d7ca6862a4f4.png",
+      "file": "gulimall/2026/10/18/ec2bbe726144421594a5d7ca6862a4f4.png",
+      "size": 1446603,
+      "etag": "ec35161c352b5ef011f4306075acc25d",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:13.484Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/ed815381ee7f4d588555eac747f30c50.png",
+      "file": "gulimall/2026/10/18/ed815381ee7f4d588555eac747f30c50.png",
+      "size": 461016,
+      "etag": "a57347d6a5d1ffc44e950c1be1a892cb",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:33.652Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/edf366b7c658488eaba03a8b02858908.png",
+      "file": "gulimall/2026/10/18/edf366b7c658488eaba03a8b02858908.png",
+      "size": 313200,
+      "etag": "59b60dc361992e1cb284844624ab2cfb",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:31.954Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/f07cdb0184ea4f86ab8c3c1360d8c176.png",
+      "file": "gulimall/2026/10/18/f07cdb0184ea4f86ab8c3c1360d8c176.png",
+      "size": 424958,
+      "etag": "77549a3c3be609a7395e607679749f4d",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:26.493Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/f0a6a69bedf54f6b99c6267b9348a376.png",
+      "file": "gulimall/2026/10/18/f0a6a69bedf54f6b99c6267b9348a376.png",
+      "size": 1447474,
+      "etag": "2a1497d3608d4c1569adebe8b28ccf05",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:34.612Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/f0b09503b4cb40cca4880954ec16a054.png",
+      "file": "gulimall/2026/10/18/f0b09503b4cb40cca4880954ec16a054.png",
+      "size": 1707366,
+      "etag": "dd649c1c7158fc09d1a2cba36c3af7f7",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:29.856Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/f3c5db052c0f47c399a4c82f7ca158ee.png",
+      "file": "gulimall/2026/10/18/f3c5db052c0f47c399a4c82f7ca158ee.png",
+      "size": 1824618,
+      "etag": "7f9719956557820e3eccdf99b79f1bb7",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:16.934Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/f476d4d00a40460e9840c7df7101f0b7.png",
+      "file": "gulimall/2026/10/18/f476d4d00a40460e9840c7df7101f0b7.png",
+      "size": 1643306,
+      "etag": "428be40402c84a4e3d4f9f61bb86c349",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:22.243Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/f7288f1527f648679dadc845761ce67f.png",
+      "file": "gulimall/2026/10/18/f7288f1527f648679dadc845761ce67f.png",
+      "size": 295719,
+      "etag": "03b184e523a0d18d918ab24fec3de923",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:12.582Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/f7fb9344dace45ba943ae7f2421aca49.png",
+      "file": "gulimall/2026/10/18/f7fb9344dace45ba943ae7f2421aca49.png",
+      "size": 1399003,
+      "etag": "8751309fac3c5f1a417c8e7dcd4e5e6f",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:27.664Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/f88260885e4243c8a32035f64f29ebaa.jpg",
+      "file": "gulimall/2026/10/18/f88260885e4243c8a32035f64f29ebaa.jpg",
+      "size": 17086,
+      "etag": "3249a49b7fc32708a9e6899bd75d103a",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:31.235Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/f96ba7e4815642cc92fa16e6c0dbc74a.png",
+      "file": "gulimall/2026/10/18/f96ba7e4815642cc92fa16e6c0dbc74a.png",
+      "size": 539221,
+      "etag": "4c46a7aa81c2e77ab8e70361ea7410c0",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:20.538Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/f9c5ab64c1d243c788828d0a5ecc2e43.png",
+      "file": "gulimall/2026/10/18/f9c5ab64c1d243c788828d0a5ecc2e43.png",
+      "size": 1129157,
+      "etag": "32f46b5089b5d4f577189dd849e05808",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:30.031Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/fa2f8e54378d438facdd6f9634dd7e0f.png",
+      "file": "gulimall/2026/10/18/fa2f8e54378d438facdd6f9634dd7e0f.png",
+      "size": 1922621,
+      "etag": "43c9549f8dada572d9fdbefb6092f6de",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:32.128Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/fb0548be9ce14faeb01ecfe7ef0c95c5.png",
+      "file": "gulimall/2026/10/18/fb0548be9ce14faeb01ecfe7ef0c95c5.png",
+      "size": 397469,
+      "etag": "a75b23ef3ccf6dc8c4dc6ee4fba1532b",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:24.909Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/fb4a9b704cdb4402b9614ec51df9a44d.png",
+      "file": "gulimall/2026/10/18/fb4a9b704cdb4402b9614ec51df9a44d.png",
+      "size": 1451016,
+      "etag": "8de4867e7db30944261e7be0197c79e3",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:34.896Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/fb99cd84ee134cb89e77e65fb912b66e.png",
+      "file": "gulimall/2026/10/18/fb99cd84ee134cb89e77e65fb912b66e.png",
+      "size": 2912795,
+      "etag": "88d25a5e7fe53dac0a43fa65813224f8",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:21.787Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/fbc2f151f42a486dba04358258eb322d.png",
+      "file": "gulimall/2026/10/18/fbc2f151f42a486dba04358258eb322d.png",
+      "size": 1203857,
+      "etag": "e748095d3cf2c10e89f1185db548ae7c",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:35.824Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/fcec0bbab79a4ad6871bb14dbe2c7e72.png",
+      "file": "gulimall/2026/10/18/fcec0bbab79a4ad6871bb14dbe2c7e72.png",
+      "size": 386882,
+      "etag": "1ca916a766b1e3ab162e177decad41cc",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:15.192Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/fcf6c0ed7ecb45b9bba08fcccf42a693.png",
+      "file": "gulimall/2026/10/18/fcf6c0ed7ecb45b9bba08fcccf42a693.png",
+      "size": 651629,
+      "etag": "315616407a325191ef2f7df6e58f3c30",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:17.133Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/fcf6e6becd6244d38152847ea3636370.jpg",
+      "file": "gulimall/2026/10/18/fcf6e6becd6244d38152847ea3636370.jpg",
+      "size": 19128,
+      "etag": "70ad41db6a9f4add1d87e1eb86ba6238",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:33.807Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/fd49f745bae4457388e0445f3ba3c9c6.jpg",
+      "file": "gulimall/2026/10/18/fd49f745bae4457388e0445f3ba3c9c6.jpg",
+      "size": 28657,
+      "etag": "f37822166bcca9b77928a00e10da1873",
+      "contentType": "image/jpeg",
+      "lastModified": "2026-10-18T02:04:32.533Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/fda8decf285f42329eb904fbdd68fafe.png",
+      "file": "gulimall/2026/10/18/fda8decf285f42329eb904fbdd68fafe.png",
+      "size": 325231,
+      "etag": "ca5f2760504cb5bf4708edb4da1d9923",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:21.898Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/fdcbcb90b4004e2eb96a53be739b1f0c.png",
+      "file": "gulimall/2026/10/18/fdcbcb90b4004e2eb96a53be739b1f0c.png",
+      "size": 288593,
+      "etag": "29c750f52c56cdfd7c70b755bd3b706d",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:31.825Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/fe26fbc37c6e4a609e6d4480b7a51c5c.png",
+      "file": "gulimall/2026/10/18/fe26fbc37c6e4a609e6d4480b7a51c5c.png",
+      "size": 1455524,
+      "etag": "7f38163e99347d18108bbed44d2c7186",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:36.73Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/ff198c79244140dcaff2bc03481e22d3.png",
+      "file": "gulimall/2026/10/18/ff198c79244140dcaff2bc03481e22d3.png",
+      "size": 1455498,
+      "etag": "f456eef0558f3e9db053c7f881565ff1",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:16.095Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/ff65b0d5e00d4983bde92a6f36758184.png",
+      "file": "gulimall/2026/10/18/ff65b0d5e00d4983bde92a6f36758184.png",
+      "size": 122322,
+      "etag": "a26f434eb4dd310358cd02739435cab8",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:38.54Z"
+    },
+    {
+      "bucket": "gulimall",
+      "key": "2026/10/18/ff6f67a99d0d4b7484f447af85a3f70e.png",
+      "file": "gulimall/2026/10/18/ff6f67a99d0d4b7484f447af85a3f70e.png",
+      "size": 1466885,
+      "etag": "26f4aac157c0ca1713a4f2416f6b63e7",
+      "contentType": "image/png",
+      "lastModified": "2026-10-18T01:01:32.359Z"
+    }
+  ]
+}
